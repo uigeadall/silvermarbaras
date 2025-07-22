@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Left: Product Image -->
+    <div class="col-md-6">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" class="img-fluid rounded shadow-sm" alt="{{ product.name }}">
+        {% else %}
+        <img src="{% static 'images/placeholder.jpg' %}" class="img-fluid rounded shadow-sm" alt="No Image">
+        {% endif %}
+    </div>
+
+    <!-- Right: Product Info -->
+    <div class="col-md-6">
+        <h2>{{ product.name }}</h2>
+        <p class="text-muted">${{ product.price }}</p>
+
+        <!-- Add to Cart Form -->
+        <form method="post">
+            {% csrf_token %}
+            <div class="input-group mb-3" style="max-width: 200px;">
+                <input type="number" name="quantity" min="1" value="1" class="form-control">
+                <button type="submit" class="btn btn-dark">🛒 Add to Cart</button>
+            </div>
+        </form>
+
+        <!-- Add to Favorites -->
+        <form method="post" action="{% url 'add_to_favorites' product.pk %}" class="mt-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">❤️ Add to Favorites</button>
+        </form>
+
+        <p class="mt-4">{{ product.description }}</p>
+    </div>
+</div>
+
+<!-- Comments Section -->
+<hr class="my-5">
+<h4>Comments</h4>
+
+{% if user.is_authenticated %}
+<form method="post">
+    {% csrf_token %}
+    <textarea name="comment" class="form-control mb-2" rows="3" placeholder="Leave a comment..."></textarea>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+{% else %}
+<p class="text-muted">You must <a href="{% url 'login' %}">log in</a> to leave a comment.</p>
+{% endif %}
+
+<!-- Display Comments -->
+{% for comment in comments %}
+<div class="mb-3 border-bottom pb-2">
+    <strong>{{ comment.user.username }}</strong>
+    <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+    <p class="mb-0">{{ comment.text }}</p>
+</div>
+{% empty %}
+<p class="text-muted">No comments yet.</p>
+{% endfor %}
+
+{% endblock %}

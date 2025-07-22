@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}My Favorites{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Your Favorite Products ❤️</h2>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for fav in favorites %}
+    <div class="col">
+        <div class="card h-100 shadow-sm">
+            {% if fav.product.image %}
+            <img src="{{ fav.product.image.url }}" class="card-img-top" alt="{{ fav.product.name }}">
+            {% else %}
+            <img src="{% static 'images/placeholder.jpg' %}" class="card-img-top" alt="No image">
+            {% endif %}
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ fav.product.name }}</h5>
+                <p class="text-muted">${{ fav.product.price }}</p>
+                <a href="{% url 'product_detail' fav.product.pk %}" class="btn btn-outline-dark btn-sm">View</a>
+                <form action="{% url 'remove_from_favorites' fav.product.pk %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove ❤️</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-center">You haven’t added any favorites yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

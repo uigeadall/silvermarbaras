@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Home - Silver Jewelry Shop{% endblock %}
+
+{% block content %}
+<div class="row">
+
+    <!-- LEFT: Categories -->
+    <div class="col-md-2 order-1 mb-4">
+        <div class="mb-3">
+            <span class="px-3 pt-2 pb-1 text-uppercase small d-block fw-semibold" style="color: {% if selected_category %}red{% else %}black{% endif %};">
+                Categories
+            </span>
+
+            <div class="d-flex flex-column">
+                {% for category in categories %}
+                    <a href="{% url 'products_by_category' category.pk %}"
+                       class="px-3 py-2 text-decoration-none d-flex align-items-center
+                              {% if selected_category and selected_category.id == category.id %}
+                                  text-danger fw-semibold
+                              {% else %}
+                                  text-dark
+                              {% endif %}">
+                        <span class="me-2">•</span> {{ category.name }}
+                    </a>
+                {% empty %}
+                    <span class="px-3 py-2 text-muted">No categories</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- CENTER: Featured Products -->
+    <div class="col-md-8 order-2">
+        <div class="bg-light p-5 rounded text-center shadow-sm mb-5">
+            <h1 class="display-5">Timeless Elegance 💍</h1>
+            <p class="lead">Discover handcrafted silver jewelry made to shine.</p>
+            <a href="{% url 'product_list' %}" class="btn btn-dark btn-lg mt-2">Browse All Products</a>
+        </div>
+
+        <h2 class="mb-4 text-center">Featured Products</h2>
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for product in products %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                        {% else %}
+                            <img src="{% static 'images/placeholder.jpg' %}" class="card-img-top" alt="No Image">
+                        {% endif %}
+                        <div class="card-body text-center">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="text-muted">${{ product.price }}</p>
+                            <div class="row g-1 mt-2">
+                                <div class="col-4">
+                                    <a href="{% url 'product_detail' product.pk %}" class="btn btn-outline-dark btn-sm w-100">View</a>
+                                </div>
+                                <div class="col-4">
+                                    <a href="{% url 'add_to_cart' product.pk %}" class="btn btn-outline-dark btn-sm w-100">🛒</a>
+                                </div>
+                                <div class="col-4">
+                                    <a href="{% url 'add_to_favorites' product.pk %}"
+   class="btn btn-sm w-100 {% if product.id in favorite_ids %}btn-danger{% else %}btn-outline-danger{% endif %}">
+    ❤️
+</a>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-center">No products available.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- RIGHT: Cart & Favorites -->
+    <div class="col-md-2 order-3 mb-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-dark text-white fw-semibold">Quick Links</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <a href="{% url 'favorites_list' %}" class="text-decoration-none text-dark">❤️ My Favorites</a>
+                </li>
+                <li class="list-group-item">
+                    <a href="{% url 'cart_view' %}" class="text-decoration-none text-dark">🛒 View Cart</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
