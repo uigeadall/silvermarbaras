@@ -1,6 +1,217 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block title %}Checkout{% endblock %}
+
 {% block content %}
-<h2>Checkout Page</h2>
-<p>Here you will handle payments using Stripe or other methods.</p>
+<script src="https://js.stripe.com/v3/"></script>
+
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f9f9f9;
+    color: #222;
+  }
+
+  .checkout-container {
+    max-width: 960px;
+    margin: 40px auto;
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+  }
+
+  .cart-summary, .form-section {
+    flex: 1;
+    min-width: 300px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    padding: 25px;
+  }
+
+  .cart-summary h3, .form-section h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.6rem;
+  }
+
+  .cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+  }
+
+  .cart-item-name {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .cart-item-name strong {
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  .cart-item img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 10px;
+  }
+
+  .cart-total {
+    margin-top: 16px;
+    text-align: right;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .form-group input,
+  .StripeElement {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+
+  #card-errors {
+    color: red;
+    font-size: 0.9rem;
+    margin-top: 8px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #222;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .submit-btn:hover {
+    background-color: #444;
+  }
+</style>
+
+<div class="checkout-container">
+  <div class="cart-summary">
+    <h3>Your Order</h3>
+
+    {% for item in cart_items %}
+      <div class="cart-item">
+        <div class="cart-item-name">
+          {% if item.product.image %}
+            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+          {% else %}
+            <img src="{% static 'images/no-image.png' %}" alt="No image">
+          {% endif %}
+          <strong>{{ item.product.name }}</strong> — ${{ item.product.get_discounted_price|floatformat:2 }} × {{ item.quantity }}
+        </div>
+        <div>
+          ${{ item.subtotal|floatformat:2 }}
+        </div>
+      </div>
+    {% empty %}
+      <p>Your cart is empty.</p>
+    {% endfor %}
+    <div class="cart-total">
+      Total: ${{ subtotal|floatformat:2 }}
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2>Shipping & Payment</h2>
+    <form id="payment-form" method="post">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="full_name">Full Name</label>
+        <input type="text" id="full_name" name="full_name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="address">Address</label>
+        <input type="text" id="address" name="address" required>
+      </div>
+
+      <div class="form-group">
+        <label for="city">City</label>
+        <input type="text" id="city" name="city" required>
+      </div>
+
+      <div class="form-group">
+        <label for="postal_code">Postal Code</label>
+        <input type="text" id="postal_code" name="postal_code" required>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" required>
+      </div>
+
+      <div class="form-group">
+        <label for="card-element">Card Information</label>
+        <div id="card-element" class="StripeElement"></div>
+        <div id="card-errors" role="alert"></div>
+      </div>
+
+      <input type="hidden" name="payment_intent_id" id="payment_intent_id">
+      <button type="submit" class="submit-btn">💳 Pay</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const stripe = Stripe('{{ stripe_public_key }}');
+  const elements = stripe.elements();
+  const card = elements.create('card');
+  card.mount('#card-element');
+
+  const form = document.getElementById('payment-form');
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const fullName = document.getElementById('full_name').value;
+
+    const { error, paymentIntent } = await stripe.confirmCardPayment(
+      '{{ client_secret }}',
+      {
+        payment_method: {
+          card: card,
+          billing_details: {
+            name: fullName
+          }
+        }
+      }
+    );
+
+    if (error) {
+      document.getElementById('card-errors').textContent = error.message;
+    } else {
+      document.getElementById('payment_intent_id').value = paymentIntent.id;
+      form.submit();
+    }
+  });
+</script>
 {% endblock %}

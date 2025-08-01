@@ -4,60 +4,187 @@
 {% block title %}🛒 Your Cart - Silver Jewelry Shop{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <h2 class="text-center mb-4">🛍️ Shopping Cart</h2>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f9f9f9;
+    color: #222;
+  }
 
-    {% if cart_items %}
-    <form method="post">
-        {% csrf_token %}
-        <div class="table-responsive shadow-sm rounded">
-            <table class="table table-hover align-middle text-center mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th scope="col">Product</th>
-                        <th>Price</th>
-                        <th style="width: 120px;">Quantity</th>
-                        <th>Subtotal</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody class="table-group-divider">
-                    {% for item in cart_items %}
-                    <tr>
-                        <td class="fw-semibold">{{ item.product.name }}</td>
-                        <td>${{ item.product.price|floatformat:2 }}</td>
-                        <td>
-                            <input type="number" name="quantity_{{ item.product.pk }}"
-                                   value="{{ item.quantity }}" min="1"
-                                   class="form-control form-control-sm text-center">
-                        </td>
-                        <td class="fw-semibold">${{ item.subtotal|floatformat:2 }}</td>
-                        <td>
-                            <form action="{% url 'remove_from_cart' item.product.pk %}" method="post">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    ✖
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+  .cart-container {
+    max-width: 960px;
+    margin: 40px auto;
+    padding: 25px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  }
 
-        <div class="d-flex justify-content-between align-items-center mt-4">
-            <h4>Total: ${{ total_price|floatformat:2 }}</h4>
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-outline-primary">Update Quantities</button>
-                <a href="{% url 'create_checkout_session' %}" class="btn btn-dark">Proceed to Checkout</a>
-            </div>
-        </div>
-    </form>
-    {% else %}
-        <div class="alert alert-info text-center">
-            Your cart is currently empty. <a href="{% url 'product_list' %}" class="alert-link">Browse products</a>
-        </div>
-    {% endif %}
+  h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+  }
+
+  thead {
+    background-color: #333;
+    color: white;
+  }
+
+  th, td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+  }
+
+  td img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+
+  input[type="number"] {
+    width: 60px;
+    padding: 6px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  .btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.95rem;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-dark {
+    background-color: #333;
+    color: white;
+  }
+
+  .btn-dark:hover {
+    background-color: #555;
+  }
+
+  .btn-outline {
+    border: 1px solid #333;
+    color: #333;
+    background-color: #fff;
+  }
+
+  .btn-outline:hover {
+    background-color: #eee;
+  }
+
+  .btn-danger {
+    background: none;
+    color: red;
+    font-size: 1.8rem;
+    border: none;
+    cursor: pointer;
+  }
+
+  .cart-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+  }
+
+  .cart-footer h3 {
+    font-size: 1.2rem;
+  }
+
+  .alert {
+    background-color: #eef;
+    padding: 20px;
+    text-align: center;
+    border-radius: 8px;
+    color: #333;
+  }
+
+  .alert a {
+    color: #007BFF;
+    text-decoration: underline;
+  }
+</style>
+
+<div class="cart-container">
+  <h2>🛍️ Shopping Cart</h2>
+
+
+
+  {% if cart_items %}
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Price</th>
+          <th>Quantity</th>
+          <th>Subtotal</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in cart_items %}
+          <tr>
+            <td>
+              {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+              {% endif %}
+              <strong>{{ item.product.name }}</strong>
+            </td>
+            <td>
+              {% if item.product.has_discount %}
+                <del>${{ item.product.price|floatformat:2 }}</del><br>
+                <strong style="color: red;">${{ item.product.get_discounted_price|floatformat:2 }}</strong>
+              {% else %}
+                ${{ item.product.price|floatformat:2 }}
+              {% endif %}
+            </td>
+            <td>
+              <form method="post" action="{% url 'update_cart_quantity' item.product.pk %}">
+                {% csrf_token %}
+                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" onchange="this.form.submit()">
+              </form>
+            </td>
+            <td><strong>${{ item.subtotal|floatformat:2 }}</strong></td>
+            <td>
+              <a href="{% url 'remove_from_cart' item.product.pk %}" class="btn-danger" title="Remove">✖</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="cart-footer">
+      <h3>Total: ${{ subtotal|floatformat:2 }}</h3>
+      <div>
+        <a href="{% url 'checkout' %}" class="btn btn-dark">🧾 Proceed to Checkout</a>
+        <a href="{% url 'product_list' %}" class="btn btn-outline">← Continue Shopping</a>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert">
+      Your cart is currently empty.
+      <a href="{% url 'product_list' %}">Browse products</a>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

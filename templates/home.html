@@ -1,96 +1,349 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Home - Silver Jewelry Shop{% endblock %}
+{% block title %}Home - Marbaras{% endblock %}
 
 {% block content %}
-<div class="row">
+<style>
+  .sidebar-fixed {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    width: 200px;
+    height: 100%;
+    overflow-y: auto;
+    background-color: transparent;
+    padding: 16px;
+    z-index: 1000;
+  }
 
-    <!-- LEFT: Categories -->
-    <div class="col-md-2 order-1 mb-4">
-        <div class="mb-3">
-            <span class="px-3 pt-2 pb-1 text-uppercase small d-block fw-semibold" style="color: {% if selected_category %}red{% else %}black{% endif %};">
-                Categories
-            </span>
+  .sidebar-fixed h2 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+  }
 
-            <div class="d-flex flex-column">
-                {% for category in categories %}
-                    <a href="{% url 'products_by_category' category.pk %}"
-                       class="px-3 py-2 text-decoration-none d-flex align-items-center
-                              {% if selected_category and selected_category.id == category.id %}
-                                  text-danger fw-semibold
-                              {% else %}
-                                  text-dark
-                              {% endif %}">
-                        <span class="me-2">•</span> {{ category.name }}
-                    </a>
-                {% empty %}
-                    <span class="px-3 py-2 text-muted">No categories</span>
-                {% endfor %}
+  .sidebar-fixed ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sidebar-fixed li {
+    margin-bottom: 8px;
+  }
+
+  .sidebar-fixed a {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #333;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+
+  .sidebar-fixed a:hover {
+    background-color: #f0f0f0;
+  }
+
+  .sidebar-fixed .active {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    font-weight: bold;
+  }
+
+  .content-wrapper {
+  margin-left: 150px;
+  padding: 0;
+  width: calc(100% - 150px);
+  box-sizing: border-box;
+}
+
+  .banner-container {
+    width: 100%;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+      margin-left: -85px;
+  }
+
+  .banner-container img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .product-section {
+    padding: 0 24px;
+
+    width: 100%;
+    box-sizing: border-box;
+      margin-left: -85px;
+  }
+
+  .section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin: 32px 0 24px;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 24px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .product-card {
+    background: #fff;
+    border-radius: 100px;
+    text-align: center;
+    padding: 1px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    width: 100%;
+  }
+
+  .product-card img {
+    width: 100%;
+    max-height: 350px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  .product-card:hover img {
+    transform: scale(1.05);
+  }
+
+  .product-card h3 {
+    font-size: 1.5rem;
+    margin: 12px 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    height: 2.8em;
+  }
+
+  .product-card p {
+    color: #555;
+    font-size: 1.05rem;
+    margin-bottom: 12px;
+  }
+
+  /* Updated slider layout to act like a grid (no scrolling) */
+  .slider-container {
+    width: 100%;
+    padding-bottom: 12px;
+  }
+
+  .slider-track {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    width: 100%;
+  }
+
+  .slider-card {
+    width: 100%;
+  }
+
+  .sort-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    font-size: 1rem;
+  }
+
+  .sort-form label {
+    font-weight: bold;
+  }
+
+  .sort-form select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+  }
+
+  .sort-form select:hover {
+    border-color: #888;
+  }
+
+  .sort-form select:focus {
+    border-color: #333;
+    outline: none;
+    background-color: #fff;
+  }
+</style>
+
+{% if categories %}
+<aside class="sidebar-fixed">
+  <h2>Categories</h2>
+  <ul>
+    <li><a href="{% url 'product_list' %}">All products</a></li>
+    {% for category in categories %}
+      <li>
+        <a href="{% url 'products_by_category' category.pk %}"
+           class="{% if selected_category and selected_category.id == category.id %}active{% endif %}">
+          {{ category.name }}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</aside>
+{% endif %}
+
+<div class="content-wrapper">
+  {% if not selected_category %}
+    <div class="banner-container">
+      <img src="{% static 'images/banner.jpg' %}" alt="Banner">
+    </div>
+  {% else %}
+    <div style="margin: 32px 0; text-align: center;">
+      <h2 class="section-title">{{ selected_category.name }}</h2>
+    </div>
+  {% endif %}
+
+  <div class="product-section">
+    {% if selected_category and not request.GET.q %}
+      <form method="get" class="sort-form">
+        <label for="sort_by">Sort by:</label>
+        <select name="sort" id="sort_by" onchange="this.form.submit()">
+          <option value="">Default</option>
+          <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
+          <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
+        </select>
+        {% if request.GET.q %}
+          <input type="hidden" name="q" value="{{ request.GET.q }}">
+        {% endif %}
+      </form>
+    {% endif %}
+
+    {% if request.GET.q %}
+      <h2 class="section-title">🔎 Results for "{{ request.GET.q }}"</h2>
+      {% if products %}
+        <div class="product-grid">
+          {% for product in products %}
+            <div class="product-card">
+              <a href="{% url 'product_detail' product.pk %}">
+                {% if product.image %}
+                  <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                  <img src="{% static 'images/placeholder.jpg' %}" alt="No Image">
+                {% endif %}
+              </a>
+              <h3>{{ product.name }}</h3>
+              <p>
+                {% if product.has_discount %}
+                  <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
+                    ${{ product.price|floatformat:2 }}
+                  </span>
+                {% else %}
+                  ${{ product.price|floatformat:2 }}
+                {% endif %}
+              </p>
             </div>
+          {% endfor %}
         </div>
-    </div>
-
-    <!-- CENTER: Featured Products -->
-    <div class="col-md-8 order-2">
-        <div class="bg-light p-5 rounded text-center shadow-sm mb-5">
-            <h1 class="display-5">Timeless Elegance 💍</h1>
-            <p class="lead">Discover handcrafted silver jewelry made to shine.</p>
-            <a href="{% url 'product_list' %}" class="btn btn-dark btn-lg mt-2">Browse All Products</a>
-        </div>
-
-        <h2 class="mb-4 text-center">Featured Products</h2>
-        <div class="row row-cols-1 row-cols-md-3 g-4">
-            {% for product in products %}
-                <div class="col">
-                    <div class="card h-100 shadow-sm">
-                        {% if product.image %}
-                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
-                        {% else %}
-                            <img src="{% static 'images/placeholder.jpg' %}" class="card-img-top" alt="No Image">
-                        {% endif %}
-                        <div class="card-body text-center">
-                            <h5 class="card-title">{{ product.name }}</h5>
-                            <p class="text-muted">${{ product.price }}</p>
-                            <div class="row g-1 mt-2">
-                                <div class="col-4">
-                                    <a href="{% url 'product_detail' product.pk %}" class="btn btn-outline-dark btn-sm w-100">View</a>
-                                </div>
-                                <div class="col-4">
-                                    <a href="{% url 'add_to_cart' product.pk %}" class="btn btn-outline-dark btn-sm w-100">🛒</a>
-                                </div>
-                                <div class="col-4">
-                                    <a href="{% url 'add_to_favorites' product.pk %}"
-   class="btn btn-sm w-100 {% if product.id in favorite_ids %}btn-danger{% else %}btn-outline-danger{% endif %}">
-    ❤️
-</a>
-
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% empty %}
-                <p class="text-center">No products available.</p>
+      {% else %}
+        <p style="text-align: center;">No products found.</p>
+      {% endif %}
+    {% elif selected_category %}
+      <div class="product-grid">
+        {% for product in products %}
+          <div class="product-card">
+            <a href="{% url 'product_detail' product.pk %}">
+              {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+              {% else %}
+                <img src="{% static 'images/placeholder.jpg' %}" alt="No Image">
+              {% endif %}
+            </a>
+            <h3>{{ product.name }}</h3>
+            <p>
+              {% if product.has_discount %}
+                <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
+                <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
+                  ${{ product.price|floatformat:2 }}
+                </span>
+              {% else %}
+                ${{ product.price|floatformat:2 }}
+              {% endif %}
+            </p>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      {% if popular_products %}
+        <h2 class="section-title">🔥 Trending Now</h2>
+        <div class="slider-container">
+          <div class="slider-track">
+            {% for product in popular_products|slice:":5" %}
+              <div class="slider-card product-card">
+                <a href="{% url 'product_detail' product.pk %}">
+                  {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                  {% else %}
+                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image">
+                  {% endif %}
+                </a>
+                <h3>{{ product.name }}</h3>
+                <p>
+                  {% if product.has_discount %}
+                    <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
+                    <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
+                      ${{ product.price|floatformat:2 }}
+                    </span>
+                  {% else %}
+                    ${{ product.price|floatformat:2 }}
+                  {% endif %}
+                </p>
+              </div>
             {% endfor %}
+          </div>
         </div>
-    </div>
+      {% endif %}
 
-    <!-- RIGHT: Cart & Favorites -->
-    <div class="col-md-2 order-3 mb-4">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header bg-dark text-white fw-semibold">Quick Links</div>
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                    <a href="{% url 'favorites_list' %}" class="text-decoration-none text-dark">❤️ My Favorites</a>
-                </li>
-                <li class="list-group-item">
-                    <a href="{% url 'cart_view' %}" class="text-decoration-none text-dark">🛒 View Cart</a>
-                </li>
-            </ul>
+      {% if recently_viewed %}
+        <h2 class="section-title">🔍 Recently Viewed</h2>
+        <div class="slider-container">
+          <div class="slider-track">
+            {% for product in recently_viewed|slice:":5" %}
+              <div class="slider-card product-card">
+                <a href="{% url 'product_detail' product.pk %}">
+                  {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                  {% else %}
+                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image">
+                  {% endif %}
+                </a>
+                <h3>{{ product.name }}</h3>
+                <p>
+                  {% if product.has_discount %}
+                    <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
+                    <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
+                      ${{ product.price|floatformat:2 }}
+                    </span>
+                  {% else %}
+                    ${{ product.price|floatformat:2 }}
+                  {% endif %}
+                </p>
+              </div>
+            {% endfor %}
+          </div>
         </div>
-    </div>
-
+      {% endif %}
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
-

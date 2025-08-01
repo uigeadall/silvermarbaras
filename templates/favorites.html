@@ -1,32 +1,131 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block title %}My Favorites{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Your Favorite Products ❤️</h2>
+<style>
+  .favorites-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+  }
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
+  .favorites-title {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 30px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+  }
+
+  .card img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+  }
+
+  .card-body {
+    padding: 15px;
+    text-align: center;
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .card-price {
+    color: #555;
+    margin-bottom: 15px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: 1px solid #333;
+    border-radius: 6px;
+    margin: 0 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .btn-view {
+    background: white;
+    color: black;
+  }
+
+  .btn-view:hover {
+    background: #eee;
+  }
+
+  .btn-remove {
+    background: white;
+    color: red;
+    border-color: red;
+  }
+
+  .btn-remove:hover {
+    background: #ffecec;
+  }
+
+  .empty-msg {
+    text-align: center;
+    font-size: 1.2rem;
+    margin-top: 60px;
+    color: #777;
+  }
+</style>
+
+<div class="favorites-container">
+  <h2 class="favorites-title">Your Favorite Products ❤️</h2>
+
+  {% if favorites %}
+  <div class="grid">
     {% for fav in favorites %}
-    <div class="col">
-        <div class="card h-100 shadow-sm">
-            {% if fav.product.image %}
-            <img src="{{ fav.product.image.url }}" class="card-img-top" alt="{{ fav.product.name }}">
-            {% else %}
-            <img src="{% static 'images/placeholder.jpg' %}" class="card-img-top" alt="No image">
-            {% endif %}
-            <div class="card-body text-center">
-                <h5 class="card-title">{{ fav.product.name }}</h5>
-                <p class="text-muted">${{ fav.product.price }}</p>
-                <a href="{% url 'product_detail' fav.product.pk %}" class="btn btn-outline-dark btn-sm">View</a>
-                <form action="{% url 'remove_from_favorites' fav.product.pk %}" method="post" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove ❤️</button>
-                </form>
-            </div>
-        </div>
+    <div class="card">
+      {% if fav.product.image %}
+      <img src="{{ fav.product.image.url }}" alt="{{ fav.product.name }}">
+      {% else %}
+      <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
+      {% endif %}
+
+      <div class="card-body">
+        <h5 class="card-title">{{ fav.product.name }}</h5>
+        <p class="card-price">${{ fav.product.price }}</p>
+        <a href="{% url 'product_detail' fav.product.pk %}" class="btn btn-view">View</a>
+
+        <form action="{% url 'remove_from_favorites' fav.product.pk %}" method="post" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-remove">Remove ❤️</button>
+        </form>
+      </div>
     </div>
-    {% empty %}
-    <p class="text-center">You haven’t added any favorites yet.</p>
     {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-msg">You haven’t added any favorites yet.</p>
+  {% endif %}
 </div>
 {% endblock %}

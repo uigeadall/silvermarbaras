@@ -1,66 +1,636 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ product.name }}{% endblock %}
+{% block title %}{{ product.name }} - Marbaras{% endblock %}
 
-{% block content %}
-<div class="row">
-    <!-- Left: Product Image -->
-    <div class="col-md-6">
-        {% if product.image %}
-        <img src="{{ product.image.url }}" class="img-fluid rounded shadow-sm" alt="{{ product.name }}">
-        {% else %}
-        <img src="{% static 'images/placeholder.jpg' %}" class="img-fluid rounded shadow-sm" alt="No Image">
-        {% endif %}
-    </div>
+{% block extra_head %}
+<style>
+  .container {
+    width: 100%;
+    padding: 0;
+    background: transparent;
+  }
 
-    <!-- Right: Product Info -->
-    <div class="col-md-6">
-        <h2>{{ product.name }}</h2>
-        <p class="text-muted">${{ product.price }}</p>
+  .flex { display: flex; flex-wrap: wrap; gap: 30px; }
+  .image-section, .info-section { flex: 1; min-width: 280px; }
 
-        <!-- Add to Cart Form -->
-        <form method="post">
-            {% csrf_token %}
-            <div class="input-group mb-3" style="max-width: 200px;">
-                <input type="number" name="quantity" min="1" value="1" class="form-control">
-                <button type="submit" class="btn btn-dark">🛒 Add to Cart</button>
-            </div>
-        </form>
+  .main-preview img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
 
-        <!-- Add to Favorites -->
-        <form method="post" action="{% url 'add_to_favorites' product.pk %}" class="mt-2">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-outline-danger">❤️ Add to Favorites</button>
-        </form>
+  .thumbnail-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    border: none;
+  }
 
-        <p class="mt-4">{{ product.description }}</p>
-    </div>
-</div>
+  .thumbnail-row img {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 0;
+    border: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
 
-<!-- Comments Section -->
-<hr class="my-5">
-<h4>Comments</h4>
+  .thumbnail-row img:hover {
+    opacity: 0.8;
+  }
 
-{% if user.is_authenticated %}
-<form method="post">
-    {% csrf_token %}
-    <textarea name="comment" class="form-control mb-2" rows="3" placeholder="Leave a comment..."></textarea>
-    <button type="submit" class="btn btn-primary">Submit</button>
-</form>
-{% else %}
-<p class="text-muted">You must <a href="{% url 'login' %}">log in</a> to leave a comment.</p>
-{% endif %}
+  h1 { font-size: 1.5rem; margin-bottom: 10px; }
+  .price { font-size: 1.5rem; color: #2d2d2d; margin-bottom: 20px; }
 
-<!-- Display Comments -->
-{% for comment in comments %}
-<div class="mb-3 border-bottom pb-2">
-    <strong>{{ comment.user.username }}</strong>
-    <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
-    <p class="mb-0">{{ comment.text }}</p>
-</div>
-{% empty %}
-<p class="text-muted">No comments yet.</p>
-{% endfor %}
+  .btn {
+    padding: 10px 16px;
+    margin-right: 12px;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .btn:hover { background-color: rgba(255, 255, 255, 0.05); }
+
+  .description { margin-top: 30px; }
+
+  .description-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-height: 12em;
+    overflow: hidden;
+    background: transparent;
+    border: none;
+  }
+
+  .description-text.expanded {
+    max-height: none;
+  }
+
+  .toggle-btn {
+    margin-top: 10px;
+    background-color: transparent;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 0;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .rating-stars {
+    font-size: 1.4rem;
+    color: #f5b301;
+    margin-bottom: 20px;
+  }
+
+  .star-rating {
+    display: flex;
+    gap: 5px;
+    margin: 10px 0 20px;
+  }
+
+  .star-rating .star {
+    font-size: 1.8rem;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .star-rating .star.filled {
+    color: #f5b301;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #000;
+  }
+
+  .submit-btn {
+    background: #007BFF;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+  }
+
+  .submit-btn:hover { background: #0056b3; }
+
+  .message {
+    padding: 12px 0;
+    border-radius: 0;
+    font-weight: bold;
+    margin-bottom: 20px;
+    background: transparent;
+    border: none;
+  }
+
+  .message.success { color: #155724; }
+  .message.error { color: #721c24; }
+
+  .comment-scroll {
+    overflow-x: auto;
+    margin-top: 30px;
+    padding-bottom: 10px;
+  }
+
+  .comment-row {
+    display: flex;
+    gap: 20px;
+    min-height: 180px;
+  }
+
+  .comment {
+    flex: 0 0 280px;
+    background: transparent;
+    color: #111;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .comment-author {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .comment-date {
+    font-size: 0.85rem;
+    color: #777;
+    margin-bottom: 10px;
+  }
+
+  .comment-text {
+    font-size: 1rem;
+    line-height: 1.4;
+    max-height: 6.8em;
+    overflow: hidden;
+    position: relative;
+    background: transparent;
+    border: none;
+  }
+
+  .comment-text.expanded {
+    max-height: none;
+  }
+
+  .show-more {
+    color: #007BFF;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-top: 8px;
+    display: inline-block;
+  }
+
+  .recently-viewed {
+    margin-top: 60px;
+  }
+
+  .recently-viewed h2 {
+    margin-bottom: 16px;
+  }
+
+  .recently-viewed-container {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-top: 10px;
+  }
+
+  .recently-viewed-item {
+    flex: 0 0 180px;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .recently-viewed-card {
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .recently-viewed-card img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 0;
+    border: none;
+  }
+
+  .recently-viewed-card p {
+    margin-top: 8px;
+    font-size: 0.95rem;
+  }
+  .main-preview {
+  overflow: hidden;
+  position: relative;
+}
+
+.main-preview {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: auto;
+}
+
+.main-preview img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: transform 0.1s ease;
+  transform-origin: center center;
+  cursor: zoom-in;
+
+
+}
+.sidebar-fixed {
+  position: fixed;
+  top: 80px;
+  left: 0;
+  width: 160px;
+  height: calc(100% - 80px);
+  overflow-y: auto;
+  background-color: rgba(255, 255, 255, 0.4); /* прозрачен фон */
+  backdrop-filter: blur(6px);
+  padding: 16px;
+  z-index: 999;
+}
+
+.sidebar-fixed h2 {
+  font-size: 1.05rem;
+  margin-bottom: 12px;
+  font-weight: bold;
+  color: #333;
+}
+
+.sidebar-fixed ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-fixed li {
+  margin-bottom: 8px;
+}
+
+.sidebar-fixed a {
+  display: block;
+  padding: 6px 10px;
+  text-decoration: none;
+  color: #333;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-fixed a:hover {
+  background-color: #fee2e2; /* леко червено при hover */
+  color: #b91c1c;
+}
+
+.sidebar-fixed .active {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-weight: bold;
+}
+@media (max-width: 768px) {
+  .flex {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sidebar-fixed {
+    position: static;
+    width: 100%;
+    height: auto;
+    backdrop-filter: none;
+    background-color: transparent;
+    padding: 0 10px;
+    margin-bottom: 20px;
+  }
+
+  .sidebar-fixed ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 10px;
+  }
+
+  .sidebar-fixed li {
+    flex: 1 1 auto;
+  }
+
+  .sidebar-fixed a {
+    text-align: center;
+    font-size: 0.9rem;
+    padding: 6px;
+  }
+
+  .image-section, .info-section {
+    width: 100%;
+  }
+
+  .thumbnail-row {
+    justify-content: center;
+  }
+
+  .comment-row {
+    flex-direction: column;
+  }
+
+  .comment {
+    flex: 1 1 100%;
+    padding-bottom: 20px;
+  }
+
+  .recently-viewed-container {
+    flex-direction: row;
+    overflow-x: scroll;
+    padding-bottom: 10px;
+  }
+
+  .recently-viewed-item {
+    flex: 0 0 150px;
+  }
+
+  .recently-viewed-card img {
+    height: 100px;
+  }
+
+  .description-text {
+    max-height: none !important;
+  }
+
+  .main-preview img {
+    max-height: 280px;
+    object-fit: contain;
+  }
+
+  .star-rating {
+    justify-content: center;
+  }
+
+  .btn,
+  .submit-btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  textarea {
+    font-size: 1rem;
+  }
+}
+
+
+
+
+
+</style>
 
 {% endblock %}
+
+{% block content %}
+<div class="container">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="message {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% if categories %}
+<aside class="sidebar-fixed">
+  <h2>Categories</h2>
+<ul>
+  <li>
+    <a href="{% url 'product_list' %}"
+       class="{% if not selected_category %}active{% endif %}">
+      All Products
+    </a>
+  </li>
+  {% for category in categories %}
+    <li>
+      <a href="{% url 'products_by_category' category.pk %}"
+         class="{% if selected_category and selected_category.id == category.id %}active{% endif %}">
+        {{ category.name }}
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+</aside>
+{% endif %}
+
+<div class="content-wrapper">
+
+  <div class="flex">
+    <div class="image-section">
+      <div class="main-preview">
+        {% if product.main_image %}
+          <img id="mainImage" src="{{ product.main_image.url }}" alt="{{ product.name }}">
+        {% elif product_images %}
+          <img id="mainImage" src="{{ product_images.0.image.url }}" alt="{{ product.name }}">
+        {% else %}
+          <img id="mainImage" src="{% static 'images/placeholder.jpg' %}" alt="No image">
+        {% endif %}
+      </div>
+
+      {% if product_images %}
+        <div class="thumbnail-row">
+          {% for img in product_images %}
+            <img src="{{ img.image.url }}" alt="Thumbnail"
+                 onclick="updateMainImage('{{ img.image.url }}')"
+                 onerror="this.src='{% static 'images/placeholder.jpg' %}'">
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="info-section">
+      <h1>{{ product.name }}</h1>
+      <div class="price">
+        {% if product.has_discount %}
+          <span style="color: red; font-weight: bold;">${{ product.discount_price|floatformat:2 }}</span>
+          <span style="text-decoration: line-through; color: #777; margin-left: 8px;">${{ product.price|floatformat:2 }}</span>
+        {% else %}
+          ${{ product.price|floatformat:2 }}
+        {% endif %}
+      </div>
+
+      {% if average_rating %}
+        <div class="rating-stars">
+          {% for i in "12345" %}
+            {% if forloop.counter <= average_rating %}★{% else %}☆{% endif %}
+          {% endfor %}
+          <span style="font-size: 0.9rem;">({{ average_rating|floatformat:1 }}/5)</span>
+        </div>
+      {% else %}
+        <p>No ratings yet.</p>
+      {% endif %}
+
+      <form method="post" action="{% url 'add_to_cart' product.pk %}" style="display:inline;">
+        {% csrf_token %}
+        <button class="btn" type="submit">🛒 Add to Cart</button>
+      </form>
+
+      <form method="post" action="{% url 'toggle_favorite' product.pk %}" style="display:inline;">
+        {% csrf_token %}
+        <button class="btn" type="submit">
+          {% if product.id in favorite_ids %} ❤️ {% else %} 🤍 {% endif %}
+        </button>
+      </form>
+
+      <div class="description">
+        <h3>Description</h3>
+        <div class="description-text" id="descriptionText">
+          {{ product.description|linebreaks }}
+        </div>
+        <button class="toggle-btn" id="toggleDescriptionBtn" style="display:none;">Show More</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="comments">
+    <h2>⭐ Rate & 💬 Comment</h2>
+    {% if user.is_authenticated %}
+      <form method="post">
+        {% csrf_token %}
+        <label for="ratingInput" style="font-weight: bold;">Your Rating:</label>
+        <div class="star-rating">
+          {% for i in "12345" %}
+            <span class="star{% if forloop.counter <= rating_form.value.value %} filled{% endif %}" data-value="{{ forloop.counter }}">★</span>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="value" id="ratingInput" value="{{ rating_form.value.value|default:0 }}">
+        <textarea name="comment" rows="4" placeholder="Leave a comment (optional)..."></textarea>
+        <br><br>
+        <button type="submit" class="submit-btn">Submit</button>
+      </form>
+    {% else %}
+      <p>You must <a href="{% url 'login' %}">log in</a> to rate or comment.</p>
+    {% endif %}
+
+    {% if comments %}
+      <div class="comment-scroll">
+        <div class="comment-row">
+          {% for comment in comments %}
+            <div class="comment">
+              <div class="comment-author">{{ comment.user.username }}</div>
+              <div class="comment-date">{{ comment.created_at|date:"M d, Y H:i" }}</div>
+              <div class="comment-text" id="comment-{{ forloop.counter }}">
+                {{ comment.text }}
+              </div>
+              {% if comment.text|length > 280 %}
+                <span class="show-more" onclick="toggleComment(this, '{{ forloop.counter }}')">Show More</span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <p>No comments yet.</p>
+    {% endif %}
+  </div>
+
+  {% if recently_viewed_products %}
+    <div class="recently-viewed">
+      <h2>👀 Recently Viewed</h2>
+      <div class="recently-viewed-container">
+        {% for item in recently_viewed_products %}
+          <a href="{% url 'product_detail' item.pk %}" class="recently-viewed-item">
+            <div class="recently-viewed-card">
+              {% if item.image %}
+                <img src="{{ item.image.url }}" alt="{{ item.name }}">
+              {% else %}
+                <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
+              {% endif %}
+              <p>{{ item.name|truncatechars:30 }}</p>
+              <strong>${{ item.price|floatformat:2 }}</strong>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  function updateMainImage(url) {
+    const mainImg = document.getElementById('mainImage');
+    if (mainImg) mainImg.src = url;
+  }
+
+  const stars = document.querySelectorAll('.star-rating .star');
+  const ratingInput = document.getElementById('ratingInput');
+  if (stars.length) {
+    function highlightStars(value) {
+      stars.forEach(star => {
+        star.classList.toggle('filled', parseInt(star.dataset.value) <= value);
+      });
+    }
+
+    stars.forEach(star => {
+      star.addEventListener('mouseover', () => highlightStars(star.dataset.value));
+      star.addEventListener('mouseout', () => highlightStars(ratingInput.value));
+      star.addEventListener('click', () => {
+        ratingInput.value = star.dataset.value;
+        highlightStars(ratingInput.value);
+      });
+    });
+
+    highlightStars(ratingInput.value);
+  }
+
+  const desc = document.getElementById("descriptionText");
+  const toggleBtn = document.getElementById("toggleDescriptionBtn");
+  if (desc.scrollHeight > desc.clientHeight + 10) {
+    toggleBtn.style.display = "inline-block";
+  }
+
+  toggleBtn.addEventListener("click", function () {
+    desc.classList.toggle("expanded");
+    toggleBtn.textContent = desc.classList.contains("expanded") ? "Show Less" : "Show More";
+  });
+
+  function toggleComment(btn, id) {
+    const text = document.getElementById('comment-' + id);
+    if (!text) return;
+    text.classList.toggle("expanded");
+    btn.innerText = text.classList.contains("expanded") ? "Show Less" : "Show More";
+  }
+  const mainImage = document.getElementById("mainImage");
+  const preview = document.querySelector(".main-preview");
+
+  if (mainImage && preview) {
+    preview.addEventListener("mousemove", function (e) {
+      const rect = preview.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      mainImage.style.transformOrigin = `${x}% ${y}%`;
+      mainImage.style.transform = "scale(2)";
+      mainImage.style.cursor = "zoom-out";
+    });
+
+    preview.addEventListener("mouseleave", function () {
+      mainImage.style.transform = "scale(1)";
+      mainImage.style.cursor = "zoom-in";
+    });
+  }
+  </script>
+
+{% endblock %}
+</div>

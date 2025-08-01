@@ -25,7 +25,9 @@ SECRET_KEY = "django-insecure-4ryw$3&hws4qk5d*#eg#0k3=*hxq@!%yr+@f%i69#aq3q8b2ej
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
+
 
 
 # Application definition
@@ -37,7 +39,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "ecommerce"
+    "ecommerce",
+
 ]
 
 MIDDLEWARE = [
@@ -48,6 +51,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
+    'django.middleware.csrf.CsrfViewMiddleware',
 ]
 
 ROOT_URLCONF = "МагазинСребро.urls"
@@ -55,14 +60,15 @@ ROOT_URLCONF = "МагазинСребро.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / 'templates']
-        ,
+        "DIRS": [BASE_DIR / 'templates'],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # 👇 Add your custom breadcrumbs context processor here
+                "ecommerce.context_processors.breadcrumbs",
             ],
         },
     },
@@ -126,6 +132,7 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# Media files (user-uploaded content)
 
 import os
 
@@ -133,6 +140,18 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
+
 # Stripe Settings
-STRIPE_SECRET_KEY = 'your_stripe_secret_key'
-STRIPE_PUBLISHABLE_KEY = 'your_stripe_publishable_key'
+STRIPE_SECRET_KEY = 'sk_test_51Rnbm6FNCc1zMc10vjXpAvSRPrGEDob5ksRCW4LOAlxISt3yQtrZWXWwXKAptVmy0drKb1MqL3ANBotQmZJ6YdRb00fO1blfhV'
+STRIPE_PUBLISHABLE_KEY = 'pk_test_51Rnbm6FNCc1zMc10yZRdpMWC61XPpMIlWlj6ak7NIMET2jbJEYcxKjDwRE0DGG5CeuX2QDive8VjZeuLe9KltG7X00iGcmXouJ'
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://7dda77306fbe.ngrok-free.app',
+]
+
+import os
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
+

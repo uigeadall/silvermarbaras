@@ -15,16 +15,23 @@ urlpatterns = [
     path('products/', views.product_list, name='product_list'),
     path('product/<int:pk>/', views.product_detail, name='product_detail'),
     path('cart/add/<int:pk>/', views.add_to_cart, name='add_to_cart'),
-    path('favorites/add/<int:pk>/', views.add_to_favorites, name='add_to_favorites'),
+    path('favorites/add/<int:pk>/', views.toggle_favorite, name='add_to_favorites'),
     path('checkout/', views.checkout_view, name='checkout'),
     path('category/<int:pk>/', views.products_by_category, name='products_by_category'),
-path('create-checkout-session/', views.create_checkout_session, name='create_checkout_session'),
-path('success/', views.success_view, name='success'),
-
-
-
-
-
+    path('success/', views.payment_success, name='success'),
+    path('webhook/', views.stripe_webhook, name='stripe_webhook'),
+    path('toggle-favorite/<int:pk>/', views.toggle_favorite, name='toggle_favorite'),
+    path('cart/update/<int:pk>/', views.update_cart_quantity, name='update_cart_quantity'),
+    path('order-success/', views.order_success, name='order_success'),
 
 
 ]
+
+
+
+
+
+
+
+
+
