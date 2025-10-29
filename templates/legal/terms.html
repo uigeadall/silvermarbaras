@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Terms & Conditions - Marbaras{% endblock %}
+
+{% block extra_head %}
+<style>
+  .legal-wrap{max-width:900px;margin:0 auto}
+  .legal-hero{margin-bottom:24px}
+  .legal-hero h1{font-size:2rem;margin-bottom:6px}
+  .legal-meta{font-size:.95rem;color:#777}
+  .badge{display:inline-block;background:#eef2ff;border-radius:999px;padding:4px 10px;font-size:.8rem;margin-left:8px}
+
+  .toc{background:#f8f8f8;border-radius:12px;padding:16px;margin:16px 0}
+  .toc h2{font-size:1.1rem;margin-bottom:10px}
+  .toc ol{margin:0 0 0 18px}
+
+  .legal-section{margin:28px 0}
+  .legal-section h2{font-size:1.35rem;margin-bottom:8px}
+  .legal-section p,.legal-section li{margin:8px 0;line-height:1.7}
+
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#f2f2f2;font-size:.8rem;margin-right:6px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:768px){.grid-2{grid-template-columns:1fr}}
+
+  .anchor{scroll-margin-top:90px}
+  blockquote.note{background:#fffceb;border-radius:8px;padding:12px 14px;margin-top:10px}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="legal-wrap">
+  <div id="top"></div>
+  <header class="legal-hero">
+    <h1>Terms &amp; Conditions <span class="badge">Last updated: {% now "F j, Y" %}</span></h1>
+    <p class="legal-meta">
+      Please read these Terms &amp; Conditions (“Terms”) carefully before using the Marbaras website and services.
+    </p>
+  </header>
+
+
+
+  <section id="agreement" class="legal-section anchor">
+    <h2>1) Agreement to Terms</h2>
+    <p>By accessing or using our website, you agree to be bound by these Terms and our <a href="{% url 'privacy' %}">Privacy Policy</a>. If you do not agree, please do not use the site.</p>
+  </section>
+
+  <section id="about" class="legal-section anchor">
+    <h2>2) About Us</h2>
+    <div class="grid-2">
+      <p><span class="pill">Legal name</span> MARBARAS</p>
+      <p><span class="pill">Support</span> <a href="mailto:support@marbaras.com">support@marbaras.com</a></p>
+    </div>
+    <p><span class="pill">Registered address</span> Sanford House, 81 Skipper Way, St. Neots, PE19 6LT, United Kingdom</p>
+  </section>
+
+  <section id="definitions" class="legal-section anchor">
+    <h2>3) Definitions</h2>
+    <p>“Services” means our website, products, and related features. “User”, “you”, or “your” means any person using the Services.</p>
+  </section>
+
+  <section id="eligibility" class="legal-section anchor">
+    <h2>4) Eligibility &amp; Account</h2>
+    <ul>
+      <li>You must be legally able to enter into a binding contract to use our Services.</li>
+      <li>You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account.</li>
+      <li>Provide accurate, up-to-date information and notify us of any changes.</li>
+    </ul>
+  </section>
+
+  <section id="products" class="legal-section anchor">
+    <h2>5) Products &amp; Pricing</h2>
+    <ul>
+      <li>We strive for accuracy, but product images and descriptions may vary slightly.</li>
+      <li>Prices may change without notice; the price at checkout is the final price.</li>
+      <li>Promotions or coupons may have additional terms.</li>
+    </ul>
+  </section>
+
+  <section id="orders" class="legal-section anchor">
+    <h2>6) Orders &amp; Acceptance</h2>
+    <p>Your order is an offer to buy. We may accept or reject it at our discretion (e.g., due to stock limits, suspected fraud, or pricing errors). We consider an order accepted when we send a confirmation email.</p>
+  </section>
+
+  <section id="payments" class="legal-section anchor">
+    <h2>7) Payments &amp; Billing</h2>
+    <ul>
+      <li>We accept major payment methods shown at checkout. By submitting payment, you represent you are authorized to use that method.</li>
+      <li>All amounts are charged in the currency displayed at checkout. Taxes and shipping are calculated where applicable.</li>
+    </ul>
+  </section>
+
+  <section id="shipping" class="legal-section anchor">
+    <h2>8) Shipping &amp; Delivery</h2>
+    <ul>
+      <li>Estimated delivery times are shown at checkout and may vary by destination.</li>
+      <li>Risk of loss passes to you upon delivery to the address provided.</li>
+      <li>Incomplete/incorrect addresses may cause delays or return shipments.</li>
+    </ul>
+  </section>
+
+  <section id="returns" class="legal-section anchor">
+    <h2>9) Returns &amp; Refunds</h2>
+    <ul>
+      <li>We offer returns within <strong>[insert number]</strong> days of delivery (or as required by applicable law) for unused items in original condition and packaging.</li>
+      <li>To start a return, contact <a href="mailto:support@marbaras.com">support@marbaras.com</a> with your order number and reason.</li>
+      <li>Refunds are issued to the original payment method after inspection. Original shipping fees may be non-refundable.</li>
+    </ul>
+    <blockquote class="note">If you operate in the EU/EEA, you may wish to state a 14-day withdrawal period where legally applicable.</blockquote>
+  </section>
+
+  <section id="warranty" class="legal-section anchor">
+    <h2>10) Warranties &amp; Disclaimers</h2>
+    <p>Except as expressly stated, the Services are provided “as is” and “as available” without warranties of any kind, whether express or implied, to the fullest extent permitted by law.</p>
+  </section>
+
+  <section id="liability" class="legal-section anchor">
+    <h2>11) Limitation of Liability</h2>
+    <p>To the maximum extent permitted by law, Marbaras and its affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly.</p>
+  </section>
+
+  <section id="indemnity" class="legal-section anchor">
+    <h2>12) Indemnification</h2>
+    <p>You agree to indemnify and hold Marbaras harmless from any claims, liabilities, damages, and expenses (including reasonable attorneys’ fees) arising from your use of the Services or violation of these Terms.</p>
+  </section>
+
+  <section id="ip" class="legal-section anchor">
+    <h2>13) Intellectual Property</h2>
+    <p>All content on the site (text, logos, images, design) is owned by or licensed to Marbaras and protected by applicable IP laws. You may not copy, distribute, or create derivative works without prior written consent.</p>
+  </section>
+
+  <section id="user-content" class="legal-section anchor">
+    <h2>14) User Content &amp; Reviews</h2>
+    <p>By submitting reviews or other content, you grant us a non-exclusive, royalty-free, worldwide license to use, display, and distribute such content in connection with the Services.</p>
+  </section>
+
+  <section id="prohibited" class="legal-section anchor">
+    <h2>15) Prohibited Uses</h2>
+    <ul>
+      <li>Illegal, fraudulent, or harmful activities;</li>
+      <li>Infringing intellectual property rights;</li>
+      <li>Interfering with or disrupting the site, including via malware or scraping;</li>
+      <li>Misuse of promotions or returns.</li>
+    </ul>
+  </section>
+
+  <section id="third-party" class="legal-section anchor">
+    <h2>16) Third-Party Services</h2>
+    <p>We may link to third-party websites or use third-party services (e.g., payment processors). We are not responsible for their content, policies, or practices.</p>
+  </section>
+
+  <section id="termination" class="legal-section anchor">
+    <h2>17) Termination</h2>
+    <p>We may suspend or terminate access to the Services at any time, with or without notice, for conduct that we believe violates these Terms or is harmful to other users or to us.</p>
+  </section>
+
+  <section id="law" class="legal-section anchor">
+    <h2>18) Governing Law &amp; Disputes</h2>
+    <p>These Terms are governed by the laws of <strong>[insert jurisdiction]</strong>, without regard to conflict-of-law principles. Disputes shall be resolved in the courts of <strong>[insert venue]</strong>, unless mandatory law provides otherwise.</p>
+  </section>
+
+  <section id="changes" class="legal-section anchor">
+    <h2>19) Changes to Terms</h2>
+    <p>We may update these Terms from time to time. Changes take effect upon posting on this page. Continued use of the Services after changes constitutes acceptance.</p>
+  </section>
+
+  <section id="contact" class="legal-section anchor">
+    <h2>20) Contact</h2>
+    <p>If you have questions about these Terms, contact us at <a href="mailto:support@marbaras.com">support@marbaras.com</a>.</p>
+  </section>
+
+  <p><a href="#top">Back to top ↑</a></p>
+</section>
+{% endblock %}

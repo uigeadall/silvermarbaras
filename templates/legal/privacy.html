@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy - Marbaras{% endblock %}
+
+{% block extra_head %}
+<style>
+  .legal-wrap{max-width:900px;margin:0 auto;}
+  .legal-hero{margin-bottom:24px}
+  .legal-hero h1{font-size:2rem;margin-bottom:6px}
+  .legal-meta{font-size:.95rem;color:#777}
+  .badge{display:inline-block;background:#eef2ff;border-radius:999px;padding:4px 10px;font-size:.8rem;margin-left:8px}
+
+  .toc{background:#f8f8f8;border-radius:12px;padding:16px;margin:16px 0}
+  .toc h2{font-size:1.1rem;margin-bottom:10px}
+  .toc ol{margin:0 0 0 18px}
+
+  .legal-section{margin:28px 0}
+  .legal-section h2{font-size:1.35rem;margin-bottom:8px}
+  .legal-section p,.legal-section li{margin:8px 0;line-height:1.7}
+
+  blockquote.notice{background:#fffceb;border-radius:8px;padding:12px 14px;margin-top:10px}
+  address{font-style:normal;line-height:1.8}
+  .anchor{scroll-margin-top:90px}
+
+  @media (max-width:768px){
+    .legal-hero h1{font-size:1.7rem}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="legal-wrap">
+  <div id="top"></div>
+  <header class="legal-hero">
+    <h1>Privacy Policy <span class="badge">Last updated: {% now "F j, Y" %}</span></h1>
+    <p class="legal-meta">
+      Marbaras (“we”, “us”, or “our”) respects your privacy. This policy explains what data we collect, why, and how you can control it.
+    </p>
+  </header>
+
+
+
+  <section id="consent" class="legal-section anchor">
+    <h2>Consent</h2>
+    <p>By using our website (<strong>www.marbaras.com</strong>), you consent to this Privacy Policy and agree to its terms.</p>
+  </section>
+
+  <section id="info-we-collect" class="legal-section anchor">
+    <h2>Information we collect</h2>
+    <p>The personal information requested will be clear at the point of collection. If you contact us directly, we may receive additional details like your name, email, phone number, message contents, and attachments.</p>
+    <p>When you register for an account or place an order, we may collect details such as name, company, address, email, telephone number, and order information.</p>
+  </section>
+
+  <section id="how-we-use" class="legal-section anchor">
+    <h2>How we use your information</h2>
+    <ul>
+      <li>Process and fulfill your orders;</li>
+      <li>Provide, operate, and maintain our website;</li>
+      <li>Improve, personalize, and expand our services;</li>
+      <li>Understand and analyze how you use the site;</li>
+      <li>Develop new products, services, features, and functionality;</li>
+      <li>Communicate with you for support, updates, and marketing;</li>
+      <li>Send transactional/service emails;</li>
+      <li>Detect, prevent, and address fraud or abuse.</li>
+    </ul>
+  </section>
+
+  <section id="logs" class="legal-section anchor">
+    <h2>Log files</h2>
+    <p>We use standard server logs (IP address, browser type, ISP, timestamp, referring/exit pages, clicks). These are not linked to personally identifiable information and are used for analytics, site administration, and aggregated statistics.</p>
+  </section>
+
+  <section id="cookies" class="legal-section anchor">
+    <h2>Cookies &amp; web beacons</h2>
+    <p>We use cookies to store preferences and improve your experience. You can control cookies in your browser settings. Disabling cookies may affect some features.</p>
+  </section>
+
+  <section id="ads" class="legal-section anchor">
+    <h2>Advertising partners</h2>
+    <p>Third-party ad networks may use cookies, JavaScript, or web beacons to personalize ads and measure performance. They receive your IP address automatically when serving ads. We do not control third-party cookies—please review their privacy policies.</p>
+  </section>
+
+  <section id="third-parties" class="legal-section anchor">
+    <h2>Third-party privacy</h2>
+    <p>Our policy does not apply to other websites or advertisers. Consult their policies for details, including opt-out instructions. You can also manage cookies via your browser settings.</p>
+  </section>
+
+  <section id="rights-ccpa" class="legal-section anchor">
+    <h2>CCPA privacy rights</h2>
+    <ul>
+      <li><strong>Disclosure:</strong> Request categories and specific pieces of personal data we have collected.</li>
+      <li><strong>Deletion:</strong> Request deletion of your personal data (subject to exceptions).</li>
+      <li><strong>Opt-out of sale:</strong> Request that we do not sell your personal data.</li>
+    </ul>
+    <p>To exercise these rights, contact us as described below. We aim to respond within one month.</p>
+  </section>
+
+  <section id="rights-gdpr" class="legal-section anchor">
+    <h2>GDPR data protection rights</h2>
+    <ul>
+      <li><strong>Access:</strong> Request copies of your personal data.</li>
+      <li><strong>Rectification:</strong> Request corrections or completion.</li>
+      <li><strong>Erasure:</strong> Request deletion in certain circumstances.</li>
+      <li><strong>Restriction:</strong> Request limits on processing.</li>
+      <li><strong>Objection:</strong> Object to processing.</li>
+      <li><strong>Portability:</strong> Request transfer of your data to you or another organization.</li>
+    </ul>
+    <blockquote class="notice">
+      We may need to verify your identity before fulfilling requests. Our target response time is one month.
+    </blockquote>
+  </section>
+
+  <section id="children" class="legal-section anchor">
+    <h2>Children’s information</h2>
+    <p>We do not knowingly collect personal information from children under 13. If you believe a child has provided such information, please contact us so we can promptly remove it.</p>
+  </section>
+
+  <section id="changes" class="legal-section anchor">
+    <h2>Changes to this policy</h2>
+    <p>We may update this policy from time to time. We will post the new policy on this page, and changes take effect immediately upon posting.</p>
+  </section>
+
+  <section id="contact" class="legal-section anchor">
+    <h2>Contact us</h2>
+    <address>
+      <strong>MARBARAS</strong><br>
+      Person to contact: Mariya Marinova<br>
+      Sanford House, 81 Skipper Way, St. Neots, PE19 6LT, United Kingdom<br>
+      Email: <a href="mailto:support@marbaras.com">support@marbaras.com</a>
+    </address>
+  </section>
+
+  <p><a href="#top">Back to top ↑</a></p>
+</section>
+{% endblock %}

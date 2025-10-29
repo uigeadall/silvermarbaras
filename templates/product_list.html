@@ -5,291 +5,162 @@
 
 {% block extra_head %}
 <style>
+  :root {
+    --sidebar-w: 200px;
+    --gap-lg: 24px;
+    --gap-md: 16px;
+    --gap-sm: 12px;
+    --card-radius: 12px;
+  }
+
+  .content-wrapper { box-sizing: border-box; padding: 0 var(--gap-lg); }
+  @media (min-width: 769px) { .content-wrapper.with-sidebar { margin-left: var(--sidebar-w); } }
+
   .sidebar-fixed {
-    position: fixed;
-    top: 80px;
-    left: 0;
-    width: 200px;
-    height: 100%;
-    overflow-y: auto;
-    background-color: transparent;
-    padding: 16px;
-    z-index: 1000;
+    position: fixed; top: 80px; left: 0; width: var(--sidebar-w);
+    height: calc(100vh - 80px); overflow-y: auto; background: transparent; padding: 16px; z-index: 1000;
   }
+  .sidebar-fixed h2 { font-size: 1.2rem; margin-bottom: 16px; }
+  .sidebar-fixed ul { list-style: none; padding: 0; margin: 0; }
+  .sidebar-fixed li { margin-bottom: 8px; }
+  .sidebar-fixed a { display: block; padding: 8px 12px; text-decoration: none; color: #333; border-radius: 6px; font-size: 0.9rem; }
+  .sidebar-fixed a:hover { background-color: #f0f0f0; }
+  .sidebar-fixed .active { background-color: #fee2e2; color: #b91c1c; font-weight: 600; }
 
-  .sidebar-fixed h2 {
-    font-size: 1.2rem;
-    margin-bottom: 16px;
-  }
-
-  .sidebar-fixed ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .sidebar-fixed li {
-    margin-bottom: 8px;
-  }
-
-  .sidebar-fixed a {
-    display: block;
-    padding: 8px 12px;
-    text-decoration: none;
-    color: #333;
-    border-radius: 6px;
-    font-size: 0.9rem;
-  }
-
-  .sidebar-fixed a:hover {
-    background-color: #f0f0f0;
-  }
-
-  .sidebar-fixed .active {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    font-weight: bold;
-  }
-
-  .content-wrapper {
-    margin-left: 200px;
-    padding: 40px 24px;
-    box-sizing: border-box;
-  }
-
-  .section-title {
-    text-align: center;
-    font-size: 2.5rem;
-    margin: 32px 0 24px;
-  }
+  .section-title { text-align: center; font-size: clamp(1.8rem, 3vw, 2.5rem); margin: 16px 0 20px; }
 
   .sort-form {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-    font-size: 1rem;
-    flex-wrap: wrap;
+    position: sticky; top: 70px; z-index: 500; background: #fff;
+    display: flex; align-items: center; gap: 12px; margin: 0 0 24px; padding: 8px 0;
+    border-bottom: 1px solid #f1f1f1;
   }
+  .sort-form label { font-weight: 600; }
+  .sort-form select { padding: 8px; border-radius: 6px; border: 1px solid #ddd; }
 
-  .sort-form label {
-    font-weight: bold;
-  }
-
-  .sort-form select {
-  width: auto;
-  min-width: 150px;
-  max-width: 200px;
-  padding: 6px 10px;
-  font-size: 0.9rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: #f5f5f5;
-}
-
-  .sort-form select:hover {
-    border-color: #888;
-  }
-
-  .sort-form select:focus {
-    border-color: #333;
-    outline: none;
-    background-color: #fff;
-  }
-
-  .product-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 24px;
-  }
-
+  .product-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--gap-lg); }
   .product-card {
-    text-align: center;
+    background: #fff; border-radius: var(--card-radius); text-align: center; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.04);
   }
-
-  .product-card img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 6px;
-    margin-bottom: 12px;
-  }
-
+  .product-card a { display: block; text-decoration: none; color: inherit; }
+  .product-card img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; transition: transform .25s ease; will-change: transform; }
+  .product-card:hover img { transform: scale(1.03); }
+  @media (prefers-reduced-motion: reduce) { .product-card img { transition: none; } }
   .product-card h3 {
-    font-size: 1rem;
-    margin: 12px 0 6px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    height: 2.8em;
+    font-size: 1.05rem; margin: 12px var(--gap-sm) 6px;
+    overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   }
+  .product-card p { color: #555; font-size: 1rem; margin-bottom: 12px; }
+  .empty-message { text-align: center; margin-top: 40px; color: #666; }
 
-  .product-card p {
-    color: #555;
-    font-size: 0.95rem;
-    margin-bottom: 12px;
-  }
-
-  .empty-message {
-    text-align: center;
-    margin-top: 80px;
-    font-size: 1.2rem;
-    color: #888;
-  }
-
-  /* RESPONSIVE STYLES */
-  @media (max-width: 1024px) {
-    .product-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-
+  @media (max-width: 1280px) { .product-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 1024px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 768px) {
-    .sidebar-fixed {
-      position: static;
-      width: 100%;
-      height: auto;
-      padding: 12px 16px;
-      background-color: #f9f9f9;
-      border-bottom: 1px solid #ddd;
-    }
-
-    .sidebar-fixed h2 {
-      font-size: 1rem;
-      margin-bottom: 12px;
-      text-align: center;
-    }
-
-    .sidebar-fixed ul {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .sidebar-fixed li {
-      margin-bottom: 0;
-    }
-
-    .sidebar-fixed a {
-      font-size: 0.9rem;
-      padding: 6px 12px;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-
-    .content-wrapper {
-      margin-left: 0;
-      padding: 24px 16px;
-    }
-
-    .sort-form {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
-    .product-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
+    .sidebar-fixed { display: none !important; }
+    .content-wrapper, .content-wrapper.with-sidebar { margin-left: 0 !important; padding: 0 var(--gap-md); width: 100%; max-width: 100%; overflow-x: hidden; }
+    .sort-form { position: static; padding: 0; border: 0; }
+    .product-grid { grid-template-columns: repeat(2, 1fr); gap: var(--gap-md); }
   }
-
-  @media (max-width: 480px) {
-  .product-card img {
-    width: 100%;
-    height: auto; /* auto height preserves original aspect ratio */
-    object-fit: contain;
-    padding: 8px; /* optional spacing */
-  }
-}
-
-    .section-title {
-      font-size: 1.8rem;
-    }
-
-    .sort-form select {
-      width: 100%;
-    }
-
-    .product-card img {
-      height: 140px; /* Smaller image on mobile */
-    }
-
-    .product-card h3 {
-      font-size: 0.95rem;
-    }
-
-    .product-card p {
-      font-size: 0.9rem;
-    }
-
+  @media (max-width: 480px) { .product-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
-{% if categories %}
-<aside class="sidebar-fixed">
-  <h2>Categories</h2>
-  <ul>
-    {% for category in categories %}
-      <li>
-        <a href="{% url 'products_by_category' category.pk %}?sort={{ sort }}"
-           class="{% if selected_category and selected_category.id == category.id %}active{% endif %}">
-          {{ category.name }}
-        </a>
-      </li>
-    {% endfor %}
-  </ul>
-</aside>
-{% endif %}
 
-<div class="content-wrapper">
-  <h1 class="section-title">
-    {% if selected_category %}{{ selected_category.name }}{% else %}All Products{% endif %}
-  </h1>
-
-  <form method="get" class="sort-form">
-    {% if selected_category %}
-      <input type="hidden" name="category" value="{{ selected_category.id }}">
-    {% endif %}
-    <label for="sort">Sort by:</label>
-    <select name="sort" id="sort" onchange="this.form.submit()">
-      <option value="">-- Select --</option>
-      <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
-      <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
-    </select>
-  </form>
-
-  {% if products %}
-    <div class="product-grid">
-      {% for product in products %}
-        <div class="product-card">
-          <a href="{% url 'product_detail' product.pk %}">
-            {% if product.image %}
-              <img src="{{ product.image.url }}" alt="{{ product.name }}">
-            {% else %}
-              <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
-            {% endif %}
-          </a>
-          <h3>{{ product.name }}</h3>
-          <p>
-            {% if product.has_discount %}
-              <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
-              <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
-                ${{ product.price|floatformat:2 }}
-              </span>
-            {% else %}
-              ${{ product.price|floatformat:2 }}
-            {% endif %}
-          </p>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="empty-message">No products available right now. Check back later!</div>
+  {% if categories %}
+    <aside class="sidebar-fixed">
+      <h2>Categories</h2>
+      <ul>
+        {% for category in categories %}
+          <li>
+            <a href="{% url 'products_by_category' category.pk %}?sort={{ request.GET.sort|default:'' }}"
+               class="{% if selected_category and selected_category.id == category.id %}active{% endif %}">
+              {{ category.name }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </aside>
   {% endif %}
-</div>
+
+  <div class="content-wrapper {% if categories %}with-sidebar{% endif %}">
+    <h1 class="section-title">
+      {% if selected_category %}{{ selected_category.name }}{% else %}All Products{% endif %}
+    </h1>
+
+    <form method="get" class="sort-form">
+      {% if selected_category %}
+        <input type="hidden" name="category" value="{{ selected_category.id }}">
+      {% endif %}
+      <label for="sort">Sort by:</label>
+      <select name="sort" id="sort" onchange="this.form.submit()">
+        <option value="" {% if not request.GET.sort %}selected{% endif %}>Default</option>
+        <option value="price_asc" {% if request.GET.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+        <option value="price_desc" {% if request.GET.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+      </select>
+    </form>
+
+    {% if products %}
+      <div class="product-grid">
+        {% for p in products %}
+          <div class="product-card">
+            <a href="{% url 'product_detail' p.pk %}">
+              {% if p.image %}
+                <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">
+              {% else %}
+                <img src="{% static 'images/placeholder.jpg' %}" alt="No image" loading="lazy">
+              {% endif %}
+            </a>
+            <h3>{{ p.name }}</h3>
+            <p>
+              {% if p.has_discount %}
+                <span style="color:#dc2626;">${{ p.discount_price|floatformat:2 }}</span>
+                <span style="text-decoration:line-through; color:#888;">${{ p.price|floatformat:2 }}</span>
+              {% else %}
+                ${{ p.price|floatformat:2 }}
+              {% endif %}
+            </p>
+
+            {# Optional quick actions; only render if id exists #}
+            {% if p.id %}
+              <form method="post" action="{% url 'add_to_cart' pk=p.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button class="btn" type="submit">🛒 Add to Cart</button>
+              </form>
+              {% if favorite_ids %}
+                <form method="post" action="{% url 'toggle_favorite' pk=p.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button class="btn" type="submit">
+                    {% if p.id in favorite_ids %} ❤️ {% else %} 🤍 {% endif %}
+                  </button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-message">No products available right now. Check back later!</div>
+    {% endif %}
+
+    {# Recently viewed if you want to show it here; your context key is "recently_viewed" #}
+    {% if recently_viewed %}
+      <h3 class="section-title" style="font-size:1.4rem; margin-top:28px;">👀 Recently Viewed</h3>
+      <div class="product-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+        {% for rv in recently_viewed %}
+          <div class="product-card">
+            <a href="{% url 'product_detail' rv.pk %}">
+              {% if rv.image %}
+                <img src="{{ rv.image.url }}" alt="{{ rv.name }}" loading="lazy">
+              {% else %}
+                <img src="{% static 'images/placeholder.jpg' %}" alt="No image" loading="lazy">
+              {% endif %}
+            </a>
+            <h3>{{ rv.name }}</h3>
+            <p>${{ rv.price|floatformat:2 }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
 {% endblock %}

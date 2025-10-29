@@ -1,0 +1,269 @@
+{# templates/account/_profile_base.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="mx-auto max-w-site px-4">
+
+  <!-- Mobile brand -->
+  <div class="lg:hidden mt-2 mb-3">
+    <a href="{% url 'home' %}" class="inline-block font-extrabold text-2xl tracking-tight text-brand">
+      Marbaras
+    </a>
+  </div>
+
+  <!-- ===== 3-column layout: [Categories | Account Area | Right rail] ===== -->
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[180px,minmax(0,1fr),180px]">
+
+    {# ===== Left: Categories ===== #}
+    {% if categories %}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <a href="{% url 'home' %}"
+         class="block mb-3 font-extrabold text-2xl leading-none tracking-tight text-brand truncate">
+        Marbaras
+      </a>
+
+      <div class="rounded-xl bg-white shadow-sm">
+        <div class="px-3 py-2">
+          <h2 class="text-[10px] font-extrabold tracking-widest text-slate-600">
+            CATEGORIES
+          </h2>
+        </div>
+        <ul class="p-2 space-y-1.5">
+          <li>
+            <a href="{% url 'home' %}?all=true"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition hover:bg-slate-100 text-slate-800">
+              All Products
+            </a>
+          </li>
+          {% for cat in categories %}
+          <li>
+            <a href="{% url 'products_by_category' cat.pk %}"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition hover:bg-slate-100 text-slate-800">
+              {{ cat.name }}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+    {% endif %}
+
+    {# ===== Center: Account shell (sidebar + page body) ===== #}
+    <section class="min-w-0">
+      {% if request.user.is_authenticated %}
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[240px,minmax(0,1fr)]">
+          <!-- Account navigation -->
+          <aside class="rounded-xl bg-white shadow-sm p-3 space-y-2 self-start">
+            <div class="px-1 pb-2 border-b">
+              <p class="text-xs text-slate-500">Signed in as</p>
+              <p class="font-extrabold text-slate-900 truncate">
+                {{ request.user.get_full_name|default:request.user.username }}
+              </p>
+              <p class="text-xs text-slate-500 truncate">{{ request.user.email }}</p>
+            </div>
+            <nav class="space-y-1">
+              <a href="{% url 'profile_dashboard' %}"
+                 class="block px-2.5 py-1.5 rounded-md text-sm font-semibold
+                        {% if active_tab == 'dashboard' %} bg-slate-900 text-white {% else %} hover:bg-slate-100 {% endif %}">
+                Dashboard
+              </a>
+              <a href="{% url 'profile_favorites' %}"
+                 class="block px-2.5 py-1.5 rounded-md text-sm font-semibold
+                        {% if active_tab == 'favorites' %} bg-red-600 text-white {% else %} text-red-700 border border-red-200 hover:bg-red-50 {% endif %}">
+                ❤️ Favorites
+              </a>
+              <a href="{% url 'profile_orders' %}"
+                 class="block px-2.5 py-1.5 rounded-md text-sm font-semibold
+                        {% if active_tab == 'orders' %} bg-slate-900 text-white {% else %} hover:bg-slate-100 {% endif %}">
+                Orders
+              </a>
+              <a href="{% url 'profile_details' %}"
+                 class="block px-2.5 py-1.5 rounded-md text-sm font-semibold
+                        {% if active_tab == 'details' %} bg-slate-900 text-white {% else %} hover:bg-slate-100 {% endif %}">
+                Account Details
+              </a>
+              <a href="{% url 'account_logout' %}"
+                 class="block px-2.5 py-1.5 rounded-md text-sm font-extrabold text-right hover:bg-slate-100">
+                Logout
+              </a>
+            </nav>
+          </aside>
+
+          <!-- Account page body -->
+          <div class="min-w-0">
+            {% block account_body %}{% endblock %}
+          </div>
+        </div>
+      {% else %}
+        {# Logged-out: prompt #}
+        <div class="rounded-xl bg-white shadow-sm p-6 text-center">
+          <h1 class="text-2xl font-extrabold mb-2">Your Account</h1>
+          <p class="text-slate-600 mb-4">Please log in or create an account to view your dashboard.</p>
+          <div class="flex items-center justify-center gap-3">
+            <a href="{% url 'account_login' %}" class="px-4 py-2 rounded-lg bg-brand text-white font-extrabold text-sm hover:brightness-95">
+              Login
+            </a>
+            <a href="{% url 'account_signup' %}" class="px-4 py-2 rounded-lg border border-slate-200 bg-white font-extrabold text-sm hover:bg-slate-50">
+              Register
+            </a>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    {# ===== Right: Search + Cart + Auth + Profile/Favorites ===== #}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <div class="rounded-xl bg-white shadow-sm p-3 space-y-3 text-right">
+
+        <button id="searchToggle" aria-expanded="false" aria-controls="searchWrap"
+                class="w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+          🔎 Search
+        </button>
+        <form id="searchWrap" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
+          <div class="mt-2 grid gap-2">
+            <input type="text" name="q" placeholder="Search products…"
+                   class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-slate-300">
+            <div>
+              <button type="submit"
+                      class="inline-flex px-2.5 py-1.5 rounded-md bg-brand text-white font-extrabold text-xs hover:brightness-95 transition">
+                Go
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="relative">
+          <a id="cartLink" href="#" aria-describedby="cartTip"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            🛒 Cart
+          </a>
+          <span id="cartTip"
+                class="cart-tip invisible opacity-0 absolute right-0 mt-1
+                       bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg
+                       transition-opacity duration-200">
+            Your cart is empty
+          </span>
+        </div>
+
+        {% if request.user.is_authenticated %}
+          <a href="{% url 'account_logout' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Logout
+          </a>
+          <a href="{% url 'profile_dashboard' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            👤 Profile
+          </a>
+          <a href="{% url 'profile_favorites' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md text-xs font-extrabold text-right
+                    border border-red-200 bg-red-50 text-red-700 shadow-soft hover:bg-red-100 transition">
+            ❤️ Favorites
+          </a>
+        {% else %}
+          <a href="{% url 'account_login' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Login
+          </a>
+          <a href="{% url 'account_signup' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right hover:brightness-95 transition">
+            Register
+          </a>
+        {% endif %}
+      </div>
+    </aside>
+
+  </div>
+
+  {# ===== Mobile quick actions beneath grid ===== #}
+  <div class="lg:hidden mt-4 grid gap-2">
+    <button id="searchToggleMobile"
+            aria-expanded="false"
+            aria-controls="searchWrapMobile"
+            class="px-3 py-2 rounded-xl bg-white font-extrabold shadow-soft hover:shadow-card hover:bg-slate-50 transition text-sm">
+      🔎 Search
+    </button>
+    <form id="searchWrapMobile" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
+      <div class="flex gap-2">
+        <input type="text" name="q" placeholder="Search products…"
+               class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300">
+        <button type="submit"
+                class="px-3 py-2 rounded-xl bg-brand text-white font-extrabold text-sm hover:brightness-95 transition">
+          Go
+        </button>
+      </div>
+    </form>
+
+    {% if request.user.is_authenticated %}
+      <a href="{% url 'profile_dashboard' %}"
+         class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center">
+        👤 Profile
+      </a>
+      <a href="{% url 'profile_favorites' %}"
+         class="block px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 font-extrabold text-sm text-center">
+        ❤️ Favorites
+      </a>
+      <a href="{% url 'account_logout' %}"
+         class="block px-3 py-2 rounded-xl bg-white font-extrabold text-sm text-center">
+        Logout
+      </a>
+    {% else %}
+      <a href="{% url 'account_login' %}"
+         class="block px-3 py-2 rounded-xl bg-white font-extrabold text-sm text-center">
+        Login
+      </a>
+      <a href="{% url 'account_signup' %}"
+         class="block px-3 py-2 rounded-xl bg-white font-extrabold text-sm text-center">
+        Register
+      </a>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* Search toggles */
+  function wireSearchToggle(btnId, formId){
+    const btn = document.getElementById(btnId);
+    const form = document.getElementById(formId);
+    btn?.addEventListener('click', () => {
+      const isHidden = form.classList.contains('hidden');
+      form.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+      form.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+      if (isHidden) form.querySelector('input')?.focus();
+    });
+  }
+  wireSearchToggle('searchToggle', 'searchWrap');
+  wireSearchToggle('searchToggleMobile', 'searchWrapMobile');
+
+  /* Cart tip */
+  function wireCart(linkId, tipId){
+    const link = document.getElementById(linkId);
+    const tip = document.getElementById(tipId);
+    let timer = null;
+    function showTip(){
+      tip?.classList.remove('invisible', 'opacity-0');
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        tip?.classList.add('opacity-0');
+        setTimeout(()=> tip?.classList.add('invisible'), 200);
+      }, 2000);
+    }
+    link?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const count = Number('{{ cart_count|default:"0" }}') || 0;
+      if (count > 0) {
+        window.location.href = "{% url 'cart_view' %}";
+      } else {
+        showTip();
+      }
+    });
+    document.addEventListener('scroll', () => tip?.classList.add('invisible', 'opacity-0'));
+  }
+  wireCart('cartLink', 'cartTip');
+  wireCart('cartLinkMobile', 'cartTipMobile');
+</script>
+{% endblock %}

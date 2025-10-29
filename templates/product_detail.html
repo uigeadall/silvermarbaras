@@ -5,632 +5,893 @@
 
 {% block extra_head %}
 <style>
-  .container {
-    width: 100%;
-    padding: 0;
-    background: transparent;
+  * { box-sizing: border-box; }
+
+  .container { width: 100%; padding: 0; background: transparent; }
+  .flex { display: flex; flex-wrap: wrap; gap: 30px; width: 100%; overflow: visible; }
+
+  .image-section, .info-section { flex: 1; min-width: 280px; max-width: 100%; }
+
+  .image-section { display: flex; align-items: flex-start; gap: 16px; }
+  .thumbs-col {
+    width: 76px; max-height: 600px; overflow: auto;
+    display: flex; flex-direction: column; gap: 10px; padding-right: 2px;
   }
+  .thumbs-col img {
+    width: 70px; height: 70px; object-fit: cover; border: none; cursor: pointer;
+    transition: opacity .2s, outline-color .2s; outline: 2px solid transparent;
+  }
+  .thumbs-col img:hover { opacity: .85; }
+  .thumbs-col img[aria-current="true"] { outline-color: #111; }
 
-  .flex { display: flex; flex-wrap: wrap; gap: 30px; }
-  .image-section, .info-section { flex: 1; min-width: 280px; }
-
-  .main-preview img {
-    width: 100%;
+  .main-preview {
+    position: relative;
+    overflow: hidden;
+    flex: 1;
     height: auto;
-    object-fit: cover;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .thumbnail-row {
+    min-height: 300px;
+    cursor: zoom-in;
     display: flex;
-    gap: 10px;
-    margin-top: 10px;
-    flex-wrap: wrap;
-    border: none;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+  }
+  .main-preview img {
+    max-width: 100%;
+    max-height: 600px;
+    width: auto; height: auto;
+    object-fit: contain;
+    transition: transform .1s ease;
+    transform-origin: center center;
+    display: block;
   }
 
-  .thumbnail-row img {
-    width: 70px;
-    height: 70px;
-    object-fit: cover;
-    border-radius: 0;
-    border: none;
-    cursor: pointer;
-    transition: border-color 0.2s;
+  h1 { font-size: 2.4rem; margin-bottom: 10px; font-weight: 800; }
+  .price { font-size: 1.5rem; color: #2d2d2d; margin-bottom: 16px; }
+
+  .variant-wrap { margin: 16px 0 12px; }
+  .variant-label { font-weight: bold; display: block; margin-bottom: 8px; }
+
+  .size-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .size-pill {
+    position: relative; min-width: 48px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px;
+    background: #fff; font-size: .92rem; text-align: center; cursor: pointer; user-select: none; line-height: 1;
+  }
+  .size-pill:hover { border-color: #bbb; }
+  .size-pill.selected { border-color: #111; background: #f5f5f5; box-shadow: 0 0 0 2px rgba(0,0,0,.04) inset; }
+  .size-pill.selected::after {
+    content: "✓"; position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
+    background: #111; color: #fff; font-size: 11px; line-height: 16px; text-align: center;
+  }
+  .size-pill.out { color: #888; text-decoration: line-through; cursor: not-allowed; background: #f7f7f7; border-style: dashed; }
+
+  .variant-meta { display: none; }
+
+  .stock-line {
+    min-height: 18px;
+    font-size: 12px;
+    margin: 4px 0 6px;
+    color: #111;
+  }
+  .stock-line.muted { color: #888; }
+  .stock-line.out { color: #b91c1c; }
+
+  .action-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0; background: transparent; border: none;
+    margin-top: 6px; flex-wrap: wrap;
   }
 
-  .thumbnail-row img:hover {
-    opacity: 0.8;
+  .quantity-wrapper {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 220px; height: 40px; border-radius: 8px; background: #fff;
   }
-
-  h1 { font-size: 1.5rem; margin-bottom: 10px; }
-  .price { font-size: 1.5rem; color: #2d2d2d; margin-bottom: 20px; }
-
-  .btn {
-    padding: 10px 16px;
-    margin-right: 12px;
-    border: none;
-    border-radius: 0;
-    background-color: transparent;
-    cursor: pointer;
-    font-weight: bold;
+  .qty-btn {
+    padding: 0 10px; height: 100%; border: none; background: #f7f7f7;
+    cursor: pointer; font-size: 1.1rem; line-height: 1;
   }
+  .qty-btn:hover { background: #eaeaea; }
+  .qty-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .qty-input { width: 54px; height: 100%; text-align: center; border: none; font-size: .95rem; outline: none; background: transparent; }
+  .qty-input::-webkit-inner-spin-button,
+  .qty-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty-input { -moz-appearance: textfield; }
 
-  .btn:hover { background-color: rgba(255, 255, 255, 0.05); }
+  .btn--icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; background: #000; color: #fff;
+    border-radius: 8px; border: none; transition: background .15s, transform .06s; font-size: 16px;
+  }
+  .btn--icon:hover { background: #111; }
+  .btn--icon:active { transform: translateY(1px); }
+
+  .btn { padding: 8px 14px; border: none; border-radius: 0; background: transparent; cursor: pointer; font-weight: bold; }
+  .btn:hover { background: rgba(0,0,0,.03); }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+  .btn--primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    width: 220px; height: 40px; background: #000; color: #fff;
+    border-radius: 8px; transition: transform .06s, opacity .15s, background .15s;
+    font-size: .95rem;
+  }
+  .btn--primary:hover { background: #111; }
+  .btn--primary:active { transform: translateY(1px); }
+
+  .inline-warning { min-height: 18px; font-size: 12px; color: #b91c1c; margin-top: 6px; display: none; }
+  .inline-warning.show { display: block; }
 
   .description { margin-top: 30px; }
+  .description h3 { font-weight: 700; }
+  .description-text { font-size: 0.90rem; line-height: 1.6; max-height: 12em; overflow: hidden; background: transparent; border: none; }
+  .description-text.expanded { max-height: none; }
+  .toggle-btn { margin-top: 10px; background: transparent; border: none; padding: 6px 12px; border-radius: 0; cursor: pointer; font-weight: bold; }
 
-  .description-text {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    max-height: 12em;
-    overflow: hidden;
-    background: transparent;
-    border: none;
-  }
-
-  .description-text.expanded {
-    max-height: none;
-  }
-
-  .toggle-btn {
-    margin-top: 10px;
-    background-color: transparent;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 0;
-    cursor: pointer;
-    font-weight: bold;
-  }
-
-  .rating-stars {
-    font-size: 1.4rem;
-    color: #f5b301;
-    margin-bottom: 20px;
-  }
-
-  .star-rating {
-    display: flex;
-    gap: 5px;
-    margin: 10px 0 20px;
-  }
-
-  .star-rating .star {
-    font-size: 1.8rem;
-    color: #ccc;
-    cursor: pointer;
-    transition: color 0.2s;
-  }
-
-  .star-rating .star.filled {
-    color: #f5b301;
-  }
-
-  textarea {
-    width: 100%;
-    padding: 10px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    color: #000;
-  }
-
-  .submit-btn {
-    background: #007BFF;
-    color: white;
-    padding: 10px 16px;
-    border: none;
-    border-radius: 0;
-    cursor: pointer;
-  }
-
-  .submit-btn:hover { background: #0056b3; }
-
-  .message {
-    padding: 12px 0;
-    border-radius: 0;
-    font-weight: bold;
-    margin-bottom: 20px;
-    background: transparent;
-    border: none;
-  }
-
+  .message { padding: 12px 0; font-weight: bold; margin-bottom: 20px; background: transparent; border: none; }
   .message.success { color: #155724; }
   .message.error { color: #721c24; }
 
-  .comment-scroll {
-    overflow-x: auto;
-    margin-top: 30px;
-    padding-bottom: 10px;
+  .recently-viewed { margin-top: 60px; }
+  .recently-viewed h2 { margin-bottom: 12px; font-size: 1.1rem; font-weight: 600; line-height: 1.25; }
+  .recently-viewed-container { display: flex; gap: 20px; overflow-x: auto; padding-top: 10px; }
+  .recently-viewed-item { flex: 0 0 180px; text-align: center; text-decoration: none; color: inherit; }
+  .recently-viewed-card img { width: 100%; height: 140px; object-fit: contain; object-position: center; background: #f7f7f7; padding: 6px; border: none; }
+  .recently-viewed-card p { margin-top: 8px; font-size: .95rem; }
+
+  .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-height: 2.8em; }
+
+  h1 { font-size: 2.8rem; font-weight: 800; line-height: 1.15; margin-bottom: 10px; }
+  @media (max-width: 768px) {
+    .image-section { flex-direction: column; }
+    .thumbs-col { order: 2; width: 100%; max-height: none; overflow: visible; flex-direction: row; gap: 10px; padding-right: 0; }
+    .thumbs-col img { width: 70px; height: 70px; }
+    .main-preview { order: 1; width: 100%; height: auto; min-height: 220px; }
+    .main-preview img { max-height: 280px; max-width: 100%; width: auto; height: auto; object-fit: contain; }
+    h1 { font-size: 2rem; }
+    .action-bar { gap: 10px; }
+    .quantity-wrapper, .btn--primary { width: 100%; }
   }
 
-  .comment-row {
-    display: flex;
-    gap: 20px;
-    min-height: 180px;
-  }
-
-  .comment {
-    flex: 0 0 280px;
-    background: transparent;
-    color: #111;
-    padding: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .comment-author {
-    font-weight: bold;
-    font-size: 1rem;
-    margin-bottom: 6px;
-  }
-
-  .comment-date {
-    font-size: 0.85rem;
-    color: #777;
-    margin-bottom: 10px;
-  }
-
-  .comment-text {
-    font-size: 1rem;
-    line-height: 1.4;
-    max-height: 6.8em;
-    overflow: hidden;
-    position: relative;
-    background: transparent;
-    border: none;
-  }
-
-  .comment-text.expanded {
-    max-height: none;
-  }
-
-  .show-more {
-    color: #007BFF;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: bold;
-    margin-top: 8px;
-    display: inline-block;
-  }
-
-  .recently-viewed {
-    margin-top: 60px;
-  }
-
-  .recently-viewed h2 {
-    margin-bottom: 16px;
-  }
-
-  .recently-viewed-container {
-    display: flex;
-    gap: 20px;
-    overflow-x: auto;
-    padding-top: 10px;
-  }
-
-  .recently-viewed-item {
-    flex: 0 0 180px;
-    text-align: center;
-    text-decoration: none;
-    color: inherit;
-  }
-
-  .recently-viewed-card {
-    background: transparent;
-    border-radius: 0;
-    padding: 0;
-    box-shadow: none;
-  }
-
-  .recently-viewed-card img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 0;
-    border: none;
-  }
-
-  .recently-viewed-card p {
-    margin-top: 8px;
-    font-size: 0.95rem;
-  }
-  .main-preview {
-  overflow: hidden;
-  position: relative;
-}
-
-.main-preview {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  height: auto;
-}
-
-.main-preview img {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  transition: transform 0.1s ease;
-  transform-origin: center center;
-  cursor: zoom-in;
-
-
-}
-.sidebar-fixed {
-  position: fixed;
-  top: 80px;
-  left: 0;
-  width: 160px;
-  height: calc(100% - 80px);
-  overflow-y: auto;
-  background-color: rgba(255, 255, 255, 0.4); /* прозрачен фон */
-  backdrop-filter: blur(6px);
-  padding: 16px;
-  z-index: 999;
-}
-
-.sidebar-fixed h2 {
-  font-size: 1.05rem;
-  margin-bottom: 12px;
-  font-weight: bold;
-  color: #333;
-}
-
-.sidebar-fixed ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar-fixed li {
-  margin-bottom: 8px;
-}
-
-.sidebar-fixed a {
-  display: block;
-  padding: 6px 10px;
-  text-decoration: none;
-  color: #333;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.sidebar-fixed a:hover {
-  background-color: #fee2e2; /* леко червено при hover */
-  color: #b91c1c;
-}
-
-.sidebar-fixed .active {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  font-weight: bold;
-}
-@media (max-width: 768px) {
-  .flex {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .sidebar-fixed {
-    position: static;
-    width: 100%;
-    height: auto;
-    backdrop-filter: none;
-    background-color: transparent;
-    padding: 0 10px;
-    margin-bottom: 20px;
-  }
-
-  .sidebar-fixed ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding-top: 10px;
-  }
-
-  .sidebar-fixed li {
-    flex: 1 1 auto;
-  }
-
-  .sidebar-fixed a {
-    text-align: center;
-    font-size: 0.9rem;
-    padding: 6px;
-  }
-
-  .image-section, .info-section {
-    width: 100%;
-  }
-
-  .thumbnail-row {
+  /* Lightbox (transparent / frosted backdrop) */
+  .lightbox-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
     justify-content: center;
+    z-index: 9999;
+    cursor: zoom-out;
   }
+  .lightbox-backdrop.open { display: flex; }
 
-  .comment-row {
-    flex-direction: column;
-  }
-
-  .comment {
-    flex: 1 1 100%;
-    padding-bottom: 20px;
-  }
-
-  .recently-viewed-container {
-    flex-direction: row;
-    overflow-x: scroll;
-    padding-bottom: 10px;
-  }
-
-  .recently-viewed-item {
-    flex: 0 0 150px;
-  }
-
-  .recently-viewed-card img {
-    height: 100px;
-  }
-
-  .description-text {
-    max-height: none !important;
-  }
-
-  .main-preview img {
-    max-height: 280px;
+  .lightbox-img {
+    max-width: 96vw;
+    max-height: 96vh;
     object-fit: contain;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
   }
 
-  .star-rating {
-    justify-content: center;
+  .lightbox-close,
+  .lightbox-prev,
+  .lightbox-next {
+    position: fixed;
+    background: rgba(0,0,0,.55);
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    padding: 10px 14px;
+    cursor: pointer;
+    z-index: 10000;
+    border-radius: 999px;
+    transition: background .15s ease, transform .06s ease;
   }
+  .lightbox-close:hover,
+  .lightbox-prev:hover,
+  .lightbox-next:hover { background: rgba(0,0,0,.7); }
+  .lightbox-close:active,
+  .lightbox-prev:active,
+  .lightbox-next:active { transform: translateY(1px); }
 
-  .btn,
-  .submit-btn {
-    width: 100%;
-    margin-top: 10px;
+  .lightbox-close { top: 16px; right: 16px; }
+  .lightbox-prev  { left: 16px; top: 50%; transform: translateY(-50%); }
+  .lightbox-next  { right: 16px; top: 50%; transform: translateY(-50%); }
+
+  .lightbox-counter {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 14px;
+    background: rgba(0,0,0,.45);
+    padding: 6px 10px;
+    border-radius: 999px;
   }
-
-  textarea {
-    font-size: 1rem;
-  }
-}
-
-
-
-
-
 </style>
-
 {% endblock %}
 
 {% block content %}
-<div class="container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="message {{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-{% if categories %}
-<aside class="sidebar-fixed">
-  <h2>Categories</h2>
-<ul>
-  <li>
-    <a href="{% url 'product_list' %}"
-       class="{% if not selected_category %}active{% endif %}">
-      All Products
-    </a>
-  </li>
-  {% for category in categories %}
-    <li>
-      <a href="{% url 'products_by_category' category.pk %}"
-         class="{% if selected_category and selected_category.id == category.id %}active{% endif %}">
-        {{ category.name }}
+<div class="mx-auto max-w-site px-4">
+  <div class="lg:hidden mt-2 mb-3">
+    <a href="{% url 'home' %}" class="inline-block font-extrabold text-2xl tracking-tight text-brand">Marbaras</a>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[180px,minmax(0,1fr),180px]">
+
+    {% if categories %}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <a href="{% url 'home' %}" class="block mb-3 font-extrabold text-2xl leading-none tracking-tight text-brand truncate">
+        Marbaras
       </a>
-    </li>
-  {% endfor %}
-</ul>
-</aside>
-{% endif %}
-
-<div class="content-wrapper">
-
-  <div class="flex">
-    <div class="image-section">
-      <div class="main-preview">
-        {% if product.main_image %}
-          <img id="mainImage" src="{{ product.main_image.url }}" alt="{{ product.name }}">
-        {% elif product_images %}
-          <img id="mainImage" src="{{ product_images.0.image.url }}" alt="{{ product.name }}">
-        {% else %}
-          <img id="mainImage" src="{% static 'images/placeholder.jpg' %}" alt="No image">
-        {% endif %}
-      </div>
-
-      {% if product_images %}
-        <div class="thumbnail-row">
-          {% for img in product_images %}
-            <img src="{{ img.image.url }}" alt="Thumbnail"
-                 onclick="updateMainImage('{{ img.image.url }}')"
-                 onerror="this.src='{% static 'images/placeholder.jpg' %}'">
+      <div class="rounded-xl bg-white shadow-sm">
+        <div class="px-3 py-2">
+          <h2 class="text-[10px] font-extrabold tracking-widest text-slate-600">CATEGORIES</h2>
+        </div>
+        <ul class="p-2 space-y-1.5">
+          <li>
+            <a href="{% url 'home' %}?all=true"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if not selected_category and request.GET.all %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}">
+              All Products
+            </a>
+          </li>
+          {% for cat in categories %}
+          <li>
+            <a href="{% url 'products_by_category' cat.pk %}"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if selected_category and selected_category.id == cat.id %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}">
+              {{ cat.name }}
+            </a>
+          </li>
           {% endfor %}
-        </div>
-      {% endif %}
-    </div>
-
-    <div class="info-section">
-      <h1>{{ product.name }}</h1>
-      <div class="price">
-        {% if product.has_discount %}
-          <span style="color: red; font-weight: bold;">${{ product.discount_price|floatformat:2 }}</span>
-          <span style="text-decoration: line-through; color: #777; margin-left: 8px;">${{ product.price|floatformat:2 }}</span>
-        {% else %}
-          ${{ product.price|floatformat:2 }}
-        {% endif %}
+        </ul>
       </div>
-
-      {% if average_rating %}
-        <div class="rating-stars">
-          {% for i in "12345" %}
-            {% if forloop.counter <= average_rating %}★{% else %}☆{% endif %}
-          {% endfor %}
-          <span style="font-size: 0.9rem;">({{ average_rating|floatformat:1 }}/5)</span>
-        </div>
-      {% else %}
-        <p>No ratings yet.</p>
-      {% endif %}
-
-      <form method="post" action="{% url 'add_to_cart' product.pk %}" style="display:inline;">
-        {% csrf_token %}
-        <button class="btn" type="submit">🛒 Add to Cart</button>
-      </form>
-
-      <form method="post" action="{% url 'toggle_favorite' product.pk %}" style="display:inline;">
-        {% csrf_token %}
-        <button class="btn" type="submit">
-          {% if product.id in favorite_ids %} ❤️ {% else %} 🤍 {% endif %}
-        </button>
-      </form>
-
-      <div class="description">
-        <h3>Description</h3>
-        <div class="description-text" id="descriptionText">
-          {{ product.description|linebreaks }}
-        </div>
-        <button class="toggle-btn" id="toggleDescriptionBtn" style="display:none;">Show More</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="comments">
-    <h2>⭐ Rate & 💬 Comment</h2>
-    {% if user.is_authenticated %}
-      <form method="post">
-        {% csrf_token %}
-        <label for="ratingInput" style="font-weight: bold;">Your Rating:</label>
-        <div class="star-rating">
-          {% for i in "12345" %}
-            <span class="star{% if forloop.counter <= rating_form.value.value %} filled{% endif %}" data-value="{{ forloop.counter }}">★</span>
-          {% endfor %}
-        </div>
-        <input type="hidden" name="value" id="ratingInput" value="{{ rating_form.value.value|default:0 }}">
-        <textarea name="comment" rows="4" placeholder="Leave a comment (optional)..."></textarea>
-        <br><br>
-        <button type="submit" class="submit-btn">Submit</button>
-      </form>
-    {% else %}
-      <p>You must <a href="{% url 'login' %}">log in</a> to rate or comment.</p>
+    </aside>
     {% endif %}
 
-    {% if comments %}
-      <div class="comment-scroll">
-        <div class="comment-row">
-          {% for comment in comments %}
-            <div class="comment">
-              <div class="comment-author">{{ comment.user.username }}</div>
-              <div class="comment-date">{{ comment.created_at|date:"M d, Y H:i" }}</div>
-              <div class="comment-text" id="comment-{{ forloop.counter }}">
-                {{ comment.text }}
+    <section class="min-w-0">
+      <div class="container">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="message {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <div class="content-wrapper">
+          <div class="flex">
+            <div class="image-section">
+              {% if product_images %}
+                <div class="thumbs-col" id="thumbsCol">
+                  {% for img in product_images %}
+                    <img
+                      src="{{ img.image.url }}"
+                      alt="Thumbnail"
+                      onclick="updateMainImage('{{ img.image.url }}', this)"
+                      onerror="this.src=&quot;{% static 'images/placeholder.jpg' %}&quot;"
+                    >
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <div class="main-preview">
+                {% if product.main_image %}
+                  <img id="mainImage" src="{{ product.main_image.url }}" alt="{{ product.name }}">
+                {% elif product_images %}
+                  <img id="mainImage" src="{{ product_images.0.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                  <img id="mainImage" src="{% static 'images/placeholder.jpg' %}" alt="No image">
+                {% endif %}
               </div>
-              {% if comment.text|length > 280 %}
-                <span class="show-more" onclick="toggleComment(this, '{{ forloop.counter }}')">Show More</span>
-              {% endif %}
             </div>
-          {% endfor %}
+
+            <div class="info-section">
+              <h1>{{ product.name }}</h1>
+              <div class="price">
+                {% if product.has_discount %}
+                  <span style="color: red; font-weight: bold;">${{ product.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration: line-through; color: #777; margin-left: 8px;">${{ product.price|floatformat:2 }}</span>
+                {% else %}
+                  ${{ product.price|floatformat:2 }}
+                {% endif %}
+              </div>
+
+              {% if product.variants.count %}
+                <div class="variant-wrap">
+                  <span class="variant-label">Select size</span>
+                  <div id="sizeGrid" class="size-grid" role="radiogroup" aria-label="Ring sizes">
+                    {% for v in product.variants.all %}
+                      {% if v.stock > 0 %}
+                        <button
+                          type="button"
+                          class="size-pill"
+                          role="radio"
+                          aria-checked="false"
+                          data-variant-id="{{ v.id }}"
+                          data-stock="{{ v.stock }}"
+                          data-price="{{ v.effective_price|default:v.price_override|default:product.get_discounted_price }}"
+                          title="In stock ({{ v.stock }})"
+                        >{{ v.size }}</button>
+                      {% else %}
+                        <span class="size-pill out" role="radio" aria-checked="false" aria-disabled="true" title="Out of stock">{{ v.size }}</span>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                  <div id="variantMeta" class="variant-meta"></div>
+                </div>
+              {% endif %}
+
+              <div id="stockLine"
+                   class="stock-line {% if product.variants.count %}muted{% else %}{% if product.stock|default:0 == 0 %}out{% endif %}{% endif %}"
+                   {% if not product.variants.count %}data-base-stock="{{ product.stock|default:0 }}"{% endif %}>
+                {% if not product.variants.count %}
+                  {% if product.stock|default:0 > 0 %}
+                    In stock: {{ product.stock }}
+                  {% else %}
+                    Out of stock
+                  {% endif %}
+                {% endif %}
+              </div>
+
+              <input type="hidden" name="variant_id" id="variantInput" value="" form="addToCartForm">
+              <div class="action-bar">
+                <div class="quantity-wrapper" aria-label="Quantity selector">
+                  <button type="button" class="qty-btn" id="qtyMinus" aria-label="Decrease quantity">−</button>
+                  <input
+                    type="number"
+                    name="quantity"
+                    id="qtyInput"
+                    value="1"
+                    min="1"
+                    {% if not product.variants.count and product.stock|default:0 > 0 %}
+                      max="{{ product.stock }}"
+                    {% endif %}
+                    class="qty-input"
+                    aria-live="polite"
+                    form="addToCartForm">
+                  <button type="button" class="qty-btn" id="qtyPlus" aria-label="Increase quantity">+</button>
+                </div>
+
+                <form method="post" action="{% url 'toggle_favorite' product.pk %}">
+                  {% csrf_token %}
+                  <button class="btn btn--icon" type="submit" aria-label="Toggle favorite" title="Favorite">
+                    {% if product.id in favorite_ids %} ❤️ {% else %} 🤍 {% endif %}
+                  </button>
+                </form>
+
+                <form id="addToCartForm" method="post" action="{% url 'add_to_cart' product.pk %}">
+                  {% csrf_token %}
+                  <div class="btn-wrap">
+                    <button
+                      id="addToCartBtn"
+                      class="btn btn--primary"
+                      type="submit"
+                      {% if not product.variants.count and product.stock|default:0 == 0 %}disabled{% endif %}>
+                      🛒 Add to Cart
+                    </button>
+                    <div id="sizeWarning" class="inline-warning" aria-live="polite"></div>
+                  </div>
+                </form>
+              </div>
+
+              <div class="description">
+                <h3>Description</h3>
+                <div class="description-text" id="descriptionText">
+                  {{ product.description|linebreaks }}
+                </div>
+                <button class="toggle-btn" id="toggleDescriptionBtn" style="display:none;">Show More</button>
+              </div>
+
+              {% if show_bundle %}
+              <div class="mt-6">
+                <h3 class="text-lg font-extrabold mb-3">🧩 Buy as a set</h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {% for row in bundle_items_data %}
+                    {% with b=row.product qa=row.qa %}
+                    <div class="flex items-center gap-3 p-2 rounded-xl bg-white shadow-sm">
+                      <a href="{% url 'product_detail' b.pk %}" class="flex items-center gap-3 flex-1 min-w-0 group">
+                        <div class="w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+                          {% if b.image %}
+                            <img src="{{ b.image.url }}" alt="{{ b.name }}" class="w-full h-full object-cover">
+                          {% else %}
+                            <img src="{% static 'images/placeholder.jpg' %}" alt="No image" class="w-full h-full object-cover">
+                          {% endif %}
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-sm font-semibold line-clamp-2 group-hover:underline">{{ b.name }}</p>
+                          {% with price=b.discount_price|default_if_none:b.price %}
+                            <div class="text-xs font-bold text-slate-700 mt-0.5">
+                              ${{ price|floatformat:2 }}
+                            </div>
+                          {% endwith %}
+                        </div>
+                      </a>
+
+                      <div class="shrink-0">
+                        {% if qa.can %}
+                          <form method="post" action="{% url 'add_to_cart' b.pk %}">
+                            {% csrf_token %}
+                            {% if qa.variant_id %}
+                              <input type="hidden" name="variant_id" value="{{ qa.variant_id }}">
+                            {% endif %}
+                            <input type="hidden" name="quantity" value="1">
+                            <button type="submit"
+                                    class="px-3 py-1.5 rounded-md bg-black text-white text-xs font-bold hover:bg-[#111]">
+                              + Add
+                            </button>
+                          </form>
+                        {% elif qa.needs_size %}
+                          <a href="{% url 'product_detail' b.pk %}"
+                             class="px-3 py-1.5 rounded-md border border-slate-300 text-xs font-bold hover:bg-slate-50">
+                            Choose size
+                          </a>
+                        {% else %}
+                          <button type="button" disabled
+                                  title="{{ qa.reason|default:'Unavailable' }}"
+                                  class="px-3 py-1.5 rounded-md bg-slate-200 text-slate-500 text-xs font-bold cursor-not-allowed">
+                            Out
+                          </button>
+                        {% endif %}
+                      </div>
+                    </div>
+                    {% endwith %}
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
+
+            </div>
+          </div>
+
+          {% if you_might_like %}
+          <div class="recently-viewed">
+            <h2>You Might Also Like</h2>
+            <div class="recently-viewed-container">
+              {% for item in you_might_like %}
+                <a href="{% url 'product_detail' item.pk %}" class="recently-viewed-item">
+                  <div class="recently-viewed-card">
+                    {% if item.image %}
+                      <img src="{{ item.image.url }}" alt="{{ item.name }}">
+                    {% else %}
+                      <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
+                    {% endif %}
+                    <p class="line-clamp-2">{{ item.name }}</p>
+                    {% with price=item.discount_price|default_if_none:item.price %}
+                      <strong>${{ price|floatformat:2 }}</strong>
+                    {% endwith %}
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if recently_viewed_products %}
+          <div class="recently-viewed">
+            <h2>👀 Recently Viewed</h2>
+            <div class="recently-viewed-container">
+              {% for item in recently_viewed_products %}
+                <a href="{% url 'product_detail' item.pk %}" class="recently-viewed-item">
+                  <div class="recently-viewed-card">
+                    {% if item.image %}
+                      <img src="{{ item.image.url }}" alt="{{ item.name }}">
+                    {% else %}
+                      <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
+                    {% endif %}
+                    <p class="line-clamp-2">{{ item.name }}</p>
+                    <strong>${{ item.price|floatformat:2 }}</strong>
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
         </div>
       </div>
-    {% else %}
-      <p>No comments yet.</p>
-    {% endif %}
-  </div>
+    </section>
 
-  {% if recently_viewed_products %}
-    <div class="recently-viewed">
-      <h2>👀 Recently Viewed</h2>
-      <div class="recently-viewed-container">
-        {% for item in recently_viewed_products %}
-          <a href="{% url 'product_detail' item.pk %}" class="recently-viewed-item">
-            <div class="recently-viewed-card">
-              {% if item.image %}
-                <img src="{{ item.image.url }}" alt="{{ item.name }}">
-              {% else %}
-                <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
-              {% endif %}
-              <p>{{ item.name|truncatechars:30 }}</p>
-              <strong>${{ item.price|floatformat:2 }}</strong>
+    <!-- ===== Right sidebar (desktop): Search + Cart + Auth + Profile/Favorites ===== -->
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <div class="rounded-xl bg-white shadow-sm p-3 space-y-3 text-right">
+        <button id="searchToggle" aria-expanded="false" aria-controls="searchWrap"
+                class="w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+          🔎 Search
+        </button>
+        <form id="searchWrap" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
+          <div class="mt-2 grid gap-2">
+            <input type="text" name="q" placeholder="Search products…"
+                   class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-slate-300">
+            <div>
+              <button type="submit"
+                      class="inline-flex px-2.5 py-1.5 rounded-md bg-brand text-white font-extrabold text-xs hover:brightness-95 transition">
+                Go
+              </button>
             </div>
+          </div>
+        </form>
+
+        <div class="relative">
+          <a id="cartLink" href="#" aria-describedby="cartTip"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            🛒 Cart
           </a>
-        {% endfor %}
+          <span id="cartTip"
+                class="cart-tip invisible opacity-0 absolute right-0 mt-1
+                       bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg
+                       transition-opacity duration-200 shadow-xl"
+                role="status" aria-live="polite">
+            Your cart is empty
+          </span>
+        </div>
+
+        {% if request.user.is_authenticated %}
+          <a href="{% url 'account_logout' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Logout
+          </a>
+          <!-- Profile -->
+          <a href="{% url 'profile_dashboard' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            👤 Profile
+          </a>
+          <!-- Favorites (red style) -->
+          <a href="{% url 'profile_favorites' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md text-xs font-extrabold text-right
+                    border border-red-200 bg-red-50 text-red-700 shadow-soft hover:bg-red-100 transition">
+            ❤️ Favorites
+          </a>
+        {% else %}
+          <a href="{% url 'account_login' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Login
+          </a>
+          <a href="{% url 'account_signup' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Register
+          </a>
+        {% endif %}
       </div>
+    </aside>
+
+    <!-- ===== Mobile quick actions: + Profile/Favorites when logged in ===== -->
+    <div class="lg:hidden grid gap-2">
+      <button id="searchToggleMobile" aria-expanded="false" aria-controls="searchWrapMobile"
+              class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold shadow-soft hover:shadow-card hover:bg-slate-50 transition text-sm">
+        🔎 Search
+      </button>
+      <form id="searchWrapMobile" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
+        <div class="flex gap-2">
+          <input type="text" name="q" placeholder="Search products…"
+                 class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300">
+          <button type="submit"
+                  class="px-3 py-2 rounded-xl border border-brand bg-brand text-white font-extrabold text-sm hover:brightness-95 transition">
+            Go
+          </button>
+        </div>
+      </form>
+
+      <div id="cartAreaMobile" class="relative">
+        <a id="cartLinkMobile" href="#" aria-describedby="cartTipMobile"
+           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold shadow-soft hover:shadow-card hover:bg-slate-50 transition text-sm">
+          🛒 Cart
+        </a>
+        <span id="cartTipMobile"
+              class="cart-tip invisible opacity-0 absolute left-1/2 -translate-x-1/2 mt-2
+                     bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg shadow-xl
+                     transition-opacity duration-200"
+              role="status" aria-live="polite">
+          Your cart is empty
+        </span>
+      </div>
+
+      {% if request.user.is_authenticated %}
+        <a href="{% url 'account_logout' %}"
+           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center">
+          Logout
+        </a>
+        <a href="{% url 'profile_dashboard' %}"
+           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center hover:shadow-card hover:bg-slate-50 transition">
+          👤 Profile
+        </a>
+        <a href="{% url 'profile_favorites' %}"
+           class="block px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 font-extrabold text-sm text-center hover:bg-red-100 transition">
+          ❤️ Favorites
+        </a>
+      {% else %}
+        <a href="{% url 'account_login' %}"
+           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center hover:shadow-card hover:bg-slate-50 transition">
+          Login
+        </a>
+        <a href="{% url 'account_signup' %}"
+           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center hover:shadow-card hover:bg-slate-50 transition">
+          Register
+        </a>
+      {% endif %}
     </div>
-  {% endif %}
+
+  </div>
 </div>
 
+<!-- === Lightbox portal (required for click-to-zoom) === -->
+<div id="lightbox" class="lightbox-backdrop" aria-modal="true" role="dialog" tabindex="-1">
+  <img id="lightboxImg" class="lightbox-img" alt="">
+  <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Close">✕</button>
+  <button id="lightboxPrev"  class="lightbox-prev"  type="button" aria-label="Previous">←</button>
+  <button id="lightboxNext"  class="lightbox-next"  type="button" aria-label="Next">→</button>
+  <div id="lightboxCounter" class="lightbox-counter"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-  function updateMainImage(url) {
+  /* Search toggle + cart tooltip */
+  function wireSearchToggle(btnId, formId){
+    const btn = document.getElementById(btnId);
+    const form = document.getElementById(formId);
+    btn?.addEventListener('click', () => {
+      const isHidden = form.classList.contains('hidden');
+      form.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+      form.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+      if (isHidden) form.querySelector('input')?.focus();
+    });
+  }
+  wireSearchToggle('searchToggle', 'searchWrap');
+  wireSearchToggle('searchToggleMobile', 'searchWrapMobile');
+
+  function wireCart(linkId, tipId){
+    const link = document.getElementById(linkId);
+    const tip = document.getElementById(tipId);
+    let timer = null;
+    function showTip(){
+      tip?.classList.remove('invisible','opacity-0');
+      clearTimeout(timer);
+      timer = setTimeout(()=>{ tip?.classList.add('opacity-0'); setTimeout(()=>tip?.classList.add('invisible'),200); }, 2000);
+    }
+    link?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const count = Number('{{ cart_count|default:"0" }}') || 0;
+      if (count > 0) { window.location.href = "{% url 'cart_view' %}"; } else { showTip(); }
+    });
+    document.addEventListener('scroll', () => tip?.classList.add('invisible','opacity-0'));
+    document.addEventListener('click', (ev) => {
+      if (!ev.target.closest('#'+linkId) && !ev.target.closest('#'+tipId)) tip?.classList.add('invisible','opacity-0');
+    });
+  }
+  wireCart('cartLink','cartTip');
+  wireCart('cartLinkMobile','cartTipMobile');
+
+  function updateMainImage(url, thumbEl) {
     const mainImg = document.getElementById('mainImage');
     if (mainImg) mainImg.src = url;
+    document.querySelectorAll('#thumbsCol img[aria-current]').forEach(t => t.removeAttribute('aria-current'));
+    if (thumbEl) thumbEl.setAttribute('aria-current','true');
   }
-
-  const stars = document.querySelectorAll('.star-rating .star');
-  const ratingInput = document.getElementById('ratingInput');
-  if (stars.length) {
-    function highlightStars(value) {
-      stars.forEach(star => {
-        star.classList.toggle('filled', parseInt(star.dataset.value) <= value);
-      });
-    }
-
-    stars.forEach(star => {
-      star.addEventListener('mouseover', () => highlightStars(star.dataset.value));
-      star.addEventListener('mouseout', () => highlightStars(ratingInput.value));
-      star.addEventListener('click', () => {
-        ratingInput.value = star.dataset.value;
-        highlightStars(ratingInput.value);
-      });
+  (function () {
+    const firstThumb = document.querySelector('#thumbsCol img');
+    if (firstThumb && document.getElementById('mainImage')) firstThumb.setAttribute('aria-current','true');
+  })();
+  (function () {
+    const desc = document.getElementById("descriptionText");
+    const toggleBtn = document.getElementById("toggleDescriptionBtn");
+    if (!desc || !toggleBtn) return;
+    requestAnimationFrame(() => { if (desc.scrollHeight > desc.clientHeight + 6) toggleBtn.style.display = "inline-block"; });
+    toggleBtn.addEventListener("click", function () {
+      desc.classList.toggle("expanded");
+      toggleBtn.textContent = desc.classList.contains("expanded") ? "Show Less" : "Show More";
     });
-
-    highlightStars(ratingInput.value);
-  }
-
-  const desc = document.getElementById("descriptionText");
-  const toggleBtn = document.getElementById("toggleDescriptionBtn");
-  if (desc.scrollHeight > desc.clientHeight + 10) {
-    toggleBtn.style.display = "inline-block";
-  }
-
-  toggleBtn.addEventListener("click", function () {
-    desc.classList.toggle("expanded");
-    toggleBtn.textContent = desc.classList.contains("expanded") ? "Show Less" : "Show More";
-  });
-
-  function toggleComment(btn, id) {
-    const text = document.getElementById('comment-' + id);
-    if (!text) return;
-    text.classList.toggle("expanded");
-    btn.innerText = text.classList.contains("expanded") ? "Show Less" : "Show More";
-  }
-  const mainImage = document.getElementById("mainImage");
-  const preview = document.querySelector(".main-preview");
-
-  if (mainImage && preview) {
+  })();
+  (function () {
+    const preview = document.querySelector(".main-preview");
+    const mainImage = document.getElementById("mainImage");
+    if (!preview || !mainImage) return;
+    const ZOOM = 1.4;
+    function resetZoom(){ mainImage.style.transform = "scale(1)"; mainImage.style.cursor = "zoom-in"; }
     preview.addEventListener("mousemove", function (e) {
       const rect = preview.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
       mainImage.style.transformOrigin = `${x}% ${y}%`;
-      mainImage.style.transform = "scale(2)";
+      mainImage.style.transform = `scale(${ZOOM})`;
       mainImage.style.cursor = "zoom-out";
     });
+    preview.addEventListener("mouseleave", resetZoom);
+    preview.addEventListener("touchend", resetZoom, { passive: true });
+  })();
+  (function () {
+    const mainImage = document.getElementById('mainImage');
+    const lightbox  = document.getElementById('lightbox');
+    const lbImg     = document.getElementById('lightboxImg');
+    const btnClose  = document.getElementById('lightboxClose');
+    const btnPrev   = document.getElementById('lightboxPrev');
+    const btnNext   = document.getElementById('lightboxNext');
+    const counter   = document.getElementById('lightboxCounter');
+    const thumbs    = Array.from(document.querySelectorAll('#thumbsCol img'));
+    if (!mainImage || !lightbox || !lbImg) return;
 
-    preview.addEventListener("mouseleave", function () {
-      mainImage.style.transform = "scale(1)";
-      mainImage.style.cursor = "zoom-in";
+    let currentIndex = Math.max(0, thumbs.findIndex(t => t.getAttribute('aria-current') === 'true'));
+    function setCounter(){ if (counter) counter.textContent = thumbs.length ? `${currentIndex+1} / ${thumbs.length}` : ''; }
+    function showIndex(idx){ if (!thumbs.length) return; currentIndex = (idx + thumbs.length) % thumbs.length; lbImg.src = thumbs[currentIndex].src; setCounter(); }
+    function openLightbox(src){ lbImg.src = src; lightbox.classList.add('open'); document.body.style.overflow='hidden'; setCounter(); try{history.pushState({lightbox:true},'')}catch(e){}; lightbox.focus(); }
+    function closeLightbox(pop=true){ lightbox.classList.remove('open'); document.body.style.overflow=''; if(pop){ try{history.back()}catch(e){} } }
+
+    mainImage.addEventListener('click', () => {
+      const currentSrc = mainImage.currentSrc || mainImage.src;
+      const idx = thumbs.findIndex(t => (t.currentSrc || t.src) === currentSrc);
+      if (idx >= 0) currentIndex = idx;
+      openLightbox(currentSrc);
     });
-  }
-  </script>
+    btnClose.addEventListener('click', () => closeLightbox(false));
+    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(false); });
+    document.addEventListener('keydown', (e) => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox(false);
+      if (e.key === 'ArrowRight') showIndex(currentIndex + 1);
+      if (e.key === 'ArrowLeft')  showIndex(currentIndex - 1);
+    });
+    btnPrev.addEventListener('click', (e) => { e.stopPropagation(); showIndex(currentIndex-1); });
+    btnNext.addEventListener('click', (e) => { e.stopPropagation(); showIndex(currentIndex+1); });
+    window.addEventListener('popstate', () => {
+      if (lightbox.classList.contains('open')) { lightbox.classList.remove('open'); document.body.style.overflow=''; }
+    });
+    thumbs.forEach((t,i) => t.addEventListener('click', () => { currentIndex = i; setCounter(); }));
+  })();
 
+  function clamp(val, min, max) { val = parseInt(val||0,10); if (isNaN(val) || val < min) return min; if (typeof max==='number' && val>max) return max; return val; }
+
+  (function () {
+    const grid = document.getElementById('sizeGrid');
+    const btn = document.getElementById('addToCartBtn');
+    const hidden = document.getElementById('variantInput');
+    const qtyInput = document.getElementById('qtyInput');
+    const qtyPlus  = document.getElementById('qtyPlus');
+    const qtyMinus = document.getElementById('qtyMinus');
+    const warning  = document.getElementById('sizeWarning');
+    const stockLine = document.getElementById('stockLine');
+
+    const hasVariants = !!grid;
+
+    function showWarning(msg) {
+      if (!warning) return;
+      warning.textContent = msg || '⚠️ Please select a size';
+      warning.classList.add('show');
+    }
+    function hideWarning() {
+      if (!warning) return;
+      warning.textContent = '';
+      warning.classList.remove('show');
+    }
+
+    function setStockLine(stock) {
+      if (!stockLine) return;
+      if (typeof stock === 'number') {
+        if (stock > 0) {
+          stockLine.textContent = `In stock: ${stock}`;
+          stockLine.classList.remove('out','muted');
+        } else {
+          stockLine.textContent = 'Out of stock';
+          stockLine.classList.add('out');
+          stockLine.classList.remove('muted');
+        }
+      } else {
+        stockLine.textContent = '';
+        stockLine.classList.add('muted');
+        stockLine.classList.remove('out');
+      }
+    }
+
+    function updateQtyControls(maxStock) {
+      if (!qtyInput) return;
+      const max = parseInt(maxStock || 0, 10);
+      if (max > 0) {
+        qtyInput.setAttribute('max', String(max));
+        qtyInput.value = clamp(qtyInput.value, 1, max);
+        qtyPlus.disabled  = parseInt(qtyInput.value, 10) >= max;
+        qtyMinus.disabled = parseInt(qtyInput.value, 10) <= 1;
+        btn?.removeAttribute('disabled');
+      } else if (hasVariants) {
+        qtyInput.removeAttribute('max');
+        qtyPlus.disabled  = false;
+        qtyMinus.disabled = parseInt(qtyInput.value, 10) <= 1;
+        btn?.setAttribute('disabled','disabled');
+      }
+    }
+
+    function clearSelected(){
+      grid?.querySelectorAll('.size-pill.selected').forEach(el => {
+        el.classList.remove('selected'); el.setAttribute('aria-checked','false');
+      });
+    }
+    function selectPill(pill){
+      clearSelected();
+      pill.classList.add('selected');
+      pill.setAttribute('aria-checked','true');
+      const vid = pill.getAttribute('data-variant-id');
+      const stock = parseInt(pill.getAttribute('data-stock')||'0',10);
+      hidden.value = vid || '';
+      hideWarning();
+      setStockLine(stock);
+      updateQtyControls(stock);
+    }
+
+    grid?.addEventListener('click', function(e){
+      const pill = e.target.closest('.size-pill');
+      if (!pill || pill.classList.contains('out')) return;
+      selectPill(pill);
+    });
+
+    grid?.addEventListener('keydown', function(e){
+      if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter',' '].includes(e.key)) return;
+      const pills = Array.from(grid.querySelectorAll('.size-pill:not(.out)')); if (!pills.length) return;
+      const active = grid.querySelector('.size-pill.selected') || pills[0]; let idx = pills.indexOf(active);
+      if (['ArrowRight','ArrowDown'].includes(e.key)) { e.preventDefault(); idx=(idx+1)%pills.length; pills[idx].focus(); }
+      if (['ArrowLeft','ArrowUp'].includes(e.key))   { e.preventDefault(); idx=(idx-1+pills.length)%pills.length; pills[idx].focus(); }
+      if (['Enter',' '].includes(e.key))             { e.preventDefault(); selectPill(document.activeElement.closest('.size-pill')); }
+    });
+
+    if (hasVariants) {
+      const inStock = grid.querySelectorAll('.size-pill:not(.out)');
+      if (inStock.length === 1) {
+        selectPill(inStock[0]);
+      } else {
+        hidden.value='';
+        setStockLine(undefined);
+        qtyPlus.disabled=false;
+        qtyMinus.disabled=true;
+        btn?.setAttribute('disabled','disabled');
+      }
+    } else {
+      const baseStockAttr = stockLine?.getAttribute('data-base-stock');
+      const baseStock = parseInt(baseStockAttr || '0', 10);
+      setStockLine(baseStock);
+      if (baseStock > 0) {
+        qtyInput.setAttribute('max', String(baseStock));
+        qtyPlus.disabled = parseInt(qtyInput.value, 10) >= baseStock;
+        btn?.removeAttribute('disabled');
+      } else {
+        btn?.setAttribute('disabled','disabled');
+      }
+    }
+
+    const addToCartForm = document.getElementById('addToCartForm');
+    addToCartForm?.addEventListener('submit', function(e){
+      if (hasVariants && !hidden.value) {
+        e.preventDefault();
+        showWarning('⚠️ Please select a size');
+        grid?.focus?.();
+      }
+    });
+  })();
+
+  (function () {
+    const qtyInput = document.getElementById('qtyInput');
+    const qtyPlus  = document.getElementById('qtyPlus');
+    const qtyMinus = document.getElementById('qtyMinus');
+    if (!qtyInput || !qtyPlus || !qtyMinus) return;
+
+    function getMax() {
+      const m = parseInt(qtyInput.getAttribute('max') || '', 10);
+      return isNaN(m) ? Infinity : m;
+    }
+
+    function setQty(n) {
+      const max = getMax();
+      const val = Math.max(1, Math.min(parseInt(n || 1, 10), max));
+      qtyInput.value = String(val);
+      qtyPlus.disabled  = (max !== Infinity) && (val >= max);
+      qtyMinus.disabled = val <= 1;
+    }
+
+    qtyPlus.addEventListener('click', () => setQty(Number(qtyInput.value || 1) + 1));
+    qtyMinus.addEventListener('click', () => setQty(Number(qtyInput.value || 1) - 1));
+    qtyInput.addEventListener('input',  () => setQty(qtyInput.value));
+    qtyInput.addEventListener('change', () => setQty(qtyInput.value));
+
+    setQty(qtyInput.value);
+  })();
+</script>
 {% endblock %}
-</div>
+

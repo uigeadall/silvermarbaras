@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }} - Marbaras{% endblock %}
+
+{% block content %}
+  <h1>{{ category.name }}</h1>
+  <ul>
+    {% for product in products %}
+      <li>{{ product.name }} - {{ product.price }}</li>
+    {% empty %}
+      <li>No products in this category yet.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

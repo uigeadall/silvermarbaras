@@ -40,3 +40,5 @@ class CheckoutForm(forms.Form):
     postal_code = forms.CharField(max_length=20)
     phone = forms.CharField(max_length=20)
     shipping_option = forms.ModelChoiceField(queryset=ShippingOption.objects.all())
+
+

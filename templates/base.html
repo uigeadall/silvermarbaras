@@ -2,318 +2,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>{% block title %}Marbaras{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: '#111827' },
+          boxShadow: {
+            card: '0 8px 24px rgba(15,23,42,.08)',
+            soft: '0 1px 2px rgba(0,0,0,.05)'
+          },
+          borderRadius: { xl2: '1rem' },
+          maxWidth: { site: '1600px' }
+        }
+      }
+    }
+  </script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #ffffff;
-      color: #333;
-      line-height: 1.6;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 16px;
-    }
-
-    nav {
-      background: transparent;
-      padding: 16px 0;
-    }
-
-    .navbar-inner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .logo {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #111;
-      text-decoration: none;
-      padding: 8px 16px;
-    }
-
-    .hamburger {
-      font-size: 1.8rem;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 8px 16px;
-    }
-
-    .main-content {
-      padding: 32px 0;
-    }
-
-    .alert {
-      padding: 12px;
-      background: #e6f0ff;
-      border: 1px solid #b3d1ff;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      transition: opacity 0.5s ease;
-    }
-
-    .breadcrumbs {
-      font-size: 0.95rem;
-      margin: 24px 0 10px;
-      color: #555;
-    }
-
-    .breadcrumbs a {
-      color: black;
-      text-decoration: none;
-    }
-
-    .breadcrumbs a:hover {
-      text-decoration: underline;
-    }
-
-    .floating-menu {
-      position: fixed;
-      right: -40px;
-      top: 100px;
-      background: transparent;
-      padding: 16px;
-      z-index: 999;
-      width: 220px;
-    }
-
-    .floating-menu a,
-    .search-toggle {
-      text-decoration: none;
-      font-weight: bold;
-      color: #333;
-      padding: 10px 14px;
-      display: block;
-      border-radius: 6px;
-      background-color: transparent;
-      margin-bottom: 10px;
-      transition: background 0.3s;
-    }
-
-    .floating-menu a:hover,
-    .search-toggle:hover {
-      background-color: #f0f0f0;
-    }
-
-    .search-form {
-      display: none;
-      flex-direction: column;
-      width: 100%;
-    }
-
-    .search-input {
-      padding: 8px;
-      border: none;
-      outline: none;
-      border-radius: 6px;
-      width: 100%;
-      margin-bottom: 6px;
-      background-color: transparent;
-      font-size: 0.95rem;
-    }
-
-    .search-go {
-      padding: 8px;
-      background: transparent;
-      color: #333;
-      border: 1px solid #333;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.95rem;
-    }
-
-    .search-go:hover {
-      text-decoration: underline;
-    }
-
-    /* Category sidebar hidden by default */
-    .sidebar-categories {
-      display: none;
-      background: #f8f8f8;
-      padding: 16px;
-      border-top: 1px solid #ddd;
-    }
-
-    .sidebar-categories.show {
-      display: block;
-    }
-
-    .sidebar-categories ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .sidebar-categories li {
-      margin-bottom: 10px;
-    }
-
-    .sidebar-categories a {
-      text-decoration: none;
-      color: #333;
-      font-weight: 500;
-    }
-
-    /* Responsive adjustments */
-    @media (min-width: 769px) {
-      .hamburger {
-        display: none;
-      }
-
-      .sidebar-categories {
-        display: none !important;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .navbar-inner {
-        justify-content: space-between;
-      }
-
-      .floating-menu {
-        position: relative;
-        top: 0;
-        right: 0;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        padding: 10px 16px;
-      }
-
-      .floating-menu a,
-      .search-toggle {
-        font-size: 1rem;
-        width: 100%;
-        text-align: center;
-        margin: 4px 0;
-      }
-
-      .search-form {
-        width: 100%;
-      }
-
-      .search-input,
-      .search-go {
-        font-size: 1rem;
-        width: 100%;
-      }
+    .cart-tip::after{
+      content:""; position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+      border:6px solid transparent; border-bottom-color:#0b1220;
     }
   </style>
 
   {% block extra_head %}{% endblock %}
 </head>
-<body>
 
-  <nav>
-    <div class="navbar-inner container">
-      <a href="/" class="logo">Marbaras</a>
-      <button class="hamburger" id="hamburger">&#9776;</button>
-    </div>
-  </nav>
+<!-- Make page a flex column so footer is tight at bottom -->
+<body class="min-h-screen flex flex-col bg-white text-slate-900 antialiased">
 
-  <!-- Mobile-only category menu -->
-  <div class="sidebar-categories" id="mobileSidebar">
-    <h2>Categories</h2>
-    <ul>
-      <li><a href="#">Rings</a></li>
-      <li><a href="#">Bracelets</a></li>
-      <li><a href="#">Earrings</a></li>
-    </ul>
-  </div>
+  <!-- No top navbar -->
 
-  <!-- Floating Menu / Search & User Links -->
-  <div class="floating-menu">
-    <div class="search-container">
-      <button id="searchToggleBtn" class="search-toggle">🔍 Search</button>
-      <form id="searchForm" method="get" action="{% url 'home' %}" class="search-form">
-        <input type="text" name="q" placeholder="Search products..." class="search-input">
-        <button type="submit" class="search-go">Go</button>
-      </form>
-    </div>
-
-    <div class="user-links">
-      {% if user.is_authenticated %}
-        <a href="{% url 'cart_view' %}">🛒 Cart</a>
-        <a href="{% url 'logout' %}">Logout</a>
-      {% else %}
-        <a href="{% url 'login' %}">Login</a>
-        <a href="{% url 'register' %}">Register</a>
+  <!-- Reduce bottom padding so there isn't a big band above the footer -->
+  <main class="flex-1 pt-6 pb-2">
+    <div class="mx-auto max-w-site px-4 space-y-4">
+      {% if messages %}
+        <div class="space-y-2">
+          {% for message in messages %}
+            <div class="rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 px-4 py-3 text-sm shadow-soft transition-opacity duration-500">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
       {% endif %}
+
+      {% block content %}{% endblock %}
     </div>
-  </div>
-
-  <!-- Main content -->
-  <main class="container main-content">
-    {% if messages %}
-      <div style="margin-bottom: 20px;">
-        {% for message in messages %}
-          <div class="alert {{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {% if breadcrumbs and request.path != '/' %}
-      <div class="breadcrumbs">
-        {% for crumb in breadcrumbs %}
-          {% if not forloop.last %}
-            <a href="{{ crumb.url }}">{{ crumb.name }}</a> /
-          {% else %}
-            <span>{{ crumb.name }}</span>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {% block content %}{% endblock %}
   </main>
+
+  <footer class="border-t border-slate-200">
+  <div class="mx-auto max-w-site px-4 py-2 text-[11px] leading-tight flex items-center justify-between text-slate-600">
+    <nav class="flex gap-4">
+      <a href="{% url 'terms' %}" class="hover:text-slate-900">Terms</a>
+      <a href="{% url 'privacy' %}" class="hover:text-slate-900">Privacy</a>
+      <a href="{% url 'contact' %}" class="hover:text-slate-900">Contact</a>
+    </nav>
+    <span>© {% now "Y" %} Marbaras</span>
+  </div>
+</footer>
+
 
   <script>
     setTimeout(() => {
-      const messages = document.querySelectorAll('.alert');
-      messages.forEach(msg => {
-        msg.style.opacity = '0';
-        setTimeout(() => msg.remove(), 500);
+      document.querySelectorAll('.bg-indigo-50').forEach(el => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 500);
       });
-    }, 1000);
-
-    // Toggle mobile search form
-    const toggleBtn = document.getElementById('searchToggleBtn');
-    const searchForm = document.getElementById('searchForm');
-
-    toggleBtn?.addEventListener('click', function () {
-      if (searchForm.style.display === 'flex') {
-        searchForm.style.display = 'none';
-      } else {
-        searchForm.style.display = 'flex';
-        searchForm.querySelector('input')?.focus();
-      }
-    });
-
-    // Toggle mobile categories
-    const hamburgerBtn = document.getElementById('hamburger');
-    const mobileSidebar = document.getElementById('mobileSidebar');
-
-    hamburgerBtn?.addEventListener('click', () => {
-      mobileSidebar?.classList.toggle('show');
-    });
+    }, 2200);
   </script>
 
   {% block extra_js %}{% endblock %}
 </body>
 </html>
+

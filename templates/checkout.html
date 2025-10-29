@@ -7,211 +7,389 @@
 <script src="https://js.stripe.com/v3/"></script>
 
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f9f9f9;
-    color: #222;
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background:#f9f9f9; color:#222; }
+
+  /* 3-col page grid (Left | Center | Right) — SAME AS cart.html */
+  .page-wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+  .page-grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
+  @media (min-width: 1024px){
+    .page-grid { grid-template-columns: 180px minmax(0,1fr) 180px; }
   }
 
-  .checkout-container {
-    max-width: 960px;
-    margin: 40px auto;
-    padding: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 30px;
+  /* Sidebars match cart.html */
+  .rounded-xl { border-radius: 0.75rem; }
+  .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+
+  /* Center: filled panel */
+  .checkout-panel{
+    background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    width:100%; padding:16px;
   }
 
-  .cart-summary, .form-section {
-    flex: 1;
-    min-width: 300px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-    padding: 25px;
+  /* Toolbar */
+  .panel-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .btn{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; font-weight:800; text-decoration:none; border:1px solid transparent; cursor:pointer; }
+  .btn-dark{ background:#111; color:#fff; border-color:#111; }
+  .btn-ghost{ background:#fff; color:#111; border-color:#e5e7eb; }
+  .btn-ghost:hover{ background:#f5f5f7; }
+
+  /* Inner two-column (equal height) */
+  .checkout-inner{
+    display: grid; gap: 18px; grid-template-columns: 1fr; align-items: stretch;
+  }
+  @media (min-width: 980px){
+    .checkout-inner{ grid-template-columns: minmax(0,1fr) 380px; }
   }
 
-  .cart-summary h3, .form-section h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    font-size: 1.6rem;
+  /* Equal-height cards */
+  .equal-card{
+    display:flex; flex-direction:column; height:100%;
+    background:#fff; border:1px solid #eee; border-radius:14px; padding:12px;
   }
+  .equal-card h2, .equal-card h3{ text-align:center; margin:2px 0 10px; font-weight:800; }
+  .equal-card h2{ font-size:1.05rem; }
+  .equal-card h3{ font-size:1.02rem; }
 
-  .cart-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    font-size: 0.95rem;
+  /* Shipping & Payment */
+  .form-card .form-row{ display:grid; grid-template-columns: 1fr; gap:10px; }
+  @media (min-width: 640px){ .form-card .form-row--2{ grid-template-columns: 1fr 1fr; } }
+  .form-group{ margin-bottom:10px; }
+  .form-group label{ font-weight:600; display:block; margin-bottom:5px; font-size:.95rem; }
+  .form-group input, .form-group select, .StripeElement{
+    width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:8px; font-size:.95rem; line-height:1.25rem; background:#fff;
   }
+  #card-errors{ color:#c00; font-size:.9rem; min-height:1.2em; margin-top:6px; }
+  .coupon-row{ display:flex; gap:8px; }
+  .coupon-row input{ flex:1; }
+  .submit-btn{ width:100%; height:40px; border-radius:10px; border:1px solid #111; background:#111; color:#fff; font-weight:800; cursor:pointer; font-size:.96rem; }
+  .submit-btn:hover{ filter:brightness(1.05); }
 
-  .cart-item-name {
-    flex: 1;
-    display: flex;
-    align-items: center;
-  }
-
-  .cart-item-name strong {
-    font-size: 1.05rem;
-    font-weight: 600;
-  }
-
-  .cart-item img {
-    width: 40px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-right: 10px;
-  }
-
-  .cart-total {
-    margin-top: 16px;
-    text-align: right;
-    font-weight: bold;
-    font-size: 1.1rem;
-  }
-
-  .form-group {
-    margin-bottom: 16px;
-  }
-
-  .form-group label {
-    font-weight: bold;
-    display: block;
-    margin-bottom: 6px;
-  }
-
-  .form-group input,
-  .StripeElement {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-
-  #card-errors {
-    color: red;
-    font-size: 0.9rem;
-    margin-top: 8px;
-  }
-
-  .submit-btn {
-    width: 100%;
-    padding: 12px;
-    background-color: #222;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-
-  .submit-btn:hover {
-    background-color: #444;
-  }
+  /* Your Order */
+  .order-card .list{ flex:1; }
+  .item{ display:grid; grid-template-columns:56px 1fr auto; gap:12px; align-items:center; padding:8px 0; border-bottom:1px solid #f0f0f0; }
+  .item:last-child{ border-bottom:0; }
+  .thumb{ display:block; width:56px; height:56px; border-radius:10px; overflow:hidden; border:1px solid #eee; }
+  .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .name-line{ min-width:0; }
+  .name{ display:block; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#111; text-decoration:none; }
+  .mini{ font-size:.9rem; color:#444; }
+  .line-subtotal{ font-weight:700; font-size:.96rem; }
+  .totals{ padding-top:10px; border-top:1px dashed #e6e6e6; margin-top:10px; }
+  .row{ display:flex; justify-content:space-between; align-items:center; margin:5px 0; font-size:.96rem; }
+  .row.total{ font-weight:800; }
 </style>
 
-<div class="checkout-container">
-  <div class="cart-summary">
-    <h3>Your Order</h3>
+<div class="mx-auto max-w-site px-4">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[180px,minmax(0,1fr),180px]">
 
-    {% for item in cart_items %}
-      <div class="cart-item">
-        <div class="cart-item-name">
-          {% if item.product.image %}
-            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
-          {% else %}
-            <img src="{% static 'images/no-image.png' %}" alt="No image">
-          {% endif %}
-          <strong>{{ item.product.name }}</strong> — ${{ item.product.get_discounted_price|floatformat:2 }} × {{ item.quantity }}
+    {# Left: Categories (same as cart.html) #}
+    {% if categories %}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <a href="{% url 'home' %}" class="block mb-3 font-extrabold text-2xl leading-none tracking-tight text-brand truncate">
+        Marbaras
+      </a>
+      <div class="rounded-xl bg-white shadow-sm">
+        <div class="px-3 py-2">
+          <h2 class="text-[10px] font-extrabold tracking-widest text-slate-600">CATEGORIES</h2>
         </div>
-        <div>
-          ${{ item.subtotal|floatformat:2 }}
+        <ul class="p-2 space-y-1.5">
+          <li>
+            <a href="{% url 'home' %}?all=true"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if not selected_category and request.GET.all %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}">
+              All Products
+            </a>
+          </li>
+          {% for cat in categories %}
+          <li>
+            <a href="{% url 'products_by_category' cat.pk %}"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if selected_category and selected_category.id == cat.id %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}">
+              {{ cat.name }}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+    {% endif %}
+
+    {# Center: filled panel with equal-height columns #}
+    <section class="min-w-0">
+      <div class="checkout-panel">
+
+        <div class="panel-bar">
+          <a href="{% url 'cart_view' %}" class="btn btn-ghost">← Back to Cart</a>
+          <span></span>
+        </div>
+
+        <div class="checkout-inner">
+
+          <!-- Shipping & Payment (equal height) -->
+          <section class="equal-card form-card">
+            <h2>Shipping &amp; Payment</h2>
+
+            <form id="payment-form" method="post" style="display:flex; flex-direction:column; gap:10px; flex:1;">
+              {% csrf_token %}
+
+              {# Row 1: Full Name | Email #}
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label for="full_name">Full Name</label>
+                  <input id="full_name" name="full_name" type="text" required>
+                </div>
+                <div class="form-group">
+                  <label for="email">Email</label>
+                  {% if user.is_authenticated %}
+                    <input id="email" name="email" type="email" value="{{ request.user.email }}" readonly>
+                  {% else %}
+                    <input id="email" name="email" type="email" required>
+                  {% endif %}
+                </div>
+              </div>
+
+              {# Row 2: Phone | Country #}
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label for="phone">Phone Number</label>
+                  <input id="phone" name="phone" type="tel" required>
+                </div>
+                <div class="form-group">
+                  <label for="country">Country</label>
+                  <input id="country" name="country" type="text" placeholder="e.g., Bulgaria" required>
+                </div>
+              </div>
+
+              {# Address #}
+              <div class="form-group">
+                <label for="address">Address</label>
+                <input id="address" name="address" type="text" required>
+              </div>
+
+              {# Row 3: City | Postal Code #}
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label for="city">City</label>
+                  <input id="city" name="city" type="text" required>
+                </div>
+                <div class="form-group">
+                  <label for="postal_code">Postal Code</label>
+                  <input id="postal_code" name="postal_code" type="text" required>
+                </div>
+              </div>
+
+              {% if shipping_options %}
+                <div class="form-group">
+                  <label for="shipping_option">Shipping Option</label>
+                  <select id="shipping_option" name="shipping_option">
+                    <option value="">-- Select --</option>
+                    {% for opt in shipping_options %}
+                      <option value="{{ opt.id }}">
+                        {{ opt.name }}{% if opt.price %} (${{ opt.price }}){% endif %}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              {% endif %}
+
+              <div class="form-group">
+                <label for="coupon">Promo code</label>
+                <div class="coupon-row">
+                  <input id="coupon" name="coupon" type="text" placeholder="Enter promo code" value="{{ coupon_code|default:'' }}">
+                </div>
+                {% if coupon_error %}<div style="color:#c00; margin-top:6px;">{{ coupon_error }}</div>{% endif %}
+                {% if coupon_applied %}<div style="color:#0a0; margin-top:6px;">Coupon {{ coupon_applied }} applied.</div>{% endif %}
+              </div>
+
+              <div class="form-group" style="flex:1;"></div> {# spacer to push payment to bottom for symmetry #}
+
+              <div class="form-group">
+                <label for="card-element">Card Information</label>
+                <div id="card-element" class="StripeElement"></div>
+                <div id="card-errors" role="alert"></div>
+              </div>
+
+              <input type="hidden" id="payment_intent_id" name="payment_intent_id">
+              <button type="submit" class="submit-btn">💳 Pay</button>
+            </form>
+          </section>
+
+          <!-- Your Order (equal height) -->
+          <aside class="equal-card order-card">
+            <h3>Your Order</h3>
+
+            <div class="list">
+              {% if cart_items %}
+                {% for item in cart_items %}
+                  <div class="item">
+                    <a class="thumb" href="{% url 'product_detail' item.product.pk %}">
+                      {% if item.product.image %}
+                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                      {% else %}
+                        <img src="{% static 'images/no-image.png' %}" alt="No image">
+                      {% endif %}
+                    </a>
+
+                    <div class="name-line">
+                      <a class="name" href="{% url 'product_detail' item.product.pk %}">
+                        {{ item.product.name|slice:":20" }}{% if item.product.name|length > 20 %}…{% endif %}
+                      </a>
+                      <div class="mini">
+                        ${{ item.product.get_discounted_price|floatformat:2 }} × {{ item.quantity }}
+                      </div>
+                    </div>
+
+                    <div class="line-subtotal">
+                      ${{ item.subtotal|floatformat:2 }}
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p>Your cart is empty.</p>
+              {% endif %}
+            </div>
+
+            <div class="totals">
+              <div class="row">
+                <span>Subtotal</span>
+                <span>${{ subtotal|floatformat:2 }}</span>
+              </div>
+
+              {% if discount %}
+                <div class="row">
+                  <span>Discount</span>
+                  <span>- ${{ discount|floatformat:2 }}</span>
+                </div>
+              {% endif %}
+
+              {% if shipping_cost %}
+                <div class="row">
+                  <span>Shipping</span>
+                  <span>${{ shipping_cost|floatformat:2 }}</span>
+                </div>
+              {% endif %}
+
+              <div class="row total">
+                <span>Total</span>
+                <span>
+                  {% if total %}${{ total|floatformat:2 }}{% else %}${{ subtotal|floatformat:2 }}{% endif %}
+                </span>
+              </div>
+            </div>
+          </aside>
+
         </div>
       </div>
-    {% empty %}
-      <p>Your cart is empty.</p>
-    {% endfor %}
-    <div class="cart-total">
-      Total: ${{ subtotal|floatformat:2 }}
-    </div>
-  </div>
+    </section>
 
-  <div class="form-section">
-    <h2>Shipping & Payment</h2>
-    <form id="payment-form" method="post">
-      {% csrf_token %}
+    {# Right: Search / Cart / Auth (same as cart.html) #}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <div class="rounded-xl bg-white shadow-sm p-3 space-y-3 text-right">
+        <button id="searchToggle" aria-expanded="false" aria-controls="searchWrap"
+                class="w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+          🔎 Search
+        </button>
+        <form id="searchWrap" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
+          <div class="mt-2 grid gap-2">
+            <input type="text" name="q" placeholder="Search products…"
+                   class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-slate-300">
+            <div>
+              <button type="submit"
+                      class="inline-flex px-2.5 py-1.5 rounded-md bg-brand text-white font-extrabold text-xs hover:brightness-95 transition">
+                Go
+              </button>
+            </div>
+          </div>
+        </form>
 
-      <div class="form-group">
-        <label for="full_name">Full Name</label>
-        <input type="text" id="full_name" name="full_name" required>
+        <div class="relative">
+          <a id="cartLink" href="#" aria-describedby="cartTip"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            🛒 Cart
+          </a>
+          <span id="cartTip"
+                class="cart-tip invisible opacity-0 absolute right-0 mt-1
+                       bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg
+                       transition-opacity duration-200">
+            Your cart is empty
+          </span>
+        </div>
+
+        {% if user.is_authenticated %}
+          <a href="{% url 'account_logout' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Logout
+          </a>
+        {% else %}
+          <a href="{% url 'account_login' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Login
+          </a>
+          <a href="{% url 'account_signup' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right hover:brightness-95 transition">
+            Register
+          </a>
+        {% endif %}
       </div>
+    </aside>
 
-      <div class="form-group">
-        <label for="address">Address</label>
-        <input type="text" id="address" name="address" required>
-      </div>
-
-      <div class="form-group">
-        <label for="city">City</label>
-        <input type="text" id="city" name="city" required>
-      </div>
-
-      <div class="form-group">
-        <label for="postal_code">Postal Code</label>
-        <input type="text" id="postal_code" name="postal_code" required>
-      </div>
-
-      <div class="form-group">
-        <label for="phone">Phone Number</label>
-        <input type="tel" id="phone" name="phone" required>
-      </div>
-
-      <div class="form-group">
-        <label for="card-element">Card Information</label>
-        <div id="card-element" class="StripeElement"></div>
-        <div id="card-errors" role="alert"></div>
-      </div>
-
-      <input type="hidden" name="payment_intent_id" id="payment_intent_id">
-      <button type="submit" class="submit-btn">💳 Pay</button>
-    </form>
   </div>
 </div>
 
 <script>
+  // Search toggle (like cart.html)
+  (function(){
+    const btn=document.getElementById('searchToggle');
+    const form=document.getElementById('searchWrap');
+    btn?.addEventListener('click', ()=>{
+      const hidden=form.classList.contains('hidden');
+      form.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded', hidden ? 'true' : 'false');
+      form.setAttribute('aria-hidden', hidden ? 'false' : 'true');
+      if(hidden) form.querySelector('input')?.focus();
+    });
+  })();
+
+  // Cart tip (like cart.html)
+  (function(){
+    const link=document.getElementById('cartLink');
+    const tip=document.getElementById('cartTip');
+    let t=null;
+    function show(){ tip?.classList.remove('invisible','opacity-0'); clearTimeout(t);
+      t=setTimeout(()=>{ tip?.classList.add('opacity-0'); setTimeout(()=>tip?.classList.add('invisible'),200); },2000);
+    }
+    link?.addEventListener('click',(e)=>{
+      e.preventDefault();
+      const count=Number('{{ cart_count|default:"0" }}')||0;
+      if(count>0){ window.location.href="{% url 'cart_view' %}"; } else { show(); }
+    });
+    document.addEventListener('scroll',()=>tip?.classList.add('invisible','opacity-0'));
+  })();
+
+  // Stripe
   const stripe = Stripe('{{ stripe_public_key }}');
   const elements = stripe.elements();
   const card = elements.create('card');
   card.mount('#card-element');
 
   const form = document.getElementById('payment-form');
-
-  form.addEventListener('submit', async function (e) {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const fullName = document.getElementById('full_name').value;
 
-    const { error, paymentIntent } = await stripe.confirmCardPayment(
-      '{{ client_secret }}',
-      {
-        payment_method: {
-          card: card,
-          billing_details: {
-            name: fullName
-          }
-        }
-      }
-    );
+    const { error, paymentIntent } = await stripe.confirmCardPayment('{{ client_secret }}', {
+      payment_method: { card, billing_details: { name: fullName } }
+    });
 
     if (error) {
-      document.getElementById('card-errors').textContent = error.message;
-    } else {
-      document.getElementById('payment_intent_id').value = paymentIntent.id;
-      form.submit();
+      document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
+      return;
     }
+
+    document.getElementById('payment_intent_id').value = paymentIntent.id;
+    form.submit();
   });
 </script>
 {% endblock %}
+
+

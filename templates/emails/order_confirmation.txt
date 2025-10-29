@@ -1,0 +1,13 @@
+Hi {{ order.full_name|default:order.user.username }},
+
+Thanks for your order #{{ order.id }}!
+
+Items:
+{% for it in items %} - {{ it.product.name }} × {{ it.quantity }}{% endfor %}
+
+Total: ${{ order.total_price }}
+
+Track your order:
+{{ base_url }}{% url 'order_success' %}
+
+— Marbaras

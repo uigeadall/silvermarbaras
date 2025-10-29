@@ -1,90 +1,234 @@
+from decimal import Decimal
+
+from django.conf import settings
+from django.contrib.auth.models import User  # keep if you use default auth.User elsewhere
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
-from django.contrib.auth.models import User
 from django.utils import timezone
+from django.utils.text import slugify
+
+
+# Ring sizes (string values to match your templates/forms)
+RING_SIZE_CHOICES = [(s, s) for s in [
+    "48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66"
+]]
 
 
 class Category(models.Model):
+    """Product category (e.g., Rings, Necklaces, etc.)."""
     name = models.CharField(max_length=100)
+    slug = models.SlugField(blank=True)
 
-    def __str__(self):
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name or "")
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
         return self.name
-
 
 
 class Product(models.Model):
-    name = models.CharField(max_length=100)
+    """Main product entity."""
+    name = models.CharField(max_length=200)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
-    serial_number = models.CharField(max_length=50, unique=True, blank=True, null=True)
-    brand = models.CharField(max_length=50, blank=True, null=True)
-    cart_add_count = models.PositiveIntegerField(default=0)
 
-    def get_discounted_price(self):
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name="products",
+    )
+
+    image = models.ImageField(upload_to="products/", blank=True, null=True)
+    serial_number = models.CharField(
+        max_length=50,
+        unique=True,
+        blank=True,
+        null=True,
+        validators=[RegexValidator(r"^[\w\-\.]+$")]
+    )
+    brand = models.CharField(max_length=50, blank=True, null=True)
+
+    cart_add_count = models.PositiveIntegerField(default=0)
+    stock = models.PositiveIntegerField(default=0)
+
+    # Manual “Buy as a set” (ordered, toggleable) via a through model
+    bundle_items = models.ManyToManyField(
+        "self",
+        through="ProductBundleItem",
+        symmetrical=False,
+        blank=True,
+        related_name="bundled_with",
+    )
+
+    def get_discounted_price(self) -> Decimal:
+        """Return discount_price if valid, else base price."""
         return self.discount_price if self.discount_price else self.price
 
-    def has_discount(self):
-        return self.discount_price and self.discount_price < self.price
+    def has_discount(self) -> bool:
+        return bool(self.discount_price and self.discount_price < self.price)
 
-    def __str__(self):
+    @property
+    def is_ring(self) -> bool:
+        """Heuristic: category slug or name indicates a ring."""
+        slug = (self.category.slug or "").lower()
+        name = (self.category.name or "").lower()
+        return slug == "rings" or "ring" in name or "пръстен" in name
+
+    def get_manual_bundle_qs(self):
+        """Fetch the admin-picked bundle items in order."""
+        return (
+            Product.objects
+            .filter(
+                bundled_as_item__product=self,
+                bundled_as_item__is_active=True,
+            )
+            .select_related("category")
+            .order_by("bundled_as_item__position", "-id")
+        )
+
+    def is_favorited(self, user) -> bool:
+        """Convenience helper; avoids hitting .all() in templates."""
+        if not user or not user.is_authenticated:
+            return False
+        return Favorite.objects.filter(user=user, product=self).exists()
+
+    def __str__(self) -> str:
         return self.name
 
 
+class ProductBundleItem(models.Model):
+    """
+    Connects a 'product' (the page you're on) to another Product ('item')
+    that should appear under 'Buy as a set'.
+    """
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="bundle_links"
+    )
+    item = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="bundled_as_item"
+    )
+    position = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    note = models.CharField(max_length=120, blank=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["product", "item"], name="uniq_product_item_bundle")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.product} → {self.item} (pos {self.position})"
 
 
+class ProductVariant(models.Model):
+    """Size/variant only for ring-type products."""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
+    size = models.CharField(max_length=10, choices=RING_SIZE_CHOICES)
+    price_override = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stock = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)])
+    sku = models.CharField(max_length=64, blank=True, null=True, unique=True)
 
-class CartItem(models.Model):
+    class Meta:
+        unique_together = (('product', 'size'),)
+        ordering = ['product_id', 'size']
+
+    def clean(self):
+        if not self.product.is_ring:
+            raise ValidationError("Sizes/variants are allowed only for ring products.")
+
+    @property
+    def effective_price(self) -> Decimal:
+        return self.price_override if self.price_override is not None else self.product.get_discounted_price()
+
+    def __str__(self) -> str:
+        return f"{self.product.name} — size {self.size}"
+
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='products/multiple/')
+
+    def __str__(self) -> str:
+        return f"{self.product.name} image"
+
+
+class Rating(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
-    added_at = models.DateTimeField(auto_now_add=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ratings')
+    value = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)])
 
     class Meta:
         unique_together = ('user', 'product')
 
-    def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
-
-class ShippingOption(models.Model):
-    name = models.CharField(max_length=100)
-    price = models.DecimalField(max_digits=6, decimal_places=2)
-    delivery_time = models.CharField(max_length=100)  # e.g. "2-4 days"
-
-    def __str__(self):
-        return f"{self.name} (${self.price}) - {self.delivery_time}"
-
-class Order(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    shipping_option = models.ForeignKey(ShippingOption, on_delete=models.SET_NULL, null=True, blank=True)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
-    # ✅ Add these fields for delivery
-    full_name = models.CharField(max_length=100)
-    address = models.CharField(max_length=255)
-    city = models.CharField(max_length=100)
-    postal_code = models.CharField(max_length=20)
-    phone = models.CharField(max_length=20)
-
-    def get_total_with_shipping(self):
-        if self.shipping_option:
-            return self.total_price + self.shipping_option.price
-        return self.total_price
+    def __str__(self) -> str:
+        return f"{self.product.name} - {self.value}⭐ by {self.user.username}"
 
 
+class Discount(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='discounts')
+    percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+
+    def __str__(self) -> str:
+        return f"{self.percentage}% off {self.product.name} from {self.start_date} to {self.end_date}"
 
 
-class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+class CartItem(models.Model):
+    """Supports both authenticated users and guest carts (session_key)."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+    variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True, blank=True)
 
-    def __str__(self):
-        return f"{self.quantity} x {self.product.name} in order #{self.order.id}"
+    quantity = models.PositiveIntegerField(default=1)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            # Authenticated user, with variant
+            models.UniqueConstraint(
+                fields=['user', 'product', 'variant'],
+                name='unique_user_product_variant',
+                condition=models.Q(user__isnull=False, variant__isnull=False),
+            ),
+            # Authenticated user, no variant
+            models.UniqueConstraint(
+                fields=['user', 'product'],
+                name='unique_user_product_no_variant',
+                condition=models.Q(user__isnull=False, variant__isnull=True),
+            ),
+            # Guest (session), with variant
+            models.UniqueConstraint(
+                fields=['session_key', 'product', 'variant'],
+                name='unique_session_product_variant',
+                condition=models.Q(session_key__isnull=False, variant__isnull=False),
+            ),
+            # Guest (session), no variant
+            models.UniqueConstraint(
+                fields=['session_key', 'product'],
+                name='unique_session_product_no_variant',
+                condition=models.Q(session_key__isnull=False, variant__isnull=True),
+            ),
+        ]
+
+    def __str__(self) -> str:
+        base = f"{self.quantity} x {self.product.name}"
+        return f"{base} ({self.variant.size})" if self.variant_id else base
+
 
 class Favorite(models.Model):
+    """
+    A user's favorite (wish-list) product.
+    Reverse from Product is 'favorited_by' (a queryset of Favorite rows).
+    Filter products via: Product.objects.filter(favorited_by__user=request.user)
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='favorited_by')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -92,7 +236,7 @@ class Favorite(models.Model):
     class Meta:
         unique_together = ('user', 'product')
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.user.username} ❤️ {self.product.name}"
 
 
@@ -103,44 +247,83 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-class Discount(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='discounts')
-    percentage = models.DecimalField(max_digits=5, decimal_places=2)
-    start_date = models.DateTimeField()
-    end_date = models.DateTimeField()
+class ShippingOption(models.Model):
+    name = models.CharField(max_length=100)
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+    delivery_time = models.CharField(max_length=100)
 
-    def __str__(self):
-        return f"{self.percentage}% off {self.product.name} from {self.start_date} to {self.end_date}"
+    def __str__(self) -> str:
+        return f"{self.name} (${self.price}) - {self.delivery_time}"
 
-
-class ProductImage(models.Model):
-    product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='products/multiple/')
-
-    def __str__(self):
-        return f"{self.product.name} image"
-
-class Rating(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='ratings')
-    value = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)])
-
-    class Meta:
-        unique_together = ('user', 'product')  # One rating per user per product
-
-    def __str__(self):
-        return f"{self.product.name} - {self.value}⭐ by {self.user.username}"
 
 class Coupon(models.Model):
-    code = models.CharField(max_length=50, unique=True)
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Flat amount to subtract")
-    is_active = models.BooleanField(default=True)
-    valid_from = models.DateTimeField()
-    valid_to = models.DateTimeField()
+    code = models.CharField(max_length=40, unique=True)
+    percent_off = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    amount_off = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    active = models.BooleanField(default=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    usage_limit = models.IntegerField(null=True, blank=True)
+    used_count = models.IntegerField(default=0)
 
-    def is_valid(self):
+    def is_valid_now(self) -> bool:
         now = timezone.now()
-        return self.is_active and self.valid_from <= now <= self.valid_to
+        if not self.active:
+            return False
+        if self.starts_at and now < self.starts_at:
+            return False
+        if self.ends_at and now > self.ends_at:
+            return False
+        if self.usage_limit and self.used_count >= self.usage_limit:
+            return False
+        return True
 
-    def __str__(self):
-        return self.code
+    def apply(self, subtotal: Decimal) -> Decimal:
+        """Apply absolute or percent discount; clamp at zero; keep 2 decimals."""
+        if self.amount_off:
+            return max(Decimal("0.00"), subtotal - self.amount_off)
+        if self.percent_off:
+            return (subtotal * (Decimal("100") - self.percent_off) / Decimal("100")).quantize(Decimal("0.01"))
+        return subtotal
+
+    def __str__(self) -> str:
+        state = "active" if self.active else "inactive"
+        return f"{self.code} ({state})"
+
+
+class Order(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    shipping_option = models.ForeignKey(ShippingOption, on_delete=models.SET_NULL, null=True, blank=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    # Contact & Shipping Fields
+    email = models.EmailField(blank=True, null=True)
+    full_name = models.CharField(max_length=100)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    address = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    postal_code = models.CharField(max_length=20)
+    phone = models.CharField(max_length=20)
+
+    coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+
+    def get_total_with_shipping(self) -> Decimal:
+        if self.shipping_option:
+            return self.total_price + self.shipping_option.price
+        return self.total_price
+
+    def __str__(self) -> str:
+        return f"Order #{self.pk} by {self.full_name}"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True, blank=True)
+    quantity = models.PositiveIntegerField()
+
+    def __str__(self) -> str:
+        label = f"{self.quantity} x {self.product.name}"
+        return f"{label} (size {self.variant.size}) in order #{self.order.id}" if self.variant_id else f"{label} in order #{self.order.id}"

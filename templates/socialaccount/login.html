@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+{% load static %}
+
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<style>
+  .login-container {
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 40px 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+
+  .login-container h2 {
+    text-align: center;
+    margin-bottom: 24px;
+    font-size: 1.5rem;
+    color: #333;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #444;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: black;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .submit-btn:hover {
+    background-color: #333;
+  }
+
+  .social-login {
+    text-align: center;
+    margin-top: 24px;
+  }
+
+  .social-login a {
+    display: inline-block;
+    margin: 5px;
+    padding: 10px 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+    background-color: #f5f5f5;
+  }
+
+  .social-login a:hover {
+    background-color: #eee;
+  }
+</style>
+
+<div class="login-container">
+  <h2>Sign In</h2>
+
+  <form method="POST" action="{% url 'account_login' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="submit-btn">Login</button>
+  </form>
+
+  <div class="social-login">
+    <p>Or sign in with:</p>
+
+    {% if socialaccount_providers %}
+      {% for provider in socialaccount_providers %}
+        <a href="{% provider_login_url provider.id %}">
+          Continue with {{ provider.name }}
+        </a>
+      {% endfor %}
+    {% else %}
+      <p>No social login providers available.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

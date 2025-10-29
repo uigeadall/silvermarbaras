@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8">
+<body style="font-family:Arial,sans-serif;color:#222;">
+  <h2>Welcome to Marbaras, {{ user.username }} 🎉</h2>
+  <p>Start browsing here:
+    <a href="{{ base_url }}{% url 'home' %}?all=true">All products →</a>
+  </p>
+  <p>— The Marbaras Team</p>
+</body>
