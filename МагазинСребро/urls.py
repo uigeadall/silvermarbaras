@@ -22,8 +22,13 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('ecommerce.urls')),
-path('accounts/', include('allauth.urls')),
-path('login/', lambda request: redirect('/accounts/login/')),
+    path('accounts/', include('allauth.urls')),
+    path('login/', lambda request: redirect('/accounts/login/')),
 ]
+
+# Error handlers (only work when DEBUG=False)
+handler404 = 'ecommerce.views.handler404'
+handler500 = 'ecommerce.views.handler500'
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
