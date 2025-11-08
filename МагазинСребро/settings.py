@@ -29,6 +29,15 @@ def env_list(key: str, default=None, sep=","):
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 
+# Warn if using insecure default SECRET_KEY in production
+if not DEBUG and SECRET_KEY == "dev-insecure-change-me":
+    import warnings
+    warnings.warn(
+        "SECRET_KEY is using the default insecure value. "
+        "Set DJANGO_SECRET_KEY in your environment variables!",
+        UserWarning
+    )
+
 # -------------------------
 # Hosts & CSRF (supports ngrok, loca.lt, cloudflare)
 # -------------------------
@@ -85,9 +94,6 @@ INSTALLED_APPS = [
     # Allauth Authentication
     "allauth",
     "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
-    "allauth.socialaccount.providers.facebook",
 
     # Local App
     "ecommerce.apps.EcommerceConfig",
@@ -145,8 +151,11 @@ DATABASES = {
         "HOST": env("MYSQL_HOST", "localhost"),
         "PORT": env("MYSQL_PORT", "3306"),
         "OPTIONS": {
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'",
+            "charset": "utf8mb4",
         },
+        "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "0")),  # Connection pooling (0 = disabled)
+        "ATOMIC_REQUESTS": env_bool("DB_ATOMIC_REQUESTS", False),
     }
 }
 
@@ -162,34 +171,26 @@ LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 
+# Session settings
+SESSION_COOKIE_AGE = int(env("SESSION_COOKIE_AGE", "1209600"))  # 2 weeks default
+SESSION_SAVE_EVERY_REQUEST = env_bool("SESSION_SAVE_EVERY_REQUEST", False)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool("SESSION_EXPIRE_AT_BROWSER_CLOSE", False)
+
+# CSRF settings
+CSRF_COOKIE_AGE = int(env("CSRF_COOKIE_AGE", "31449600"))  # 1 year default
+CSRF_COOKIE_HTTPONLY = True
+CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
+
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 ACCOUNT_ADAPTER = "ecommerce.adapters.CustomAccountAdapter"
 
-SOCIALACCOUNT_LOGIN_ON_GET = True
-
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "APP": {
-            "client_id": env("GOOGLE_CLIENT_ID", ""),
-            "secret": env("GOOGLE_CLIENT_SECRET", ""),
-            "key": "",
-        }
-    },
-    "facebook": {
-        "METHOD": "oauth2",
-        "SCOPE": ["email"],
-        "FIELDS": ["id", "email", "name", "first_name", "last_name", "picture"],
-        "VERIFIED_EMAIL": False,
-        "VERSION": "v18.0",
-    },
-}
 
 # -------------------------
 # I18N / TZ
 # -------------------------
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+LANGUAGE_CODE = "bg"
+TIME_ZONE = "Europe/Sofia"
 USE_I18N = True
 USE_TZ = True
 
@@ -200,8 +201,19 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# Static files finders
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(env("FILE_UPLOAD_MAX_MEMORY_SIZE", "2621440"))  # 2.5 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(env("DATA_UPLOAD_MAX_MEMORY_SIZE", "2621440"))  # 2.5 MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = int(env("DATA_UPLOAD_MAX_NUMBER_FIELDS", "1000"))
 
 # -------------------------
 # Email
@@ -224,6 +236,7 @@ EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
 # -------------------------
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "")
 
 # -------------------------
 # Security (production)
@@ -237,7 +250,13 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = "DENY"
+    
+    # Support for reverse proxy (nginx, etc.)
+    USE_X_FORWARDED_HOST = env_bool("USE_X_FORWARDED_HOST", True)
+    USE_X_FORWARDED_PORT = env_bool("USE_X_FORWARDED_PORT", True)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # -------------------------
 # Logging
@@ -245,12 +264,64 @@ if not DEBUG:
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": "INFO"},
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose" if not DEBUG else "simple",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs" / "django.log",
+            "maxBytes": 1024 * 1024 * 10,  # 10 MB
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"] + (["file"] if not DEBUG else []),
+        "level": "INFO" if not DEBUG else "DEBUG",
+    },
     "loggers": {
-        "django": {"handlers": ["console"], "level": "INFO", "propagate": True},
-        "django.core.mail": {"handlers": ["console"], "level": "DEBUG"},
-        "ecommerce": {"handlers": ["console"], "level": "DEBUG"},
+        "django": {
+            "handlers": ["console"] + (["file"] if not DEBUG else []),
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"] + (["file"] if not DEBUG else []),
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["console"] + (["file"] if not DEBUG else []),
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.core.mail": {
+            "handlers": ["console"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "ecommerce": {
+            "handlers": ["console"] + (["file"] if not DEBUG else []),
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "stripe": {
+            "handlers": ["console"] + (["file"] if not DEBUG else []),
+            "level": "WARNING",
+            "propagate": False,
+        },
     },
 }
 

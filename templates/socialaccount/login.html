@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load socialaccount %}
 {% load static %}
 
 
@@ -56,25 +55,6 @@
     background-color: #333;
   }
 
-  .social-login {
-    text-align: center;
-    margin-top: 24px;
-  }
-
-  .social-login a {
-    display: inline-block;
-    margin: 5px;
-    padding: 10px 14px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    text-decoration: none;
-    color: #333;
-    background-color: #f5f5f5;
-  }
-
-  .social-login a:hover {
-    background-color: #eee;
-  }
 </style>
 
 <div class="login-container">
@@ -86,18 +66,5 @@
     <button type="submit" class="submit-btn">Login</button>
   </form>
 
-  <div class="social-login">
-    <p>Or sign in with:</p>
-
-    {% if socialaccount_providers %}
-      {% for provider in socialaccount_providers %}
-        <a href="{% provider_login_url provider.id %}">
-          Continue with {{ provider.name }}
-        </a>
-      {% endfor %}
-    {% else %}
-      <p>No social login providers available.</p>
-    {% endif %}
-  </div>
 </div>
 {% endblock %}

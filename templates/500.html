@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}500 - Грешка в сървъра{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div class="max-w-md w-full text-center">
+        <h1 class="text-9xl font-bold text-gray-200">500</h1>
+        <h2 class="text-3xl font-bold text-gray-800 mt-4">Грешка в сървъра</h2>
+        <p class="text-gray-600 mt-4">
+            Възникна неочаквана грешка. Нашият екип е уведомен и работи по решаването на проблема.
+        </p>
+        <div class="mt-8 space-x-4">
+            <a href="{% url 'home' %}" class="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition">
+                Начална страница
+            </a>
+            <a href="javascript:history.back()" class="inline-block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
+                Назад
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

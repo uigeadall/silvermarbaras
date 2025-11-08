@@ -1,0 +1,29 @@
+Здравейте, {{ order.full_name|default:order.user.username }},
+
+Радваме се да ви информираме, че вашата поръчка #{{ order.id }} е изпратена!
+
+{% if shipping_option %}
+Информация за доставка:
+- Метод: {{ shipping_option.name }}
+- Време за доставка: {{ shipping_option.delivery_time }}
+{% if tracking_number %}
+- Tracking номер: {{ tracking_number }}
+{% endif %}
+{% endif %}
+
+Адрес за доставка:
+{{ order.full_name }}
+{{ order.address }}
+{{ order.city }}{% if order.postal_code %}, {{ order.postal_code }}{% endif %}
+{% if order.country %}{{ order.country }}{% endif %}
+
+Поръчани продукти:
+{% for item in items %}
+- {{ item.product.name }}{% if item.variant %} (Размер: {{ item.variant.size }}){% endif %} × {{ item.quantity }}
+{% endfor %}
+
+Преглед на поръчки: {{ base_url }}{% url 'profile_orders' %}
+
+С уважение,
+Екипът на Marbaras
+

@@ -268,9 +268,13 @@
                   {% for img in product_images %}
                     <img
                       src="{{ img.image.url }}"
-                      alt="Thumbnail"
-                      onclick="updateMainImage('{{ img.image.url }}', this)"
-                      onerror="this.src=&quot;{% static 'images/placeholder.jpg' %}&quot;"
+                      alt="{{ product.name }} - Image {{ forloop.counter }}"
+                      data-image-url="{{ img.image.url }}"
+                      onerror="this.onerror=null; this.src='{% static 'images/placeholder.jpg' %}'"
+                      role="button"
+                      tabindex="0"
+                      aria-label="View {{ product.name }} image {{ forloop.counter }}"
+                      class="thumbnail-img"
                     >
                   {% endfor %}
                 </div>
@@ -617,7 +621,7 @@
 
 <!-- === Lightbox portal (required for click-to-zoom) === -->
 <div id="lightbox" class="lightbox-backdrop" aria-modal="true" role="dialog" tabindex="-1">
-  <img id="lightboxImg" class="lightbox-img" alt="">
+  <img id="lightboxImg" class="lightbox-img" alt="{{ product.name }}">
   <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Close">✕</button>
   <button id="lightboxPrev"  class="lightbox-prev"  type="button" aria-label="Previous">←</button>
   <button id="lightboxNext"  class="lightbox-next"  type="button" aria-label="Next">→</button>
@@ -670,6 +674,19 @@
     document.querySelectorAll('#thumbsCol img[aria-current]').forEach(t => t.removeAttribute('aria-current'));
     if (thumbEl) thumbEl.setAttribute('aria-current','true');
   }
+  
+  // Handle thumbnail clicks with event delegation
+  document.querySelectorAll('.thumbnail-img').forEach(thumb => {
+    thumb.addEventListener('click', function() {
+      updateMainImage(this.getAttribute('data-image-url'), this);
+    });
+    thumb.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        updateMainImage(this.getAttribute('data-image-url'), this);
+      }
+    });
+  });
   (function () {
     const firstThumb = document.querySelector('#thumbsCol img');
     if (firstThumb && document.getElementById('mainImage')) firstThumb.setAttribute('aria-current','true');

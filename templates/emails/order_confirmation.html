@@ -1,13 +1,80 @@
-<!doctype html><meta charset="utf-8">
-<body style="font-family:Arial,sans-serif;color:#222;">
-  <h2>Thanks for your order #{{ order.id }} 🎉</h2>
-  <p>Hi {{ order.full_name|default:order.user.username }}, here’s a summary:</p>
-  <ul>
-    {% for it in items %}
-      <li>{{ it.product.name }} × {{ it.quantity }}</li>
-    {% endfor %}
-  </ul>
-  <p><strong>Total:</strong> ${{ order.total_price }}</p>
-  <p>We’ll keep you posted. You can return to the shop anytime.</p>
-  <p>— Marbaras</p>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">✨ Благодарим за поръчката!</h1>
+  </div>
+  
+  <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
+    <p style="font-size: 16px;">Здравейте, {{ order.full_name|default:order.user.username }},</p>
+    
+    <p>Благодарим ви за поръчката! Вашата поръчка <strong>#{{ order.id }}</strong> е получена и се обработва.</p>
+    
+    <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <h3 style="margin-top: 0;">Поръчани продукти:</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        {% for item in items %}
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 10px 0;">
+            <strong>{{ item.product.name }}</strong>
+            {% if item.variant %}<br><span style="color: #666; font-size: 14px;">Размер: {{ item.variant.size }}</span>{% endif %}
+          </td>
+          <td style="text-align: right; padding: 10px 0;">
+            {{ item.quantity }} × ${{ item.product.get_discounted_price|floatformat:2 }}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    
+    <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <h3 style="margin-top: 0;">Детайли на поръчката:</h3>
+      <table style="width: 100%;">
+        <tr>
+          <td style="padding: 5px 0; color: #666;">Междинна сума:</td>
+          <td style="text-align: right; padding: 5px 0;"><strong>${{ subtotal|floatformat:2 }}</strong></td>
+        </tr>
+        {% if discount_amount > 0 %}
+        <tr>
+          <td style="padding: 5px 0; color: #666;">Отстъпка{% if order.coupon %} ({{ order.coupon.code }}){% endif %}:</td>
+          <td style="text-align: right; padding: 5px 0; color: #28a745;"><strong>-${{ discount_amount|floatformat:2 }}</strong></td>
+        </tr>
+        {% endif %}
+        {% if shipping_cost > 0 %}
+        <tr>
+          <td style="padding: 5px 0; color: #666;">Доставка{% if order.shipping_option %} ({{ order.shipping_option.name }}){% endif %}:</td>
+          <td style="text-align: right; padding: 5px 0;"><strong>${{ shipping_cost|floatformat:2 }}</strong></td>
+        </tr>
+        {% endif %}
+        <tr style="border-top: 2px solid #333; font-size: 18px;">
+          <td style="padding: 10px 0;"><strong>Общо:</strong></td>
+          <td style="text-align: right; padding: 10px 0;"><strong>${{ total|floatformat:2 }}</strong></td>
+        </tr>
+      </table>
+    </div>
+    
+    <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <h3 style="margin-top: 0;">Адрес за доставка:</h3>
+      <p>
+        {{ order.full_name }}<br>
+        {{ order.address }}<br>
+        {{ order.city }}{% if order.postal_code %}, {{ order.postal_code }}{% endif %}<br>
+        {% if order.country %}{{ order.country }}{% endif %}<br>
+        Телефон: {{ order.phone }}
+      </p>
+    </div>
+    
+    <p>Ще ви информираме, когато поръчката ви бъде изпратена.</p>
+    
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="{{ base_url }}{% url 'profile_orders' %}" style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Преглед на поръчки</a>
+    </div>
+    
+    <p style="margin-top: 30px; color: #666; font-size: 14px;">С уважение,<br>Екипът на Marbaras</p>
+  </div>
 </body>
+</html>

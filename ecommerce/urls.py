@@ -37,6 +37,7 @@ path('checkout/guest/', views.guest_checkout_view, name='guest_checkout'),
     # ✅ Use only this login path (custom Allauth-based)
     path("login/", CustomLoginView.as_view(), name="account_login"),
 path("login/", CustomLoginView.as_view(), name="login"),
+    path("health/", views.health_check, name="health_check"),
 ]
 
 

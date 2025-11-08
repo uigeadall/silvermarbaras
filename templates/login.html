@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load socialaccount %}
 
 {% block title %}Login{% endblock %}
 
@@ -69,34 +68,6 @@
     opacity: 0.9;
   }
 
-  .social-login {
-    margin-top: 32px;
-    text-align: center;
-  }
-
-  .social-login p {
-    color: #666;
-    margin-bottom: 12px;
-  }
-
-  .social-login button {
-    background-color: #4285f4;
-    color: white;
-    padding: 10px 20px;
-    margin: 8px auto;
-    font-size: 0.95rem;
-    font-weight: bold;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    display: block;
-    width: 100%;
-    transition: background-color 0.2s ease;
-  }
-
-  .social-login button:hover {
-    background-color: #3367d6;
-  }
 
   a {
     text-decoration: none;
@@ -118,18 +89,5 @@
     <button type="submit" class="submit-btn">Login</button>
   </form>
 
-  <div class="social-login">
-    <p>Or login with:</p>
-    {% providers_media_js %}
-    {% if socialaccount_providers %}
-      {% for provider in socialaccount_providers %}
-        <a href="{% provider_login_url provider.id %}" class="social-btn">
-  Continue with {{ provider.name }}
-</a>
-      {% endfor %}
-    {% else %}
-      <p style="color: #888;">No social providers available.</p>
-    {% endif %}
-  </div>
 </div>
 {% endblock %}

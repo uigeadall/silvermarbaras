@@ -1,5 +1,6 @@
 {# templates/account/orders.html #}
 {% extends "profile_base.html" %}
+{% load cart_extras %}
 
 {% block title %}Your Orders{% endblock %}
 
@@ -24,10 +25,10 @@
         <tr class="border-t">
           <td class="p-3 font-semibold">#{{ o.id }}</td>
           <td class="p-3">{{ o.created_at|date:"Y-m-d H:i" }}</td>
-          <td class="p-3">{{ counts_map.o.id|default:0 }}</td>
+          <td class="p-3">{{ counts_map|get_item:o.id }}</td>
           <td class="p-3">${{ o.total_price|floatformat:2 }}</td>
-          <td class="p-3">{{ o.shipping_option.name if o.shipping_option }}</td>
-          <td class="p-3">{{ o.coupon.code if o.coupon }}</td>
+          <td class="p-3">{% if o.shipping_option %}{{ o.shipping_option.name }}{% endif %}</td>
+          <td class="p-3">{% if o.coupon %}{{ o.coupon.code }}{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

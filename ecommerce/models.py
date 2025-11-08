@@ -18,7 +18,12 @@ RING_SIZE_CHOICES = [(s, s) for s in [
 class Category(models.Model):
     """Product category (e.g., Rings, Necklaces, etc.)."""
     name = models.CharField(max_length=100)
-    slug = models.SlugField(blank=True)
+    slug = models.SlugField(blank=True, unique=True)
+    
+    class Meta:
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
+        ordering = ["name"]
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -54,6 +59,11 @@ class Product(models.Model):
 
     cart_add_count = models.PositiveIntegerField(default=0)
     stock = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ["-id"]
+        verbose_name = "Product"
+        verbose_name_plural = "Products"
 
     # Manual “Buy as a set” (ordered, toggleable) via a through model
     bundle_items = models.ManyToManyField(
@@ -136,10 +146,16 @@ class ProductVariant(models.Model):
     class Meta:
         unique_together = (('product', 'size'),)
         ordering = ['product_id', 'size']
+        verbose_name = "Product Variant"
+        verbose_name_plural = "Product Variants"
 
     def clean(self):
-        if not self.product.is_ring:
+        if self.product_id and not self.product.is_ring:
             raise ValidationError("Sizes/variants are allowed only for ring products.")
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     @property
     def effective_price(self) -> Decimal:
@@ -164,6 +180,9 @@ class Rating(models.Model):
 
     class Meta:
         unique_together = ('user', 'product')
+        ordering = ["-id"]
+        verbose_name = "Rating"
+        verbose_name_plural = "Ratings"
 
     def __str__(self) -> str:
         return f"{self.product.name} - {self.value}⭐ by {self.user.username}"
@@ -191,6 +210,9 @@ class CartItem(models.Model):
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        verbose_name = "Cart Item"
+        verbose_name_plural = "Cart Items"
+        ordering = ["-added_at"]
         constraints = [
             # Authenticated user, with variant
             models.UniqueConstraint(
@@ -218,6 +240,16 @@ class CartItem(models.Model):
             ),
         ]
 
+    def clean(self):
+        if not self.user and not self.session_key:
+            raise ValidationError("Either user or session_key must be provided.")
+        if self.user and self.session_key:
+            raise ValidationError("Cannot have both user and session_key.")
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         base = f"{self.quantity} x {self.product.name}"
         return f"{base} ({self.variant.size})" if self.variant_id else base
@@ -235,6 +267,9 @@ class Favorite(models.Model):
 
     class Meta:
         unique_together = ('user', 'product')
+        ordering = ["-created_at"]
+        verbose_name = "Favorite"
+        verbose_name_plural = "Favorites"
 
     def __str__(self) -> str:
         return f"{self.user.username} ❤️ {self.product.name}"
@@ -245,6 +280,11 @@ class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Comment"
+        verbose_name_plural = "Comments"
 
 
 class ShippingOption(models.Model):
@@ -265,6 +305,11 @@ class Coupon(models.Model):
     ends_at = models.DateTimeField(null=True, blank=True)
     usage_limit = models.IntegerField(null=True, blank=True)
     used_count = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ["code"]
+        verbose_name = "Coupon"
+        verbose_name_plural = "Coupons"
 
     def is_valid_now(self) -> bool:
         now = timezone.now()
@@ -277,6 +322,22 @@ class Coupon(models.Model):
         if self.usage_limit and self.used_count >= self.usage_limit:
             return False
         return True
+
+    def clean(self):
+        if not self.percent_off and not self.amount_off:
+            raise ValidationError("Either percent_off or amount_off must be provided.")
+        if self.percent_off and self.amount_off:
+            raise ValidationError("Cannot have both percent_off and amount_off.")
+        if self.percent_off and (self.percent_off <= 0 or self.percent_off > 100):
+            raise ValidationError("percent_off must be between 0 and 100.")
+        if self.amount_off and self.amount_off <= 0:
+            raise ValidationError("amount_off must be greater than 0.")
+        if self.starts_at and self.ends_at and self.starts_at >= self.ends_at:
+            raise ValidationError("ends_at must be after starts_at.")
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def apply(self, subtotal: Decimal) -> Decimal:
         """Apply absolute or percent discount; clamp at zero; keep 2 decimals."""
@@ -297,6 +358,7 @@ class Order(models.Model):
 
     shipping_option = models.ForeignKey(ShippingOption, on_delete=models.SET_NULL, null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    stripe_checkout_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
 
     # Contact & Shipping Fields
     email = models.EmailField(blank=True, null=True)
@@ -308,6 +370,19 @@ class Order(models.Model):
     phone = models.CharField(max_length=20)
 
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+    
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Order"
+        verbose_name_plural = "Orders"
+
+    def clean(self):
+        if not self.user and not self.email:
+            raise ValidationError("Either user or email must be provided.")
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def get_total_with_shipping(self) -> Decimal:
         if self.shipping_option:
@@ -323,6 +398,11 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True, blank=True)
     quantity = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = "Order Item"
+        verbose_name_plural = "Order Items"
+        ordering = ["order", "id"]
 
     def __str__(self) -> str:
         label = f"{self.quantity} x {self.product.name}"

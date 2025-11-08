@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load socialaccount %}
 
 {% block title %}Sign Up{% endblock %}
 
@@ -69,41 +68,6 @@
     background-color: #111;
   }
 
-  .or-divider {
-    margin: 20px 0;
-    font-size: 0.95rem;
-    color: #777;
-    position: relative;
-  }
-
-  .google-btn,
-  .facebook-btn {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 10px;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 500;
-    font-size: 0.95rem;
-    text-decoration: none;
-    color: #444;
-    transition: background-color 0.2s ease-in-out;
-    margin-bottom: 10px;
-  }
-
-  .google-btn img,
-  .facebook-btn img {
-    height: 20px;
-    margin-right: 10px;
-  }
-
-  .google-btn:hover,
-  .facebook-btn:hover {
-    background-color: #f1f1f1;
-  }
 
   ul.helptext {
     display: none !important;
@@ -119,18 +83,6 @@
       {{ form.as_p }}
       <button type="submit">Sign Up</button>
     </form>
-
-    <div class="or-divider">Or sign up with:</div>
-
-    <a href="{% provider_login_url 'google' %}" class="google-btn">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google logo">
-      Sign up with Google
-    </a>
-
-    <a href="{% provider_login_url 'facebook' %}" class="facebook-btn">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/facebook/facebook-original.svg" alt="Facebook logo">
-      Sign up with Facebook
-    </a>
   </div>
 </div>
 {% endblock %}

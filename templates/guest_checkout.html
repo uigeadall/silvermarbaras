@@ -148,7 +148,9 @@
     <h4>Your Cart</h4>
     <ul>
       {% for item in cart_items %}
-        <li>{{ item.product.name }} × {{ item.quantity }} — ${{ item.subtotal|floatformat:2 }}</li>
+        <li>
+          {{ item.product.name }}{% if item.variant %} (Size: {{ item.variant.size }}){% endif %} × {{ item.quantity }} — ${{ item.subtotal|floatformat:2 }}
+        </li>
       {% endfor %}
     </ul>
 

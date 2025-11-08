@@ -226,7 +226,7 @@
                       {% if item.product.image %}
                         <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
                       {% else %}
-                        <img src="{% static 'images/no-image.png' %}" alt="No image">
+                        <img src="{% static 'images/placeholder.jpg' %}" alt="{{ item.product.name }}">
                       {% endif %}
                     </a>
 
@@ -236,6 +236,9 @@
                       </a>
                       <div class="mini">
                         ${{ item.product.get_discounted_price|floatformat:2 }} × {{ item.quantity }}
+                        {% if item.variant %}
+                          <span class="text-xs text-slate-600">(Size: {{ item.variant.size }})</span>
+                        {% endif %}
                       </div>
                     </div>
 

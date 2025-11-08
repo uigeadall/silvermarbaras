@@ -2,12 +2,14 @@
 from django.contrib import admin
 from django.db.models import Count, Sum
 from django.http import HttpResponse
+from django.contrib import messages
 import csv
 
 from .models import (
     Category, Product, ProductImage, ProductVariant,
     CartItem, Order, OrderItem, Favorite, Discount, ShippingOption, Coupon, ProductBundleItem
 )
+from .utils.emailing import send_order_shipped_email
 
 # ---------- Inlines ----------
 class ProductImageInline(admin.TabularInline):
@@ -82,13 +84,13 @@ class OrderAdmin(admin.ModelAdmin):
         "coupon_code",
         "items_count",
     )
-    date_hierarchy = "created_at"
+    # date_hierarchy = "created_at"  # Disabled due to MySQL timezone issues
     search_fields = ("id", "full_name", "email", "phone", "address", "city", "postal_code")
     list_filter = ("shipping_option", "coupon", "created_at")
     list_select_related = ("shipping_option", "coupon", "user")
     readonly_fields = ()
 
-    actions = ["export_orders_csv"]
+    actions = ["export_orders_csv", "send_shipped_email"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -101,6 +103,38 @@ class OrderAdmin(admin.ModelAdmin):
     @admin.display(description="Coupon")
     def coupon_code(self, obj):
         return obj.coupon.code if obj.coupon else "-"
+
+    def send_shipped_email(self, request, queryset):
+        """Admin action to send 'order shipped' email to selected orders."""
+        base_url = f"{request.scheme}://{request.get_host()}"
+        sent_count = 0
+        failed_count = 0
+        
+        for order in queryset:
+            recipient = getattr(order, "email", None) or getattr(getattr(order, "user", None), "email", None)
+            if not recipient:
+                failed_count += 1
+                continue
+            
+            if send_order_shipped_email(order, base_url):
+                sent_count += 1
+            else:
+                failed_count += 1
+        
+        if sent_count > 0:
+            self.message_user(
+                request,
+                f"✅ Изпратени са {sent_count} имейла за изпратени поръчки.",
+                messages.SUCCESS
+            )
+        if failed_count > 0:
+            self.message_user(
+                request,
+                f"⚠️ {failed_count} имейла не можаха да бъдат изпратени (липсва email адрес или грешка).",
+                messages.WARNING
+            )
+    
+    send_shipped_email.short_description = "Изпрати имейл 'Поръчката е изпратена'"
 
     def export_orders_csv(self, request, queryset):
         response = HttpResponse(content_type="text/csv")
