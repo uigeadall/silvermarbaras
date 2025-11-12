@@ -316,7 +316,12 @@ USE_TZ = True
 # -------------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# Only add static directory if it exists (to avoid warnings)
+import os
+static_dirs = []
+if os.path.exists(BASE_DIR / "static"):
+    static_dirs.append(BASE_DIR / "static")
+STATICFILES_DIRS = static_dirs
 
 # Static files finders
 STATICFILES_FINDERS = [
