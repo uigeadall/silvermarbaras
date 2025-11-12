@@ -151,11 +151,19 @@ DATABASE_URL = env("DATABASE_URL", "")
 if DATABASE_URL:
     # Parse DATABASE_URL (format: mysql://user:pass@host:port/dbname or postgresql://...)
     import re
-    db_match = re.match(r'(\w+)://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', DATABASE_URL)
-    if db_match:
-        db_type, db_user, db_password, db_host, db_port, db_name = db_match.groups()
+    from urllib.parse import urlparse
+    
+    try:
+        # Try urllib.parse first (more robust)
+        parsed = urlparse(DATABASE_URL)
+        db_type = parsed.scheme
+        db_user = parsed.username
+        db_password = parsed.password
+        db_host = parsed.hostname
+        db_port = parsed.port or (5432 if 'postgres' in db_type else 3306)
+        db_name = parsed.path.lstrip('/')
         
-        if db_type == 'postgresql' or db_type == 'postgres':
+        if db_type in ('postgresql', 'postgres'):
             DATABASES = {
                 "default": {
                     "ENGINE": "django.db.backends.postgresql",
@@ -164,13 +172,13 @@ if DATABASE_URL:
                     "PASSWORD": db_password,
                     "HOST": db_host,
                     "PORT": db_port,
-                    "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),  # 10 minutes default
+                    "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),
                     "OPTIONS": {
                         "connect_timeout": 10,
                     },
                 }
             }
-        else:  # MySQL
+        elif db_type == 'mysql':
             DATABASES = {
                 "default": {
                     "ENGINE": "django.db.backends.mysql",
@@ -184,12 +192,54 @@ if DATABASE_URL:
                         "charset": "utf8mb4",
                         "connect_timeout": 10,
                     },
-                    "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),  # 10 minutes default
+                    "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),
                     "ATOMIC_REQUESTS": env_bool("DB_ATOMIC_REQUESTS", False),
                 }
             }
-    else:
-        # Fallback to individual env vars if DATABASE_URL is malformed
+        else:
+            # Fallback to regex if urllib.parse fails
+            db_match = re.match(r'(\w+)://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', DATABASE_URL)
+            if db_match:
+                db_type, db_user, db_password, db_host, db_port, db_name = db_match.groups()
+                if db_type in ('postgresql', 'postgres'):
+                    DATABASES = {
+                        "default": {
+                            "ENGINE": "django.db.backends.postgresql",
+                            "NAME": db_name,
+                            "USER": db_user,
+                            "PASSWORD": db_password,
+                            "HOST": db_host,
+                            "PORT": db_port,
+                            "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),
+                            "OPTIONS": {"connect_timeout": 10},
+                        }
+                    }
+                else:
+                    DATABASES = {
+                        "default": {
+                            "ENGINE": "django.db.backends.mysql",
+                            "NAME": db_name,
+                            "USER": db_user,
+                            "PASSWORD": db_password,
+                            "HOST": db_host,
+                            "PORT": db_port,
+                            "OPTIONS": {
+                                "init_command": "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'",
+                                "charset": "utf8mb4",
+                                "connect_timeout": 10,
+                            },
+                            "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),
+                            "ATOMIC_REQUESTS": env_bool("DB_ATOMIC_REQUESTS", False),
+                        }
+                    }
+            else:
+                # Fallback to individual env vars
+                raise ValueError("Could not parse DATABASE_URL")
+    except Exception as e:
+        # Fallback to individual env vars if DATABASE_URL parsing fails
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to parse DATABASE_URL: {e}. Falling back to individual env vars.")
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.mysql",

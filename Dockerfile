@@ -27,12 +27,13 @@ COPY . /app/
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Create logs directory
-RUN mkdir -p /app/logs
+# Create logs and static directories
+RUN mkdir -p /app/logs /app/static
 
 # Expose port
 EXPOSE 8000
 
 # Use entrypoint script
+# Usefull
 ENTRYPOINT ["/app/entrypoint.sh"]
 
