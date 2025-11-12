@@ -10,8 +10,22 @@ echo "Waiting for database connection..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
+# Use Python script to check database connection (more reliable than dbshell)
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if python manage.py dbshell --command="SELECT 1" > /dev/null 2>&1; then
+    if python << EOF
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'МагазинСребро.settings')
+django.setup()
+from django.db import connection
+try:
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT 1")
+    exit(0)
+except Exception:
+    exit(1)
+EOF
+    then
         echo "✅ Database connection successful!"
         break
     fi
@@ -22,7 +36,7 @@ done
 
 if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
     echo "⚠️  Warning: Could not connect to database after $MAX_RETRIES retries"
-    echo "Continuing anyway - migrations may fail..."
+    echo "Continuing anyway - migrations will attempt to connect..."
 fi
 
 # Run migrations
