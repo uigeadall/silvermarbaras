@@ -64,9 +64,14 @@ echo "=========================================="
 echo "Starting Gunicorn..."
 echo "=========================================="
 
+# Use PORT environment variable if provided (Railway, Render, etc.), otherwise default to 8000
+PORT=${PORT:-8000}
+
+echo "Starting Gunicorn on port $PORT..."
+
 # Start Gunicorn
 exec gunicorn \
-    --bind 0.0.0.0:8000 \
+    --bind 0.0.0.0:$PORT \
     --workers 4 \
     --timeout 120 \
     --access-logfile - \
