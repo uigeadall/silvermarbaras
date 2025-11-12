@@ -12,6 +12,16 @@ stripe==13.0.1
 typing_extensions==4.15.0
 urllib3==2.5.0
 
-
+# Production server
 gunicorn==23.0.0
+
+# Database drivers
 mysqlclient==2.2.4
+psycopg2-binary==2.9.9  # PostgreSQL support (for Render, Railway, etc.)
+
+# Caching (optional, for Redis)
+django-redis==5.4.0
+redis==5.0.1
+
+# Rate limiting (optional)
+django-ratelimit==4.1.0

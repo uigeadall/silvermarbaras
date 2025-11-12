@@ -95,6 +95,9 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
 
+    # Rate limiting (optional, enabled if package is installed)
+    # "django_ratelimit",  # Uncomment if you want rate limiting
+
     # Local App
     "ecommerce.apps.EcommerceConfig",
 ]
@@ -140,24 +143,88 @@ TEMPLATES = [
 ]
 
 # -------------------------
-# Database (MySQL)
+# Database (MySQL/PostgreSQL)
 # -------------------------
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": env("MYSQL_DATABASE", "silvershop"),
-        "USER": env("MYSQL_USER", "root"),
-        "PASSWORD": env("MYSQL_PASSWORD", ""),
-        "HOST": env("MYSQL_HOST", "localhost"),
-        "PORT": env("MYSQL_PORT", "3306"),
-        "OPTIONS": {
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'",
-            "charset": "utf8mb4",
-        },
-        "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "0")),  # Connection pooling (0 = disabled)
-        "ATOMIC_REQUESTS": env_bool("DB_ATOMIC_REQUESTS", False),
+# Support for DATABASE_URL (used by Render, Railway, Heroku, etc.)
+DATABASE_URL = env("DATABASE_URL", "")
+
+if DATABASE_URL:
+    # Parse DATABASE_URL (format: mysql://user:pass@host:port/dbname or postgresql://...)
+    import re
+    db_match = re.match(r'(\w+)://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', DATABASE_URL)
+    if db_match:
+        db_type, db_user, db_password, db_host, db_port, db_name = db_match.groups()
+        
+        if db_type == 'postgresql' or db_type == 'postgres':
+            DATABASES = {
+                "default": {
+                    "ENGINE": "django.db.backends.postgresql",
+                    "NAME": db_name,
+                    "USER": db_user,
+                    "PASSWORD": db_password,
+                    "HOST": db_host,
+                    "PORT": db_port,
+                    "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),  # 10 minutes default
+                    "OPTIONS": {
+                        "connect_timeout": 10,
+                    },
+                }
+            }
+        else:  # MySQL
+            DATABASES = {
+                "default": {
+                    "ENGINE": "django.db.backends.mysql",
+                    "NAME": db_name,
+                    "USER": db_user,
+                    "PASSWORD": db_password,
+                    "HOST": db_host,
+                    "PORT": db_port,
+                    "OPTIONS": {
+                        "init_command": "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'",
+                        "charset": "utf8mb4",
+                        "connect_timeout": 10,
+                    },
+                    "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),  # 10 minutes default
+                    "ATOMIC_REQUESTS": env_bool("DB_ATOMIC_REQUESTS", False),
+                }
+            }
+    else:
+        # Fallback to individual env vars if DATABASE_URL is malformed
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.mysql",
+                "NAME": env("MYSQL_DATABASE", "silvershop"),
+                "USER": env("MYSQL_USER", "root"),
+                "PASSWORD": env("MYSQL_PASSWORD", ""),
+                "HOST": env("MYSQL_HOST", "localhost"),
+                "PORT": env("MYSQL_PORT", "3306"),
+                "OPTIONS": {
+                    "init_command": "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'",
+                    "charset": "utf8mb4",
+                },
+                "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),
+                "ATOMIC_REQUESTS": env_bool("DB_ATOMIC_REQUESTS", False),
+            }
+        }
+else:
+    # Use individual environment variables (existing database)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": env("MYSQL_DATABASE", "silvershop"),
+            "USER": env("MYSQL_USER", "root"),
+            "PASSWORD": env("MYSQL_PASSWORD", ""),
+            "HOST": env("MYSQL_HOST", "localhost"),
+            "PORT": env("MYSQL_PORT", "3306"),
+            "OPTIONS": {
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'",
+                "charset": "utf8mb4",
+                "connect_timeout": 10,
+            },
+            "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),  # 10 minutes for production
+            "ATOMIC_REQUESTS": env_bool("DB_ATOMIC_REQUESTS", False),
+        }
     }
-}
 
 # -------------------------
 # Auth / Allauth
@@ -239,6 +306,35 @@ STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "")
 
 # -------------------------
+# Caching (Redis/Memcached)
+# -------------------------
+REDIS_URL = env("REDIS_URL", "")
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+            "KEY_PREFIX": "marbaras",
+            "TIMEOUT": 300,  # 5 minutes default
+        }
+    }
+    # Use Redis for session storage in production
+    if not DEBUG:
+        SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+        SESSION_CACHE_ALIAS = "default"
+else:
+    # Default cache (local memory)
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-snowflake",
+        }
+    }
+
+# -------------------------
 # Security (production)
 # -------------------------
 if not DEBUG:
@@ -252,6 +348,9 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = "DENY"
+    
+    # Additional security headers
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
     
     # Support for reverse proxy (nginx, etc.)
     USE_X_FORWARDED_HOST = env_bool("USE_X_FORWARDED_HOST", True)

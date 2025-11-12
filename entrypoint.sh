@@ -5,13 +5,25 @@ echo "=========================================="
 echo "Starting Marbaras E-commerce Application"
 echo "=========================================="
 
-# Wait for database to be ready (optional, useful for Docker Compose)
-echo "Waiting for database..."
-while ! python manage.py dbshell --command="SELECT 1" > /dev/null 2>&1; do
-    echo "Database is unavailable - sleeping"
-    sleep 1
+# Wait for database to be ready (with timeout)
+echo "Waiting for database connection..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if python manage.py dbshell --command="SELECT 1" > /dev/null 2>&1; then
+        echo "✅ Database connection successful!"
+        break
+    fi
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    echo "Database is unavailable - retry $RETRY_COUNT/$MAX_RETRIES..."
+    sleep 2
 done
-echo "Database is up - continuing..."
+
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo "⚠️  Warning: Could not connect to database after $MAX_RETRIES retries"
+    echo "Continuing anyway - migrations may fail..."
+fi
 
 # Run migrations
 echo "Running migrations..."
