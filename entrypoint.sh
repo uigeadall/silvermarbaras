@@ -5,14 +5,19 @@ echo "=========================================="
 echo "Starting Marbaras E-commerce Application"
 echo "=========================================="
 
-# Wait for database to be ready (with timeout)
-echo "Waiting for database connection..."
-MAX_RETRIES=30
-RETRY_COUNT=0
+# Check if DATABASE_URL is set (Railway, Render, etc.)
+if [ -z "$DATABASE_URL" ] && [ -z "$MYSQL_HOST" ] && [ -z "$POSTGRES_HOST" ]; then
+    echo "⚠️  Warning: No database configuration found!"
+    echo "Please set DATABASE_URL or MySQL/PostgreSQL environment variables"
+    echo "Continuing anyway - application may fail to start..."
+else
+    echo "Database configuration found, waiting for connection..."
+    MAX_RETRIES=30
+    RETRY_COUNT=0
 
-# Use Python script to check database connection (more reliable than dbshell)
-while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    if python << EOF
+    # Use Python script to check database connection (more reliable than dbshell)
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if python << EOF
 import os
 import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'МагазинСребро.settings')
@@ -22,21 +27,24 @@ try:
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1")
     exit(0)
-except Exception:
+except Exception as e:
     exit(1)
 EOF
-    then
-        echo "✅ Database connection successful!"
-        break
-    fi
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    echo "Database is unavailable - retry $RETRY_COUNT/$MAX_RETRIES..."
-    sleep 2
-done
+        then
+            echo "✅ Database connection successful!"
+            break
+        fi
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        if [ $RETRY_COUNT -le 10 ]; then
+            echo "Database is unavailable - retry $RETRY_COUNT/$MAX_RETRIES..."
+        fi
+        sleep 2
+    done
 
-if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo "⚠️  Warning: Could not connect to database after $MAX_RETRIES retries"
-    echo "Continuing anyway - migrations will attempt to connect..."
+    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+        echo "⚠️  Warning: Could not connect to database after $MAX_RETRIES retries"
+        echo "Continuing anyway - migrations will attempt to connect..."
+    fi
 fi
 
 # Run migrations
