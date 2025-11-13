@@ -184,16 +184,35 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
         logger.error("Stripe secret key is not configured")
         return None
     
+    # Validate Stripe API key doesn't contain non-ASCII characters
+    try:
+        settings.STRIPE_SECRET_KEY.encode('latin-1')
+    except UnicodeEncodeError:
+        logger.error("Stripe secret key contains non-ASCII characters")
+        return None
+    
     try:
         # Create a safe idempotency key (only ASCII characters, no Cyrillic)
         # Use hash of session_key to avoid encoding issues
         if session_key:
             # Encode session_key to bytes, then hash it to get only ASCII characters
-            session_hash = hashlib.md5(session_key.encode('utf-8')).hexdigest()
+            try:
+                session_hash = hashlib.md5(session_key.encode('utf-8')).hexdigest()
+            except UnicodeEncodeError:
+                # Fallback: use a hash of the repr if direct encoding fails
+                session_hash = hashlib.md5(repr(session_key).encode('utf-8')).hexdigest()
         else:
             session_hash = 'nouser'
         
         idempotency_key = f"pi-{'guest' if is_guest else 'user'}-{session_hash}-{uuid.uuid4().hex}"
+        
+        # Ensure idempotency_key is ASCII-safe
+        try:
+            idempotency_key.encode('latin-1')
+        except UnicodeEncodeError:
+            logger.error("Idempotency key contains non-ASCII characters: %s", idempotency_key)
+            # Fallback: use only hash and UUID
+            idempotency_key = f"pi-{session_hash}-{uuid.uuid4().hex}"
         
         # Ensure all parameters are ASCII-safe
         intent = stripe.PaymentIntent.create(
@@ -204,6 +223,9 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
         return intent
     except stripe.error.StripeError as e:
         logger.error("Stripe PaymentIntent creation failed: %s", str(e), exc_info=True)
+        return None
+    except UnicodeEncodeError as e:
+        logger.error("UnicodeEncodeError creating Stripe PaymentIntent: %s", str(e), exc_info=True)
         return None
     except Exception as e:
         logger.error("Unexpected error creating Stripe PaymentIntent: %s", str(e), exc_info=True)
