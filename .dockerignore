@@ -20,7 +20,7 @@ env/
 *.pot
 *.pyc
 db.sqlite3
-/media
+# /media  # Commented out to include media files in Docker image
 /staticfiles
 /static
 
