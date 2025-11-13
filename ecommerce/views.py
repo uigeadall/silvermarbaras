@@ -7,7 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable, Optional
 from django.db.models import Max
 import stripe
-from stripe import error as stripe_error
+from stripe import _error as stripe_error
 from allauth.account.views import LoginView
 from django.conf import settings
 from django.contrib import messages
