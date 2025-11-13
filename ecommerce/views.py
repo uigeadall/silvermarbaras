@@ -53,7 +53,18 @@ from .models import (
 from .signals import order_submitted, user_registered
 
 logger = logging.getLogger(__name__)
-stripe.api_key = settings.STRIPE_SECRET_KEY
+
+# Set Stripe API key with validation
+if settings.STRIPE_SECRET_KEY:
+    try:
+        # Validate that API key is ASCII-safe
+        settings.STRIPE_SECRET_KEY.encode('latin-1')
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+    except UnicodeEncodeError:
+        logger.error("Stripe secret key contains non-ASCII characters - Stripe API calls will fail")
+        stripe.api_key = None
+else:
+    stripe.api_key = None
 
 
 UNLIMITED_STOCK = 10**9  # sentinel for "not tracked / unlimited"
