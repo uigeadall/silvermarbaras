@@ -17,8 +17,10 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.shortcuts import redirect
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf.urls.static import static
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.views.static import serve
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('ecommerce.urls')),
@@ -32,9 +34,6 @@ handler500 = 'ecommerce.views.handler500'
 
 # Serve static and media files in production (Railway doesn't have Nginx)
 # Django will serve these files directly in production
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.views.static import serve
-from django.urls import re_path
 
 # Add static files URLs
 urlpatterns += staticfiles_urlpatterns()
