@@ -184,7 +184,11 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
         return None
     
     try:
-        idempotency_key = f"pi-{'guest' if is_guest else 'user'}-{session_key or 'nouser'}-{uuid.uuid4()}"
+        # Create a safe idempotency key (only ASCII characters, no Cyrillic)
+        # Use hash of session_key to avoid encoding issues
+        import hashlib
+        session_hash = hashlib.md5((session_key or 'nouser').encode('utf-8')).hexdigest() if session_key else 'nouser'
+        idempotency_key = f"pi-{'guest' if is_guest else 'user'}-{session_hash}-{uuid.uuid4().hex}"
         intent = stripe.PaymentIntent.create(
             amount=_to_cents(amount),
             currency="usd",
