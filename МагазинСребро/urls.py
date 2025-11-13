@@ -30,5 +30,11 @@ urlpatterns = [
 handler404 = 'ecommerce.views.handler404'
 handler500 = 'ecommerce.views.handler500'
 
+# Serve media files in production (Railway, Render, etc.)
+# In production, Railway/Render will serve these files through their web server
 if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # In production, still serve media files (Railway/Render will handle it)
+    # This is a workaround for Railway/Render - they should serve static/media files
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
