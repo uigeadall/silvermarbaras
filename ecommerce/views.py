@@ -7,6 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable, Optional
 from django.db.models import Max
 import stripe
+from stripe import error as stripe_error
 from allauth.account.views import LoginView
 from django.conf import settings
 from django.contrib import messages
@@ -232,7 +233,7 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
             idempotency_key=idempotency_key,
         )
         return intent
-    except stripe.error.StripeError as e:
+    except stripe_error.StripeError as e:
         logger.error("Stripe PaymentIntent creation failed: %s", str(e), exc_info=True)
         return None
     except UnicodeEncodeError as e:
@@ -984,7 +985,7 @@ def stripe_webhook(request: HttpRequest) -> HttpResponse:
     except ValueError as e:
         logger.error("Invalid payload: %s", str(e))
         return HttpResponse(status=400)
-    except stripe.error.SignatureVerificationError as e:
+    except stripe_error.SignatureVerificationError as e:
         logger.error("Invalid Stripe signature: %s", str(e))
         return HttpResponse(status=400)
 
