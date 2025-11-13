@@ -178,15 +178,24 @@ def _get_shipping_option(shipping_option_id: Optional[str]) -> tuple[Optional[Sh
 
 def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest: bool = False) -> Optional[stripe.PaymentIntent]:
     """Create Stripe PaymentIntent with error handling."""
+    # Check if Stripe is configured
+    if not settings.STRIPE_SECRET_KEY:
+        logger.error("Stripe secret key is not configured")
+        return None
+    
     try:
         idempotency_key = f"pi-{'guest' if is_guest else 'user'}-{session_key or 'nouser'}-{uuid.uuid4()}"
-        return stripe.PaymentIntent.create(
+        intent = stripe.PaymentIntent.create(
             amount=_to_cents(amount),
             currency="usd",
             idempotency_key=idempotency_key,
         )
+        return intent
     except stripe.error.StripeError as e:
-        logger.error("Stripe PaymentIntent creation failed: %s", str(e))
+        logger.error("Stripe PaymentIntent creation failed: %s", str(e), exc_info=True)
+        return None
+    except Exception as e:
+        logger.error("Unexpected error creating Stripe PaymentIntent: %s", str(e), exc_info=True)
         return None
 
 
