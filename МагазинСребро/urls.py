@@ -30,11 +30,20 @@ urlpatterns = [
 handler404 = 'ecommerce.views.handler404'
 handler500 = 'ecommerce.views.handler500'
 
-# Serve media files in production (Railway, Render, etc.)
-# In production, Railway/Render will serve these files through their web server
+# Serve static and media files in production (Railway doesn't have Nginx)
+# Django will serve these files directly in production
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.views.static import serve
+from django.urls import re_path
+
+# Add static files URLs
+urlpatterns += staticfiles_urlpatterns()
+
+# Serve media files in production
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 else:
-    # In production, still serve media files (Railway/Render will handle it)
-    # This is a workaround for Railway/Render - they should serve static/media files
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # In production, serve media files through Django
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    ]
