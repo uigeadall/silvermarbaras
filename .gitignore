@@ -34,7 +34,7 @@ env/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-/media
+# /media  # Commented out to upload media files to Railway
 /staticfiles
 /static
 
