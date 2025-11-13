@@ -85,8 +85,16 @@ try:
                 if product_count == 0:
                     print("📦 Database is empty, importing initial data...")
                     try:
-                        # Try to import from GitHub
-                        call_command('import_data', '--url', 'https://raw.githubusercontent.com/uigeadall/marbaras123/newone/data.json')
+                        # Try to import from local file first (after deploy)
+                        import os
+                        local_file = '/app/data.json'
+                        if os.path.exists(local_file):
+                            print(f"Found local data.json, importing...")
+                            call_command('import_data', '--file', local_file)
+                        else:
+                            # Fallback: try to download from GitHub
+                            print("Local file not found, trying GitHub...")
+                            call_command('import_data', '--url', 'https://raw.githubusercontent.com/uigeadall/marbaras123/newone/data.json')
                         print("✅ Data imported successfully!")
                     except Exception as e:
                         print(f"⚠️  Could not import data: {e}")
