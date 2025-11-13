@@ -35,10 +35,17 @@ handler500 = 'ecommerce.views.handler500'
 # Serve static and media files in production (Railway doesn't have Nginx)
 # Django will serve these files directly in production
 
-# Add static files URLs
-urlpatterns += staticfiles_urlpatterns()
+# Serve static files (for Django admin and other static assets)
+if settings.DEBUG:
+    # In development, use staticfiles_urlpatterns
+    urlpatterns += staticfiles_urlpatterns()
+else:
+    # In production, serve static files from STATIC_ROOT
+    urlpatterns += [
+        re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    ]
 
-# Serve media files in production
+# Serve media files
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 else:
