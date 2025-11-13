@@ -59,6 +59,49 @@ python manage.py collectstatic --noinput || {
     echo "Collectstatic failed, but continuing..."
 }
 
+# Import data if database is empty (only on first run)
+echo "Checking if database needs initial data import..."
+python << EOF
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'МагазинСребро.settings')
+django.setup()
+from django.db import connection
+from django.core.management import call_command
+
+try:
+    # Check if database has any data
+    with connection.cursor() as cursor:
+        # Check if any tables exist and have data
+        cursor.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()")
+        table_count = cursor.fetchone()[0]
+        
+        if table_count > 0:
+            # Check if Product table exists and has data
+            try:
+                cursor.execute("SELECT COUNT(*) FROM ecommerce_product")
+                product_count = cursor.fetchone()[0]
+                
+                if product_count == 0:
+                    print("📦 Database is empty, importing initial data...")
+                    try:
+                        # Try to import from GitHub
+                        call_command('import_data', '--url', 'https://raw.githubusercontent.com/uigeadall/marbaras123/newone/data.json')
+                        print("✅ Data imported successfully!")
+                    except Exception as e:
+                        print(f"⚠️  Could not import data: {e}")
+                        print("You can import data manually later using: python manage.py import_data")
+                else:
+                    print(f"✅ Database already has {product_count} products, skipping import.")
+            except Exception as e:
+                # Table doesn't exist yet, skip import
+                print(f"⚠️  Could not check database: {e}")
+        else:
+            print("⚠️  No tables found, skipping data import.")
+except Exception as e:
+    print(f"⚠️  Could not check database: {e}")
+EOF
+
 # Create superuser if it doesn't exist (optional)
 # Uncomment if you want to auto-create superuser
 # python manage.py shell << EOF
