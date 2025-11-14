@@ -136,17 +136,18 @@
     <!-- ===== Center: Banner + Trending (top) + Editors' Choice (bottom) + Sort + Products ===== -->
     <section class="min-w-0">
 
-      {# ======= HOME ONLY (no filters/search): Banner + TRENDING (TOP) + EDITORS’ CHOICE (BOTTOM) ======= #}
+      {# ======= HOME ONLY (no filters/search): Banner + TRENDING (TOP) + EDITORS' CHOICE (BOTTOM) ======= #}
       {% if not selected_category and not request.GET.q and not request.GET.all %}
 
         <!-- Banner -->
-        <div class="mt-0">
-          <div class="rounded-2xl overflow-hidden bg-white">
+        <div class="mt-0 mb-6">
+          <div class="rounded-2xl overflow-hidden bg-white shadow-sm">
             <img
               src="{% static 'images/banner.jpg' %}"
               alt="Shop Banner"
-              loading="lazy"
-              class="w-full object-contain"
+              loading="eager"
+              class="w-full h-auto object-contain"
+              style="max-height: 400px;"
             >
           </div>
         </div>
