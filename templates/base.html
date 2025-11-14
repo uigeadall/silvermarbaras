@@ -52,6 +52,28 @@
         </div>
       {% endif %}
 
+      <!-- Breadcrumbs -->
+      {% if breadcrumbs|length > 1 %}
+      <nav aria-label="Breadcrumb" class="mb-4">
+        <ol class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+          {% for crumb in breadcrumbs %}
+            {% if forloop.last %}
+              <li class="font-semibold text-slate-900" aria-current="page">
+                {{ crumb.name }}
+              </li>
+            {% else %}
+              <li class="flex items-center">
+                <a href="{{ crumb.url }}" class="hover:text-slate-900 transition-colors">
+                  {{ crumb.name }}
+                </a>
+                <span class="mx-2 text-slate-400" aria-hidden="true">/</span>
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ol>
+      </nav>
+      {% endif %}
+
       {% block content %}{% endblock %}
     </div>
   </main>
