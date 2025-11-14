@@ -29,6 +29,38 @@
       content:""; position:absolute; top:-6px; left:50%; transform:translateX(-50%);
       border:6px solid transparent; border-bottom-color:#0b1220;
     }
+    /* Mobile menu overlay */
+    .mobile-menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .mobile-menu-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    /* Mobile menu sidebar */
+    .mobile-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 280px;
+      max-width: 85vw;
+      background: white;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    }
+    .mobile-menu.open {
+      transform: translateX(0);
+    }
   </style>
 
   {% block extra_head %}{% endblock %}
@@ -37,7 +69,43 @@
 <!-- Make page a flex column so footer is tight at bottom -->
 <body class="min-h-screen flex flex-col bg-white text-slate-900 antialiased">
 
-  <!-- No top navbar -->
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileMenuOverlay" class="mobile-menu-overlay lg:hidden" aria-hidden="true"></div>
+
+  <!-- Mobile Menu Sidebar -->
+  <nav id="mobileMenu" class="mobile-menu lg:hidden" aria-label="Mobile navigation" aria-hidden="true">
+    <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+      <a href="{% url 'home' %}" class="font-extrabold text-xl tracking-tight text-brand">
+        Marbaras
+      </a>
+      <button id="mobileMenuClose" aria-label="Close menu" class="p-2 hover:bg-slate-100 rounded-lg">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="p-4 space-y-4">
+      {% block mobile_menu_content %}
+      <!-- Categories will be added by child templates -->
+      {% endblock %}
+    </div>
+  </nav>
+
+  <!-- Mobile Header with Hamburger -->
+  <header class="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200">
+    <div class="px-4 py-3 flex items-center justify-between">
+      <button id="mobileMenuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu"
+              class="p-2 hover:bg-slate-100 rounded-lg">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <a href="{% url 'home' %}" class="font-extrabold text-xl tracking-tight text-brand">
+        Marbaras
+      </a>
+      <div class="w-10"></div> <!-- Spacer for centering -->
+    </div>
+  </header>
 
   <!-- Reduce bottom padding so there isn't a big band above the footer -->
   <main class="flex-1 pt-6 pb-2">
@@ -79,13 +147,13 @@
   </main>
 
   <footer class="border-t border-slate-200">
-  <div class="mx-auto max-w-site px-4 py-2 text-[11px] leading-tight flex items-center justify-between text-slate-600">
-    <nav class="flex gap-4">
+  <div class="mx-auto max-w-site px-4 py-2 text-[11px] leading-tight flex flex-col sm:flex-row items-center justify-between gap-2 text-slate-600">
+    <nav class="flex flex-wrap gap-4 justify-center sm:justify-start">
       <a href="{% url 'terms' %}" class="hover:text-slate-900">Terms</a>
       <a href="{% url 'privacy' %}" class="hover:text-slate-900">Privacy</a>
       <a href="{% url 'contact' %}" class="hover:text-slate-900">Contact</a>
     </nav>
-    <span>© {% now "Y" %} Marbaras</span>
+    <span class="text-center sm:text-left">© {% now "Y" %} Marbaras</span>
   </div>
 </footer>
 
@@ -97,6 +165,45 @@
         setTimeout(() => el.remove(), 500);
       });
     }, 2200);
+
+    // Mobile menu toggle
+    (function() {
+      const menuToggle = document.getElementById('mobileMenuToggle');
+      const menuClose = document.getElementById('mobileMenuClose');
+      const menuOverlay = document.getElementById('mobileMenuOverlay');
+      const mobileMenu = document.getElementById('mobileMenu');
+      
+      if (!menuToggle || !menuClose || !menuOverlay || !mobileMenu) return;
+
+      function openMenu() {
+        mobileMenu.classList.add('open');
+        menuOverlay.classList.add('open');
+        menuToggle.setAttribute('aria-expanded', 'true');
+        mobileMenu.setAttribute('aria-hidden', 'false');
+        menuOverlay.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeMenu() {
+        mobileMenu.classList.remove('open');
+        menuOverlay.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        mobileMenu.setAttribute('aria-hidden', 'true');
+        menuOverlay.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+
+      menuToggle.addEventListener('click', openMenu);
+      menuClose.addEventListener('click', closeMenu);
+      menuOverlay.addEventListener('click', closeMenu);
+
+      // Close on escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+          closeMenu();
+        }
+      });
+    })();
   </script>
 
   {% block extra_js %}{% endblock %}
