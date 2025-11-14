@@ -47,6 +47,12 @@ EOF
     fi
 fi
 
+# Ensure media directories exist (create if Railway Volume is not mounted)
+echo "Ensuring media directories exist..."
+mkdir -p /app/media/products /app/media/products/multiple || {
+    echo "Could not create media directories, but continuing..."
+}
+
 # Run migrations
 echo "Running migrations..."
 python manage.py migrate --noinput || {

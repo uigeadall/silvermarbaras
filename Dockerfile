@@ -27,8 +27,9 @@ COPY . /app/
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Create logs, static, and media directories
-RUN mkdir -p /app/logs /app/static /app/media
+# Create logs, static, and media directories (if not using Railway Volume)
+# Railway Volume should be mounted at /app/media
+RUN mkdir -p /app/logs /app/static /app/media /app/media/products /app/media/products/multiple
 
 # Expose port
 EXPOSE 8000

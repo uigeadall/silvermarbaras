@@ -330,7 +330,15 @@ STATICFILES_FINDERS = [
 ]
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# In Railway, use /app/media (persistent volume) if available, otherwise use BASE_DIR/media
+# Railway volumes are mounted at /app/media
+import os
+if os.path.exists("/app/media"):
+    MEDIA_ROOT = "/app/media"
+else:
+    MEDIA_ROOT = BASE_DIR / "media"
+# Ensure media directory exists
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(env("FILE_UPLOAD_MAX_MEMORY_SIZE", "2621440"))  # 2.5 MB
