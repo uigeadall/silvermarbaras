@@ -106,6 +106,22 @@ class Product(models.Model):
             return False
         return Favorite.objects.filter(user=user, product=self).exists()
 
+    @property
+    def main_image(self):
+        """Return the main product image - either the direct image field or the first ProductImage."""
+        if self.image:
+            return self.image
+        # Try to get the first ProductImage (cached if prefetched)
+        if hasattr(self, '_prefetched_objects_cache') and 'images' in self._prefetched_objects_cache:
+            images = self._prefetched_objects_cache['images']
+            if images:
+                return images[0].image
+        # Fallback to query if not prefetched
+        first_image = self.images.first()
+        if first_image:
+            return first_image.image
+        return None
+
     def __str__(self) -> str:
         return self.name
 

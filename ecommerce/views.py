@@ -87,9 +87,19 @@ def _owner_filter(request: HttpRequest) -> dict:
 
 def _cart_items_for(request: HttpRequest) -> Iterable[CartItem]:
     if request.user.is_authenticated:
-        return CartItem.objects.filter(user=request.user).select_related("product", "variant")
+        return (
+            CartItem.objects
+            .filter(user=request.user)
+            .select_related("product", "variant")
+            .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.all()))
+        )
     _ensure_session(request)
-    return CartItem.objects.filter(session_key=request.session.session_key).select_related("product", "variant")
+    return (
+        CartItem.objects
+        .filter(session_key=request.session.session_key)
+        .select_related("product", "variant")
+        .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.all()))
+    )
 
 
 def _compute_subtotal(items: Iterable[CartItem]) -> Decimal:
@@ -253,7 +263,12 @@ def home(request: HttpRequest) -> HttpResponse:
     sort = request.GET.get("sort")
     category_slug = request.GET.get("category")
 
-    products = Product.objects.all().select_related("category")
+    products = (
+        Product.objects
+        .all()
+        .select_related("category")
+        .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+    )
 
     selected_category = None
     if category_slug:
@@ -278,17 +293,28 @@ def home(request: HttpRequest) -> HttpResponse:
     recently_viewed_qs = Product.objects.none()
     if ids:
         preserved_order = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(ids)], output_field=IntegerField())
-        recently_viewed_qs = Product.objects.filter(id__in=ids).order_by(preserved_order)
+        recently_viewed_qs = (
+            Product.objects
+            .filter(id__in=ids)
+            .select_related("category")
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+            .order_by(preserved_order)
+        )
 
     # 🔥 Trending Now — 15 items (5 per row × 3 rows)
     POPULAR_LIMIT = 15
     popular_products = (
-        Product.objects.annotate(_pop=Coalesce("cart_add_count", Value(0))).order_by("-_pop", "-id")[:POPULAR_LIMIT]
+        Product.objects
+        .select_related("category")
+        .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+        .annotate(_pop=Coalesce("cart_add_count", Value(0)))
+        .order_by("-_pop", "-id")[:POPULAR_LIMIT]
     )
 
-    # ⭐ Editors’ Choice — Top 10 by total stock (product.stock + sum(variants.stock))
+    # ⭐ Editors' Choice — Top 10 by total stock (product.stock + sum(variants.stock))
     editors_choice = (
         Product.objects.select_related("category")
+        .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
         .annotate(
             variant_stock=Coalesce(Sum("variants__stock"), Value(0)),
             base_stock=Coalesce(F("stock"), Value(0)),

@@ -127,9 +127,9 @@
               {% for item in cart_items %}
                 <tr>
                   <td>
-                    {% if item.product.image %}
+                    {% if item.product.main_image %}
                       <a href="{% url 'product_detail' item.product.pk %}" style="display:inline-block; vertical-align:middle;">
-                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" loading="lazy">
+                        <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}" loading="lazy">
                       </a>
                     {% else %}
                       <a href="{% url 'product_detail' item.product.pk %}" style="display:inline-block; vertical-align:middle;">

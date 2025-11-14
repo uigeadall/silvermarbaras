@@ -163,8 +163,8 @@
               <!-- Image card with favorite heart -->
               <article class="rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
                 <a href="{% url 'product_detail' p.pk %}" class="block">
-                  {% if p.image %}
-                    <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy"
+                  {% if p.main_image %}
+                    <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy"
                          class="w-full aspect-square object-cover">
                   {% else %}
                     <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy"
@@ -231,8 +231,8 @@
             <div>
               <article class="rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
                 <a href="{% url 'product_detail' p.pk %}" class="block">
-                  {% if p.image %}
-                    <img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy"
+                  {% if p.main_image %}
+                    <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy"
                          class="w-full aspect-square object-cover">
                   {% else %}
                     <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy"
@@ -320,8 +320,8 @@
             <div>
               <article class="group rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
                 <a href="{% url 'product_detail' product.pk %}" class="block">
-                  {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy"
+                  {% if product.main_image %}
+                    <img src="{{ product.main_image.url }}" alt="{{ product.name }}" loading="lazy"
                          class="w-full aspect-square object-cover">
                   {% else %}
                     <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy"
