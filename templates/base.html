@@ -122,8 +122,8 @@
 
       <!-- Breadcrumbs -->
       {% if breadcrumbs|length > 1 %}
-      <nav aria-label="Breadcrumb" class="mb-4">
-        <ol class="flex flex-wrap items-center justify-center gap-2 text-sm text-slate-600">
+      <nav aria-label="Breadcrumb" class="mb-4 flex justify-center">
+        <ol class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
           {% for crumb in breadcrumbs %}
             {% if forloop.last %}
               <li class="font-semibold text-slate-900" aria-current="page">
