@@ -429,21 +429,29 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
     # This ensures we get all images even if prefetch didn't work correctly
     product_images = list(ProductImage.objects.filter(product=product).order_by('id'))
     
-    # Debug: log how many images we found
+    # Debug: log how many images we found and their paths
     logger.debug(f"Product {product.pk} ({product.name}): Found {len(product_images)} ProductImage records")
+    for idx, img in enumerate(product_images):
+        logger.debug(f"  Image {idx}: {img.image.name if hasattr(img, 'image') else 'NO IMAGE ATTR'}")
     
     # If product has a main image (old way) and it's not already in product_images, add it
     if product.image:
         # Check if the main image is already in product_images by comparing paths
         main_image_path = product.image.name
-        image_exists = any(img.image.name == main_image_path for img in product_images)
+        image_exists = any(
+            hasattr(img, 'image') and img.image.name == main_image_path 
+            for img in product_images
+        )
         if not image_exists:
             # Create a temporary ProductImage-like object to include the main image
             main_img_obj = SimpleNamespace(image=product.image)
             product_images.insert(0, main_img_obj)
             logger.debug(f"Added main image {main_image_path} to product_images list")
     
-    logger.debug(f"Total images for product {product.pk}: {len(product_images)}")
+    # Filter out any images that don't have a valid image attribute
+    product_images = [img for img in product_images if hasattr(img, 'image') and img.image]
+    
+    logger.debug(f"Total images for product {product.pk} after filtering: {len(product_images)}")
     rating_form = None
     categories = _get_categories()
 
