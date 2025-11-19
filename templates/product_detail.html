@@ -735,11 +735,12 @@
   function updateMainImage(url, thumbEl) {
     const mainImg = document.getElementById('mainImage');
     if (mainImg) mainImg.src = url;
-    document.querySelectorAll('#thumbsCol img[aria-current]').forEach(t => t.removeAttribute('aria-current'));
+    // Update aria-current for all thumbs (both left column and additional thumbs)
+    document.querySelectorAll('.thumbnail-img').forEach(t => t.removeAttribute('aria-current'));
     if (thumbEl) thumbEl.setAttribute('aria-current','true');
   }
   
-  // Handle thumbnail clicks with event delegation
+  // Handle thumbnail clicks with event delegation (including additional thumbs)
   document.querySelectorAll('.thumbnail-img').forEach(thumb => {
     thumb.addEventListener('click', function() {
       updateMainImage(this.getAttribute('data-image-url'), this);
