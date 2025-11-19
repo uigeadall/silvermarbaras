@@ -7,9 +7,10 @@
 <style>
   * { box-sizing: border-box; }
 
-  /* Ensure breadcrumbs are centered on product detail page */
+  /* Ensure breadcrumbs are centered and horizontal on product detail page */
   nav[aria-label="Breadcrumb"] {
     display: flex !important;
+    flex-direction: row !important;
     justify-content: center !important;
     width: 100% !important;
     margin-left: auto !important;
@@ -17,9 +18,18 @@
   }
   nav[aria-label="Breadcrumb"] ol {
     display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
     justify-content: center !important;
+    align-items: center !important;
     width: auto !important;
     margin: 0 auto !important;
+    gap: 0.5rem !important;
+  }
+  nav[aria-label="Breadcrumb"] ol li {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
   }
 
   .container { width: 100%; padding: 0; background: transparent; }
