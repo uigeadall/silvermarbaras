@@ -51,11 +51,32 @@ echo ""
 echo "🚀 Започвам качването..."
 echo ""
 
-# Създай директориите в Railway Volume
+# Проверка дали Volume е монтиран
+echo "🔍 Проверявам дали Volume е монтиран..."
+VOLUME_CHECK=$(railway run bash -c "test -d /app/media && echo 'OK' || echo 'MISSING'" 2>&1 | tail -1)
+if [ "$VOLUME_CHECK" != "OK" ]; then
+    echo ""
+    echo "❌ ГРЕШКА: Railway Volume не е монтиран!"
+    echo ""
+    echo "Трябва да създадеш Volume в Railway Dashboard:"
+    echo "1. Отиди на Railway Dashboard → твоя проект → твоя service"
+    echo "2. Settings → Volumes"
+    echo "3. '+ New Volume'"
+    echo "4. Name: marbaras-volume (или каквото искаш)"
+    echo "5. Mount Path: /app/media (ТОЧНО това!)"
+    echo "6. Create"
+    echo ""
+    echo "След това направи redeploy и опитай отново."
+    exit 1
+fi
+
+echo "✅ Volume е монтиран на /app/media"
+echo ""
+
+# Създай директориите в Railway Volume (ако не съществуват)
 echo "📁 Създавам директории..."
 railway run bash -c "mkdir -p /app/media/products /app/media/products/multiple" || {
-    echo "⚠️  Грешка при създаване на директории"
-    exit 1
+    echo "⚠️  Грешка при създаване на директории (може би вече съществуват)"
 }
 
 # Качи файловете
@@ -70,8 +91,16 @@ tar -czf /tmp/media_products.tar.gz products/ 2>/dev/null || {
 }
 
 # Качи архива и го разпакувай в Railway
+echo "📦 Качвам архив (това може да отнеме време)..."
 railway run bash -c "cd /app/media && tar -xzf -" < /tmp/media_products.tar.gz || {
+    echo ""
     echo "⚠️  Грешка при качване на файловете"
+    echo "Възможни причини:"
+    echo "1. Volume не е правилно монтиран"
+    echo "2. Няма достатъчно място в Volume"
+    echo "3. Проблем с правата за достъп"
+    echo ""
+    echo "Опитай да качиш файловете чрез Admin Panel или провери Railway logs."
     rm -f /tmp/media_products.tar.gz
     exit 1
 }
