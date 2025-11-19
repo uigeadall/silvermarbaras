@@ -336,7 +336,7 @@ import os
 if os.path.exists("/app/media"):
     MEDIA_ROOT = "/app/media"
 else:
-MEDIA_ROOT = BASE_DIR / "media"
+    MEDIA_ROOT = BASE_DIR / "media"
 # Ensure media directory exists
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 
