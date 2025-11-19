@@ -756,16 +756,6 @@
     if (firstThumb && document.getElementById('mainImage')) firstThumb.setAttribute('aria-current','true');
   })();
   (function () {
-    const desc = document.getElementById("descriptionText");
-    const toggleBtn = document.getElementById("toggleDescriptionBtn");
-    if (!desc || !toggleBtn) return;
-    requestAnimationFrame(() => { if (desc.scrollHeight > desc.clientHeight + 6) toggleBtn.style.display = "inline-block"; });
-    toggleBtn.addEventListener("click", function () {
-      desc.classList.toggle("expanded");
-      toggleBtn.textContent = desc.classList.contains("expanded") ? "Show Less" : "Show More";
-    });
-  })();
-  (function () {
     const preview = document.querySelector(".main-preview");
     const mainImage = document.getElementById("mainImage");
     if (!preview || !mainImage) return;
