@@ -53,25 +53,47 @@ echo ""
 
 # Проверка дали Volume е монтиран
 echo "🔍 Проверявам дали Volume е монтиран..."
-VOLUME_CHECK=$(railway run bash -c "test -d /app/media && echo 'OK' || echo 'MISSING'" 2>&1 | tail -1)
-if [ "$VOLUME_CHECK" != "OK" ]; then
-    echo ""
-    echo "❌ ГРЕШКА: Railway Volume не е монтиран!"
-    echo ""
-    echo "Трябва да създадеш Volume в Railway Dashboard:"
-    echo "1. Отиди на Railway Dashboard → твоя проект → твоя service"
-    echo "2. Settings → Volumes"
-    echo "3. '+ New Volume'"
-    echo "4. Name: marbaras-volume (или каквото искаш)"
-    echo "5. Mount Path: /app/media (ТОЧНО това!)"
-    echo "6. Create"
-    echo ""
-    echo "След това направи redeploy и опитай отново."
-    exit 1
-fi
-
-echo "✅ Volume е монтиран на /app/media"
 echo ""
+
+# Опитай да провериш дали директорията съществува
+VOLUME_CHECK=$(railway run bash -c "ls -la /app 2>&1 | head -5" 2>&1)
+echo "📋 Съдържание на /app:"
+echo "$VOLUME_CHECK" | grep -v "^$" | head -5
+echo ""
+
+# Проверка дали /app/media съществува
+MEDIA_CHECK=$(railway run bash -c "test -d /app/media && echo 'EXISTS' || echo 'NOT_FOUND'" 2>&1 | tail -1 | tr -d '[:space:]')
+
+if [ "$MEDIA_CHECK" != "EXISTS" ]; then
+    echo "⚠️  ВНИМАНИЕ: /app/media не е намерен!"
+    echo ""
+    echo "Възможни причини:"
+    echo "1. Volume не е създаден в Railway Dashboard"
+    echo "2. Volume е създаден, но не е направен redeploy"
+    echo "3. Mount Path не е правилно настроен"
+    echo ""
+    echo "Проверка в Railway Dashboard:"
+    echo "1. Отиди на Railway Dashboard → твоя проект → service 'marbaras'"
+    echo "2. Settings → Volumes"
+    echo "3. Провери дали 'marbaras-volume' съществува"
+    echo "4. Провери дали Mount Path е точно '/app/media'"
+    echo "5. Ако Volume съществува, направи REDEPLOY на service-а"
+    echo ""
+    
+    # Питай дали да продължи все пак
+    read -p "Продължи с опит за качване все пак? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Отказано. Направи redeploy и опитай отново."
+        exit 1
+    fi
+    echo ""
+    echo "⚠️  Продължавам с опит за качване, но може да не работи..."
+    echo ""
+else
+    echo "✅ Volume е монтиран на /app/media"
+    echo ""
+fi
 
 # Създай директориите в Railway Volume (ако не съществуват)
 echo "📁 Създавам директории..."
