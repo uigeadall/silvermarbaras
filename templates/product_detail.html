@@ -123,9 +123,7 @@
 
   .description { margin-top: 30px; }
   .description h3 { font-weight: 700; }
-  .description-text { font-size: 0.90rem; line-height: 1.6; max-height: 12em; overflow: hidden; background: transparent; border: none; }
-  .description-text.expanded { max-height: none; }
-  .toggle-btn { margin-top: 10px; background: transparent; border: none; padding: 6px 12px; border-radius: 0; cursor: pointer; font-weight: bold; }
+  .description-text { font-size: 0.90rem; line-height: 1.6; background: transparent; border: none; }
 
   .message { padding: 12px 0; font-weight: bold; margin-bottom: 20px; background: transparent; border: none; }
   .message.success { color: #155724; }
@@ -311,7 +309,7 @@
             <div class="image-section">
               {% if product_images %}
                 <div class="thumbs-col" id="thumbsCol">
-                  {% for img in product_images %}
+                  {% for img in product_images|slice:":5" %}
                     <img
                       src="{{ img.image.url }}"
                       alt="{{ product.name }} - Image {{ forloop.counter }}"
@@ -325,13 +323,34 @@
                   {% endfor %}
                 </div>
               {% endif %}
-              <div class="main-preview">
-                {% if product.main_image %}
-                  <img id="mainImage" src="{{ product.main_image.url }}" alt="{{ product.name }}">
-                {% elif product_images %}
-                  <img id="mainImage" src="{{ product_images.0.image.url }}" alt="{{ product.name }}">
-                {% else %}
-                  <img id="mainImage" src="{% static 'images/placeholder.jpg' %}" alt="No image">
+              <div class="main-preview-wrapper" style="flex: 1; display: flex; flex-direction: column; gap: 16px;">
+                <div class="main-preview">
+                  {% if product.main_image %}
+                    <img id="mainImage" src="{{ product.main_image.url }}" alt="{{ product.name }}">
+                  {% elif product_images %}
+                    <img id="mainImage" src="{{ product_images.0.image.url }}" alt="{{ product.name }}">
+                  {% else %}
+                    <img id="mainImage" src="{% static 'images/placeholder.jpg' %}" alt="No image">
+                  {% endif %}
+                </div>
+                {% if product_images|length > 5 %}
+                <div class="additional-thumbs" style="display: flex; flex-wrap: wrap; gap: 10px; padding-top: 10px;">
+                  {% for img in product_images|slice:"5:" %}
+                    <img
+                      src="{{ img.image.url }}"
+                      alt="{{ product.name }} - Image {{ forloop.counter|add:5 }}"
+                      data-image-url="{{ img.image.url }}"
+                      onerror="this.onerror=null; this.src='{% static 'images/placeholder.jpg' %}'"
+                      role="button"
+                      tabindex="0"
+                      aria-label="View {{ product.name }} image {{ forloop.counter|add:5 }}"
+                      class="thumbnail-img"
+                      style="width: 70px; height: 70px; object-fit: cover; border: none; cursor: pointer; transition: opacity .2s, outline-color .2s; outline: 2px solid transparent;"
+                      onmouseover="this.style.opacity='0.85'"
+                      onmouseout="this.style.opacity='1'"
+                    >
+                  {% endfor %}
+                </div>
                 {% endif %}
               </div>
             </div>
@@ -427,10 +446,9 @@
 
               <div class="description">
                 <h3>Description</h3>
-                <div class="description-text" id="descriptionText">
+                <div class="description-text" id="descriptionText" style="max-height: none; overflow: visible;">
                   {{ product.description|linebreaks }}
                 </div>
-                <button class="toggle-btn" id="toggleDescriptionBtn" style="display:none;">Show More</button>
               </div>
 
               {% if show_bundle %}
