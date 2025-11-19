@@ -661,5 +661,33 @@
       toggleFavorite(btn);
     }
   });
+
+  /* === Show More Products === */
+  (function() {
+    const showMoreBtn = document.getElementById('showMoreBtn');
+    if (!showMoreBtn) return;
+
+    const productItems = document.querySelectorAll('.product-item');
+    const itemsPerLoad = 15;
+    let currentlyVisible = 15;
+
+    showMoreBtn.addEventListener('click', () => {
+      const nextBatch = Math.min(currentlyVisible + itemsPerLoad, productItems.length);
+      
+      // Show next batch
+      for (let i = currentlyVisible; i < nextBatch; i++) {
+        if (productItems[i]) {
+          productItems[i].style.display = '';
+        }
+      }
+      
+      currentlyVisible = nextBatch;
+
+      // Hide button if all products are visible
+      if (currentlyVisible >= productItems.length) {
+        showMoreBtn.closest('#showMoreContainer').style.display = 'none';
+      }
+    });
+  })();
 </script>
 {% endblock %}
