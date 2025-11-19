@@ -61,9 +61,15 @@ python manage.py migrate --noinput || {
 
 # Collect static files
 echo "Collecting static files..."
-python manage.py collectstatic --noinput || {
+python manage.py collectstatic --noinput --clear || {
     echo "Collectstatic failed, but continuing..."
 }
+# Verify banner exists
+if [ -f "static/images/banner.jpg" ] && [ ! -f "staticfiles/images/banner.jpg" ]; then
+    echo "⚠️  Warning: Banner not found in staticfiles, copying manually..."
+    mkdir -p staticfiles/images
+    cp static/images/banner.jpg staticfiles/images/banner.jpg || echo "Could not copy banner"
+fi
 
 # Import data if database is empty (only on first run)
 echo "Checking if database needs initial data import..."
