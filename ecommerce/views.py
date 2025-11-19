@@ -418,24 +418,32 @@ def product_list(request: HttpRequest) -> HttpResponse:
 def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
     product_qs = (
         Product.objects.select_related("category").prefetch_related(
-            Prefetch("images", queryset=ProductImage.objects.all()),
+            Prefetch("images", queryset=ProductImage.objects.all().order_by('id')),
             Prefetch("variants", queryset=ProductVariant.objects.order_by("size")),
         )
     )
     product = get_object_or_404(product_qs, pk=pk)
 
     comments = Comment.objects.filter(product=product).order_by("-created_at")
-    # Get all product images, ordered by ID to show all (old and new)
-    product_images = list(product.images.all().order_by('id'))
+    # Get all product images directly from database, ordered by ID to show all (old and new)
+    # This ensures we get all images even if prefetch didn't work correctly
+    product_images = list(ProductImage.objects.filter(product=product).order_by('id'))
+    
+    # Debug: log how many images we found
+    logger.debug(f"Product {product.pk} ({product.name}): Found {len(product_images)} ProductImage records")
+    
     # If product has a main image (old way) and it's not already in product_images, add it
     if product.image:
-        # Check if the main image is already in product_images
+        # Check if the main image is already in product_images by comparing paths
         main_image_path = product.image.name
         image_exists = any(img.image.name == main_image_path for img in product_images)
         if not image_exists:
             # Create a temporary ProductImage-like object to include the main image
             main_img_obj = SimpleNamespace(image=product.image)
             product_images.insert(0, main_img_obj)
+            logger.debug(f"Added main image {main_image_path} to product_images list")
+    
+    logger.debug(f"Total images for product {product.pk}: {len(product_images)}")
     rating_form = None
     categories = _get_categories()
 
