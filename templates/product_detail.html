@@ -8,15 +8,19 @@
   * { box-sizing: border-box; }
 
   /* Ensure breadcrumbs are centered and horizontal on product detail page */
-  nav[aria-label="Breadcrumb"] {
+  nav[aria-label="Breadcrumb"],
+  nav[aria-label="Breadcrumb"].flex {
     display: flex !important;
     flex-direction: row !important;
+    flex-wrap: nowrap !important;
     justify-content: center !important;
+    align-items: center !important;
     width: 100% !important;
     margin-left: auto !important;
     margin-right: auto !important;
   }
-  nav[aria-label="Breadcrumb"] ol {
+  nav[aria-label="Breadcrumb"] ol,
+  nav[aria-label="Breadcrumb"] ol.flex {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: wrap !important;
@@ -28,18 +32,30 @@
     list-style: none !important;
     padding: 0 !important;
   }
-  nav[aria-label="Breadcrumb"] ol li {
+  nav[aria-label="Breadcrumb"] ol li,
+  nav[aria-label="Breadcrumb"] ol li.flex {
     display: inline-flex !important;
     flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: center !important;
     white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    float: none !important;
+    clear: none !important;
   }
   nav[aria-label="Breadcrumb"] ol li a {
     display: inline-block !important;
+    float: none !important;
   }
 
   .container { width: 100%; padding: 0; background: transparent; }
-  .flex { display: flex; flex-wrap: wrap; gap: 30px; width: 100%; overflow: visible; }
+  .content-wrapper .flex { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 30px; 
+    width: 100%; 
+    overflow: visible; 
+  }
 
   .image-section, .info-section { flex: 1; min-width: 280px; max-width: 100%; }
 
