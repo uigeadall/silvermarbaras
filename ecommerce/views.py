@@ -4,6 +4,7 @@ import logging
 import uuid
 import hashlib
 from decimal import Decimal, ROUND_HALF_UP
+from types import SimpleNamespace
 from typing import Iterable, Optional
 from django.db.models import Max
 import stripe
@@ -424,7 +425,17 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
     product = get_object_or_404(product_qs, pk=pk)
 
     comments = Comment.objects.filter(product=product).order_by("-created_at")
-    product_images = list(product.images.all())
+    # Get all product images, ordered by ID to show all (old and new)
+    product_images = list(product.images.all().order_by('id'))
+    # If product has a main image (old way) and it's not already in product_images, add it
+    if product.image:
+        # Check if the main image is already in product_images
+        main_image_path = product.image.name
+        image_exists = any(img.image.name == main_image_path for img in product_images)
+        if not image_exists:
+            # Create a temporary ProductImage-like object to include the main image
+            main_img_obj = SimpleNamespace(image=product.image)
+            product_images.insert(0, main_img_obj)
     rating_form = None
     categories = _get_categories()
 
