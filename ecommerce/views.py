@@ -1009,6 +1009,13 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Payment system error. Please try again.")
         return redirect("cart_view")
 
+    # Validate Stripe publishable key
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY.strip() if settings.STRIPE_PUBLISHABLE_KEY else ""
+    if not stripe_public_key or not stripe_public_key.startswith(('pk_test_', 'pk_live_')):
+        logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}...")
+        messages.error(request, "Payment system configuration error. Please contact support.")
+        return redirect("cart_view")
+    
     return render(
         request,
         "checkout.html",
@@ -1026,7 +1033,7 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
             "coupon_code": coupon_code,
             "shipping_options": ShippingOption.objects.all().order_by("price", "name"),
             "client_secret": intent.client_secret,
-            "stripe_public_key": settings.STRIPE_PUBLISHABLE_KEY,
+            "stripe_public_key": stripe_public_key,
             "is_guest": not request.user.is_authenticated,
         },
     )
@@ -1126,6 +1133,13 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Payment system error. Please try again.")
         return redirect("cart_view")
 
+    # Validate Stripe publishable key
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY.strip() if settings.STRIPE_PUBLISHABLE_KEY else ""
+    if not stripe_public_key or not stripe_public_key.startswith(('pk_test_', 'pk_live_')):
+        logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}...")
+        messages.error(request, "Payment system configuration error. Please contact support.")
+        return redirect("cart_view")
+    
     return render(
         request,
         "guest_checkout.html",
@@ -1140,7 +1154,7 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
             "coupon_code": coupon_code,
             "client_secret": intent.client_secret,
             "shipping_options": ShippingOption.objects.all().order_by("price", "name"),
-            "stripe_public_key": settings.STRIPE_PUBLISHABLE_KEY,
+            "stripe_public_key": stripe_public_key,
         },
     )
 

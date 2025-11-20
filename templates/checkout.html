@@ -420,6 +420,7 @@
   })();
 
   // Stripe
+  {% if stripe_public_key %}
   const stripe = Stripe('{{ stripe_public_key }}');
   const elements = stripe.elements();
   const card = elements.create('card');
@@ -442,6 +443,10 @@
     document.getElementById('payment_intent_id').value = paymentIntent.id;
     form.submit();
   });
+  {% else %}
+  console.error('Stripe publishable key is not configured');
+  document.getElementById('card-errors').textContent = 'Payment system is not configured. Please contact support.';
+  {% endif %}
 </script>
 {% endblock %}
 
