@@ -1068,9 +1068,20 @@
             return;
           }
           
-          const data = await response.json();
-          console.log('Add to cart response:', data);
-          if (response.ok && data.success) {
+          let data;
+          try {
+            data = await response.json();
+            console.log('Add to cart response:', data, 'status:', response.status);
+          } catch (jsonError) {
+            console.error('Failed to parse JSON response:', jsonError, 'status:', response.status);
+            // Fallback to normal submission if response is not JSON
+            button.disabled = false;
+            button.textContent = originalText;
+            form.submit();
+            return;
+          }
+          
+          if (response.ok && data && data.success) {
             // Show success feedback
             button.textContent = '✓ Added';
             button.className = originalBg.replace('bg-black', 'bg-green-600');
@@ -1082,10 +1093,12 @@
             
             // Show message if available
             if (data.message) {
-              console.log(data.message);
+              console.log('Success:', data.message);
             }
           } else {
             // Handle error
+            const errorMsg = data && data.message ? data.message : 'Failed to add to cart';
+            console.error('Add to cart error:', errorMsg, data);
             button.textContent = 'Error';
             button.className = originalBg.replace('bg-black', 'bg-red-600');
             setTimeout(() => {
@@ -1093,12 +1106,7 @@
               button.className = originalBg;
               button.disabled = false;
             }, 2000);
-            if (data && data.message) {
-              alert(data.message);
-            } else {
-              // Fallback to normal submission on error
-              form.submit();
-            }
+            alert(errorMsg);
           }
         } catch (error) {
           // Fallback to normal form submission if AJAX fails

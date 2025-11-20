@@ -743,6 +743,15 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
 
     owner = _owner_filter(request)
     
+    # Validate owner - ensure session_key exists for anonymous users
+    if not request.user.is_authenticated:
+        if not owner.get('session_key') or not request.session.session_key:
+            # Force session creation and save
+            _ensure_session(request)
+            request.session.save()
+            owner = {"session_key": request.session.session_key}
+            logger.debug(f"Session recreated - new session_key: {owner['session_key']}")
+    
     # Debug: log owner info for troubleshooting
     logger.debug(f"Adding to cart - owner: {owner}, product: {product.pk}, variant: {variant_id}, quantity: {quantity}")
 
@@ -764,15 +773,22 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
     # Ensure session is saved before creating cart item (important for empty cart)
     if not request.user.is_authenticated:
         request.session.save()
+        # Double-check session_key is still valid
+        if not request.session.session_key:
+            logger.error("Session key is None after save!")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'Session error. Please refresh the page.'}, status=500)
+            messages.error(request, "Session error. Please try again.")
+            return redirect("product_detail", pk=pk)
     
     try:
         cart_item, created = CartItem.objects.get_or_create(defaults={"quantity": 0}, **owner, **lookup_filter)
-        logger.debug(f"Cart item {'created' if created else 'retrieved'}: {cart_item.id}, owner: {owner}")
+        logger.debug(f"Cart item {'created' if created else 'retrieved'}: {cart_item.id}, owner: {owner}, quantity before: {cart_item.quantity}")
     except Exception as e:
-        logger.error(f"Error creating cart item: {e}, owner: {owner}, lookup: {lookup_filter}")
+        logger.error(f"Error creating cart item: {e}, owner: {owner}, lookup: {lookup_filter}, session_key: {request.session.session_key}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': False, 'message': 'Error adding to cart. Please try again.'}, status=500)
-        messages.error(request, "Error adding to cart. Please try again.")
+            return JsonResponse({'success': False, 'message': f'Error adding to cart: {str(e)}'}, status=500)
+        messages.error(request, f"Error adding to cart: {str(e)}")
         return redirect("product_detail", pk=pk)
     
     available = _available_stock(product, variant_id=variant_id)
