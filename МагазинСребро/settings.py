@@ -118,6 +118,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# Add redirect middleware for non-www to www (only in production)
+if not DEBUG:
+    MIDDLEWARE.insert(1, 'ecommerce.middleware.WWWRedirectMiddleware')
+
 ROOT_URLCONF = "МагазинСребро.urls"
 WSGI_APPLICATION = "МагазинСребро.wsgi.application"
 

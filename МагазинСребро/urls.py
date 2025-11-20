@@ -21,12 +21,27 @@ from django.urls import path, include, re_path
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.static import serve
+from django.http import HttpResponsePermanentRedirect
+
+# Redirect marbaras.com to www.marbaras.com
+def redirect_to_www(request):
+    """Redirect non-www to www subdomain."""
+    host = request.get_host().lower()
+    if host.startswith('marbaras.com'):
+        return HttpResponsePermanentRedirect(f"https://www.{host}{request.get_full_path()}")
+    return None
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('ecommerce.urls')),
     path('accounts/', include('allauth.urls')),
     path('login/', lambda request: redirect('/accounts/login/')),
 ]
+
+# Add redirect middleware for non-www to www (only in production)
+if not settings.DEBUG:
+    # This will be handled by middleware, but we can also add it here as a fallback
+    pass
 
 # Error handlers (only work when DEBUG=False)
 handler404 = 'ecommerce.views.handler404'
