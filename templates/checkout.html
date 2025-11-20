@@ -437,7 +437,7 @@
 
   // Payment Request Button (Apple Pay / Google Pay)
   const paymentRequest = stripe.paymentRequest({
-    country: 'US',
+    country: 'BG', // Bulgaria
     currency: 'usd',
     total: {
       label: 'Total',
@@ -458,11 +458,24 @@
     },
   });
 
+  // Show loading state
+  const loadingDiv = document.getElementById('payment-request-loading');
+  if (loadingDiv) loadingDiv.style.display = 'block';
+
   // Check if Payment Request is available (Apple Pay / Google Pay)
   paymentRequest.canMakePayment().then(function(result) {
+    console.log('Payment Request available:', result);
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    
     if (result) {
+      console.log('Mounting Payment Request Button...');
       // Show the payment request button
       paymentRequestButton.mount('#payment-request-button-container');
+      console.log('Payment Request Button mounted successfully');
+      
+      // Show divider
+      const divider = document.getElementById('payment-divider');
+      if (divider) divider.style.display = 'block';
       
       // Handle payment method
       paymentRequest.on('paymentmethod', async function(ev) {
@@ -517,12 +530,30 @@
         }
       });
     } else {
+      console.log('Payment Request not available. Reasons:');
+      console.log('- Browser may not support Payment Request API');
+      console.log('- Apple Pay/Google Pay may not be set up');
+      console.log('- Site may not be on HTTPS (required for production)');
       // Hide the container if payment request is not available
       const container = document.getElementById('payment-request-button-container');
-      const divider = document.querySelector('.form-group span');
-      if (container) container.style.display = 'none';
-      if (divider) divider.style.display = 'none';
+      const divider = document.getElementById('payment-divider');
+      if (container) {
+        container.style.display = 'none';
+        console.log('Payment Request Button container hidden');
+      }
+      if (divider) {
+        divider.style.display = 'none';
+        console.log('Divider hidden');
+      }
+      if (loadingDiv) loadingDiv.style.display = 'none';
     }
+  }).catch(function(error) {
+    console.error('Error checking Payment Request availability:', error);
+    const container = document.getElementById('payment-request-button-container');
+    const divider = document.getElementById('payment-divider');
+    if (container) container.style.display = 'none';
+    if (divider) divider.style.display = 'none';
+    if (loadingDiv) loadingDiv.style.display = 'none';
   });
 
   const form = document.getElementById('payment-form');
