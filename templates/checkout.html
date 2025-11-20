@@ -253,6 +253,15 @@
 
               <div class="form-group" style="flex:1;"></div> {# spacer to push payment to bottom for symmetry #}
 
+              {# Apple Pay / Google Pay Button #}
+              <div class="form-group" id="payment-request-button-container" style="margin-bottom: 10px;">
+                <!-- Payment Request Button will be inserted here -->
+              </div>
+
+              <div class="form-group" style="text-align: center; margin: 10px 0;">
+                <span style="color: #666; font-size: 0.9em;">— or —</span>
+              </div>
+
               <div class="form-group">
                 <label for="card-element">Card Information</label>
                 <div id="card-element" class="StripeElement"></div>
@@ -425,6 +434,88 @@
   const elements = stripe.elements();
   const card = elements.create('card');
   card.mount('#card-element');
+
+  // Payment Request Button (Apple Pay / Google Pay)
+  const paymentRequest = stripe.paymentRequest({
+    country: 'US',
+    currency: 'usd',
+    total: {
+      label: 'Total',
+      amount: Math.round({{ total }} * 100), // Convert to cents
+    },
+    requestPayerName: true,
+    requestPayerEmail: true,
+    requestPayerPhone: true,
+  });
+
+  const paymentRequestButton = elements.create('paymentRequestButton', {
+    paymentRequest: paymentRequest,
+    style: {
+      paymentRequestButton: {
+        theme: 'dark',
+        height: '48px',
+      },
+    },
+  });
+
+  // Check if Payment Request is available (Apple Pay / Google Pay)
+  paymentRequest.canMakePayment().then(function(result) {
+    if (result) {
+      // Show the payment request button
+      paymentRequestButton.mount('#payment-request-button-container');
+      
+      // Handle payment method
+      paymentRequest.on('paymentmethod', async function(ev) {
+        // Confirm payment with PaymentIntent
+        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
+          '{{ client_secret }}',
+          {
+            payment_method: ev.paymentMethod.id,
+          },
+          { handleActions: false }
+        );
+
+        if (confirmError) {
+          ev.complete('fail');
+          document.getElementById('card-errors').textContent = confirmError.message || 'Payment failed.';
+        } else {
+          ev.complete('success');
+          
+          // If payment requires action, handle it
+          if (paymentIntent.status === 'requires_action') {
+            const { error: actionError } = await stripe.confirmCardPayment('{{ client_secret }}');
+            if (actionError) {
+              document.getElementById('card-errors').textContent = actionError.message || 'Payment failed.';
+              return;
+            }
+          }
+          
+          // Payment succeeded
+          document.getElementById('payment_intent_id').value = paymentIntent.id;
+          
+          // Fill form with payment method details
+          if (ev.payerName) {
+            document.getElementById('full_name').value = ev.payerName;
+          }
+          if (ev.payerEmail) {
+            document.getElementById('email').value = ev.payerEmail;
+          }
+          if (ev.payerPhone) {
+            document.getElementById('phone').value = ev.payerPhone;
+          }
+          
+          // Submit form
+          document.getElementById('payment-form').submit();
+        }
+      });
+    } else {
+      // Hide the container if payment request is not available
+      const container = document.getElementById('payment-request-button-container');
+      const divider = document.querySelector('.form-group span');
+      if (container) container.style.display = 'none';
+      if (divider) divider.style.display = 'none';
+    }
+  });
 
   const form = document.getElementById('payment-form');
   form.addEventListener('submit', async (e) => {
