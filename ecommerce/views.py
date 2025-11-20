@@ -726,6 +726,9 @@ def remove_from_cart(request: HttpRequest, product_id: int = None, pk: int = Non
 
 @require_POST
 def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
+    # Ensure session exists before adding to cart (important for empty cart)
+    _ensure_session(request)
+    
     product = get_object_or_404(Product, pk=pk)
     raw_variant = request.POST.get("variant_id")
     try:
@@ -739,6 +742,9 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         quantity = 1
 
     owner = _owner_filter(request)
+    
+    # Debug: log owner info for troubleshooting
+    logger.debug(f"Adding to cart - owner: {owner}, product: {product.pk}, variant: {variant_id}, quantity: {quantity}")
 
     # CartItem has 'variant' field (ForeignKey), Django creates 'variant_id' automatically
     lookup_filter = {"product": product}
@@ -755,7 +761,20 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         lookup_filter["variant"] = None
 
-    cart_item, _ = CartItem.objects.get_or_create(defaults={"quantity": 0}, **owner, **lookup_filter)
+    # Ensure session is saved before creating cart item (important for empty cart)
+    if not request.user.is_authenticated:
+        request.session.save()
+    
+    try:
+        cart_item, created = CartItem.objects.get_or_create(defaults={"quantity": 0}, **owner, **lookup_filter)
+        logger.debug(f"Cart item {'created' if created else 'retrieved'}: {cart_item.id}, owner: {owner}")
+    except Exception as e:
+        logger.error(f"Error creating cart item: {e}, owner: {owner}, lookup: {lookup_filter}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Error adding to cart. Please try again.'}, status=500)
+        messages.error(request, "Error adding to cart. Please try again.")
+        return redirect("product_detail", pk=pk)
+    
     available = _available_stock(product, variant_id=variant_id)
     current = int(cart_item.quantity or 0)
     requested_total = current + quantity
