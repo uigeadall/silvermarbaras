@@ -844,6 +844,57 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
                 'message': '✅ Добавено в количката.'
             })
     
+    # Handle bundle items if they were selected
+    bundle_items = request.POST.getlist('bundle_items')
+    if bundle_items:
+        bundle_added = []
+        bundle_failed = []
+        for bundle_item_str in bundle_items:
+            try:
+                # Format: "product_id" or "product_id:variant_id"
+                parts = bundle_item_str.split(':')
+                bundle_product_id = int(parts[0])
+                bundle_variant_id = int(parts[1]) if len(parts) > 1 and parts[1] else None
+                
+                bundle_product = get_object_or_404(Product, pk=bundle_product_id)
+                bundle_owner = _owner_filter(request)
+                
+                bundle_lookup = {"product": bundle_product}
+                if bundle_variant_id:
+                    try:
+                        bundle_variant_obj = ProductVariant.objects.get(id=bundle_variant_id, product=bundle_product)
+                        bundle_lookup["variant"] = bundle_variant_obj
+                    except ProductVariant.DoesNotExist:
+                        bundle_failed.append(bundle_product.name)
+                        continue
+                else:
+                    bundle_lookup["variant"] = None
+                
+                bundle_cart_item, bundle_created = CartItem.objects.get_or_create(
+                    defaults={"quantity": 0}, 
+                    **bundle_owner, 
+                    **bundle_lookup
+                )
+                
+                bundle_available = _available_stock(bundle_product, variant_id=bundle_variant_id)
+                bundle_current = int(bundle_cart_item.quantity or 0)
+                bundle_quantity_to_add = min(1, bundle_available - bundle_current) if bundle_available != UNLIMITED_STOCK else 1
+                
+                if bundle_quantity_to_add > 0:
+                    bundle_cart_item.quantity = bundle_current + bundle_quantity_to_add
+                    bundle_cart_item.save(update_fields=["quantity"])
+                    bundle_added.append(bundle_product.name)
+                else:
+                    bundle_failed.append(bundle_product.name)
+            except (ValueError, Product.DoesNotExist) as e:
+                logger.error(f"Error adding bundle item {bundle_item_str}: {e}")
+                continue
+        
+        if bundle_added:
+            messages.success(request, f"✅ Добавено в количката: {', '.join(bundle_added)}")
+        if bundle_failed:
+            messages.warning(request, f"⚠️ Не можа да се добави: {', '.join(bundle_failed)}")
+    
     # Normal form submission - redirect
     if capped_total < requested_total:
         messages.warning(request, f"Налично е максимум {available}. Количеството е зададено на {capped_total}.")

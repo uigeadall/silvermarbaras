@@ -200,6 +200,21 @@
 
   .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-height: 2.8em; }
 
+  /* Bundle checkbox styling */
+  label:has(.bundle-checkbox:checked) .bundle-checkbox-indicator {
+    display: flex !important;
+  }
+  label:has(.bundle-checkbox:checked) .w-20 {
+    border: 2px solid #000;
+  }
+  label:has(.bundle-checkbox:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  label:has(.bundle-checkbox) {
+    cursor: pointer;
+  }
+
   h1 { font-size: 1.8rem !important; font-weight: 900 !important; line-height: 1.15; margin-bottom: 10px; }
   @media (max-width: 768px) {
     .image-section { flex-direction: column; }
@@ -515,18 +530,30 @@
               {% if show_bundle %}
               <div class="mt-6">
                 <h3 class="text-lg font-extrabold mb-3">🧩 Buy as a set</h3>
+                <p class="text-sm text-slate-600 mb-3">Изберете артикули, които да се добавят заедно с главния продукт:</p>
 
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                   {% for row in bundle_items_data %}
                     {% with b=row.product qa=row.qa %}
                     <div class="flex flex-col items-center gap-2 p-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-                      <a href="{% url 'product_detail' b.pk %}" class="flex flex-col items-center gap-1.5 w-full min-w-0 group">
-                        <div class="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+                      <label class="flex flex-col items-center gap-1.5 w-full min-w-0 group cursor-pointer">
+                        <input type="checkbox" 
+                               name="bundle_items" 
+                               value="{{ b.pk }}{% if qa.variant_id %}:{{ qa.variant_id }}{% endif %}"
+                               class="bundle-checkbox sr-only"
+                               {% if not qa.can %}disabled{% endif %}
+                               form="addToCartForm">
+                        <div class="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-slate-100 relative">
                           {% if b.image %}
                             <img src="{{ b.image.url }}" alt="{{ b.name }}" class="w-full h-full object-cover">
                           {% else %}
                             <img src="{% static 'images/placeholder.jpg' %}" alt="No image" class="w-full h-full object-cover">
                           {% endif %}
+                          <div class="absolute top-1 right-1 w-5 h-5 bg-white rounded-full border-2 border-slate-300 flex items-center justify-center bundle-checkbox-indicator hidden">
+                            <svg class="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                          </div>
                         </div>
                         <div class="min-w-0 w-full text-center">
                           <p class="text-xs font-semibold line-clamp-2 group-hover:underline">{{ b.name }}</p>
@@ -536,7 +563,7 @@
                             </div>
                           {% endwith %}
                         </div>
-                      </a>
+                      </label>
 
                       <div class="w-full">
                         {% if qa.can %}
@@ -994,7 +1021,21 @@
         e.preventDefault();
         showWarning('⚠️ Please select a size');
         grid?.focus?.();
+        return;
       }
+      
+      // Collect selected bundle items and add them as hidden fields
+      const bundleCheckboxes = document.querySelectorAll('.bundle-checkbox:checked');
+      bundleCheckboxes.forEach(checkbox => {
+        const value = checkbox.value;
+        if (value) {
+          const hiddenInput = document.createElement('input');
+          hiddenInput.type = 'hidden';
+          hiddenInput.name = 'bundle_items';
+          hiddenInput.value = value;
+          addToCartForm.appendChild(hiddenInput);
+        }
+      });
     });
   })();
 
