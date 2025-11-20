@@ -254,11 +254,17 @@
               <div class="form-group" style="flex:1;"></div> {# spacer to push payment to bottom for symmetry #}
 
               {# Apple Pay / Google Pay Button #}
-              <div class="form-group" id="payment-request-button-container" style="margin-bottom: 10px;">
+              <div class="form-group" id="payment-request-button-container" style="margin-bottom: 15px; min-height: 48px; border: 1px dashed #ddd; padding: 10px; border-radius: 4px; background: #f9f9f9;">
                 <!-- Payment Request Button will be inserted here -->
+                <div id="payment-request-loading" style="display: none; text-align: center; color: #666; font-size: 0.9em; padding: 10px;">
+                  Checking payment options...
+                </div>
+                <div id="payment-request-unavailable" style="display: none; text-align: center; color: #999; font-size: 0.85em; padding: 10px;">
+                  Apple Pay / Google Pay not available on this device
+                </div>
               </div>
 
-              <div class="form-group" style="text-align: center; margin: 10px 0;">
+              <div class="form-group" id="payment-divider" style="text-align: center; margin: 10px 0; display: none;">
                 <span style="color: #666; font-size: 0.9em;">— or —</span>
               </div>
 
@@ -460,22 +466,40 @@
 
   // Show loading state
   const loadingDiv = document.getElementById('payment-request-loading');
+  const unavailableDiv = document.getElementById('payment-request-unavailable');
+  const container = document.getElementById('payment-request-button-container');
+  
   if (loadingDiv) loadingDiv.style.display = 'block';
+  console.log('Checking Payment Request availability...');
 
   // Check if Payment Request is available (Apple Pay / Google Pay)
   paymentRequest.canMakePayment().then(function(result) {
     console.log('Payment Request available:', result);
+    console.log('Result details:', JSON.stringify(result, null, 2));
+    
     if (loadingDiv) loadingDiv.style.display = 'none';
     
     if (result) {
       console.log('Mounting Payment Request Button...');
-      // Show the payment request button
-      paymentRequestButton.mount('#payment-request-button-container');
-      console.log('Payment Request Button mounted successfully');
-      
-      // Show divider
-      const divider = document.getElementById('payment-divider');
-      if (divider) divider.style.display = 'block';
+      try {
+        // Show the payment request button
+        paymentRequestButton.mount('#payment-request-button-container');
+        console.log('Payment Request Button mounted successfully');
+        
+        // Hide border/background when button is mounted
+        if (container) {
+          container.style.border = 'none';
+          container.style.background = 'transparent';
+          container.style.padding = '0';
+        }
+        
+        // Show divider
+        const divider = document.getElementById('payment-divider');
+        if (divider) divider.style.display = 'block';
+      } catch (error) {
+        console.error('Error mounting Payment Request Button:', error);
+        if (unavailableDiv) unavailableDiv.style.display = 'block';
+      }
       
       // Handle payment method
       paymentRequest.on('paymentmethod', async function(ev) {
@@ -534,13 +558,20 @@
       console.log('- Browser may not support Payment Request API');
       console.log('- Apple Pay/Google Pay may not be set up');
       console.log('- Site may not be on HTTPS (required for production)');
-      // Hide the container if payment request is not available
-      const container = document.getElementById('payment-request-button-container');
-      const divider = document.getElementById('payment-divider');
-      if (container) {
-        container.style.display = 'none';
-        console.log('Payment Request Button container hidden');
+      console.log('- Current browser:', navigator.userAgent);
+      console.log('- Is HTTPS:', window.location.protocol === 'https:');
+      
+      // Show unavailable message instead of hiding
+      if (unavailableDiv) {
+        unavailableDiv.style.display = 'block';
       }
+      if (container) {
+        container.style.border = '1px dashed #ddd';
+        container.style.background = '#f9f9f9';
+      }
+      
+      // Hide divider
+      const divider = document.getElementById('payment-divider');
       if (divider) {
         divider.style.display = 'none';
         console.log('Divider hidden');
@@ -549,9 +580,12 @@
     }
   }).catch(function(error) {
     console.error('Error checking Payment Request availability:', error);
-    const container = document.getElementById('payment-request-button-container');
+    console.error('Error stack:', error.stack);
+    if (unavailableDiv) {
+      unavailableDiv.style.display = 'block';
+      unavailableDiv.textContent = 'Error checking payment options: ' + error.message;
+    }
     const divider = document.getElementById('payment-divider');
-    if (container) container.style.display = 'none';
     if (divider) divider.style.display = 'none';
     if (loadingDiv) loadingDiv.style.display = 'none';
   });
