@@ -793,11 +793,28 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
     
     available = _available_stock(product, variant_id=variant_id)
     current = int(cart_item.quantity or 0)
-    requested_total = current + quantity
+    
+    # Check if this is an AJAX request (from bundle "Add to Cart")
+    is_bundle_add = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    if is_bundle_add:
+        # For bundle items, we want to add exactly the requested quantity (usually 1)
+        # Cap the quantity to add, not the total
+        quantity_to_add = min(quantity, available - current) if available != UNLIMITED_STOCK else quantity
+        if quantity_to_add <= 0:
+            if is_bundle_add:
+                return JsonResponse({'success': False, 'message': 'Този артикул е изчерпан или вече имате максимума в количката.'}, status=400)
+            messages.error(request, "Този артикул е изчерпан.")
+            return redirect("product_detail", pk=pk)
+        requested_total = current + quantity_to_add
+    else:
+        # For main product form, add to existing quantity
+        requested_total = current + quantity
+    
     capped_total = _cap_quantity(requested_total, available)
 
     if capped_total == 0:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if is_bundle_add:
             return JsonResponse({'success': False, 'message': 'Този артикул е изчерпан.'}, status=400)
         messages.error(request, "Този артикул е изчерпан.")
         return redirect("product_detail", pk=pk)
@@ -812,10 +829,10 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         product.cart_add_count = (product.cart_add_count or 0) + actually_added
         product.save(update_fields=["cart_add_count"])
 
-    # Check if this is an AJAX request (from bundle "Add to Cart")
-    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-    if is_ajax:
-        if capped_total < requested_total:
+    # Return JSON response for AJAX requests (bundle "Add to Cart")
+    if is_bundle_add:
+        # For bundle items, check if we added the requested quantity
+        if actually_added < quantity:
             return JsonResponse({
                 'success': True,
                 'message': f'Налично е максимум {available}. Количеството е зададено на {capped_total}.',
