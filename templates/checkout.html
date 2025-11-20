@@ -436,44 +436,58 @@
 
   // Stripe
   {% if stripe_public_key %}
-  const stripe = Stripe('{{ stripe_public_key }}');
-  const elements = stripe.elements();
-  const card = elements.create('card');
-  card.mount('#card-element');
-
-  // Payment Request Button (Apple Pay / Google Pay)
-  const paymentRequest = stripe.paymentRequest({
-    country: 'BG', // Bulgaria
-    currency: 'usd',
-    total: {
-      label: 'Total',
-      amount: Math.round({{ total }} * 100), // Convert to cents
-    },
-    requestPayerName: true,
-    requestPayerEmail: true,
-    requestPayerPhone: true,
-  });
-
-  const paymentRequestButton = elements.create('paymentRequestButton', {
-    paymentRequest: paymentRequest,
-    style: {
-      paymentRequestButton: {
-        theme: 'dark',
-        height: '48px',
-      },
-    },
-  });
-
-  // Show loading state
-  const loadingDiv = document.getElementById('payment-request-loading');
-  const unavailableDiv = document.getElementById('payment-request-unavailable');
-  const container = document.getElementById('payment-request-button-container');
+  console.log('Initializing Stripe...');
+  console.log('Stripe public key:', '{{ stripe_public_key }}'.substring(0, 20) + '...');
   
-  if (loadingDiv) loadingDiv.style.display = 'block';
-  console.log('Checking Payment Request availability...');
+  try {
+    const stripe = Stripe('{{ stripe_public_key }}');
+    console.log('Stripe initialized successfully');
+    
+    const elements = stripe.elements();
+    console.log('Stripe Elements created');
+    
+    const card = elements.create('card');
+    card.mount('#card-element');
+    console.log('Card element mounted');
 
-  // Check if Payment Request is available (Apple Pay / Google Pay)
-  paymentRequest.canMakePayment().then(function(result) {
+    // Payment Request Button (Apple Pay / Google Pay)
+    console.log('Creating Payment Request...');
+    const paymentRequest = stripe.paymentRequest({
+      country: 'BG', // Bulgaria
+      currency: 'usd',
+      total: {
+        label: 'Total',
+        amount: Math.round({{ total }} * 100), // Convert to cents
+      },
+      requestPayerName: true,
+      requestPayerEmail: true,
+      requestPayerPhone: true,
+    });
+    console.log('Payment Request created');
+
+    const paymentRequestButton = elements.create('paymentRequestButton', {
+      paymentRequest: paymentRequest,
+      style: {
+        paymentRequestButton: {
+          theme: 'dark',
+          height: '48px',
+        },
+      },
+    });
+    console.log('Payment Request Button element created');
+
+    // Show loading state
+    const loadingDiv = document.getElementById('payment-request-loading');
+    const unavailableDiv = document.getElementById('payment-request-unavailable');
+    const container = document.getElementById('payment-request-button-container');
+    
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    console.log('Checking Payment Request availability...');
+    console.log('User agent:', navigator.userAgent);
+    console.log('Is HTTPS:', window.location.protocol === 'https:');
+
+    // Check if Payment Request is available (Apple Pay / Google Pay)
+    paymentRequest.canMakePayment().then(function(result) {
     console.log('Payment Request available:', result);
     console.log('Result details:', JSON.stringify(result, null, 2));
     
@@ -590,23 +604,39 @@
     if (loadingDiv) loadingDiv.style.display = 'none';
   });
 
-  const form = document.getElementById('payment-form');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fullName = document.getElementById('full_name').value;
+    const form = document.getElementById('payment-form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fullName = document.getElementById('full_name').value;
 
-    const { error, paymentIntent } = await stripe.confirmCardPayment('{{ client_secret }}', {
-      payment_method: { card, billing_details: { name: fullName } }
+      const { error, paymentIntent } = await stripe.confirmCardPayment('{{ client_secret }}', {
+        payment_method: { card, billing_details: { name: fullName } }
+      });
+
+      if (error) {
+        document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
+        return;
+      }
+
+      document.getElementById('payment_intent_id').value = paymentIntent.id;
+      form.submit();
     });
-
-    if (error) {
-      document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
-      return;
+    
+  } catch (error) {
+    console.error('Error initializing Stripe Payment Request:', error);
+    console.error('Error stack:', error.stack);
+    const container = document.getElementById('payment-request-button-container');
+    const unavailableDiv = document.getElementById('payment-request-unavailable');
+    const divider = document.getElementById('payment-divider');
+    const loadingDiv = document.getElementById('payment-request-loading');
+    if (container) container.style.display = 'none';
+    if (divider) divider.style.display = 'none';
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    if (unavailableDiv) {
+      unavailableDiv.style.display = 'block';
+      unavailableDiv.textContent = 'Error: ' + error.message;
     }
-
-    document.getElementById('payment_intent_id').value = paymentIntent.id;
-    form.submit();
-  });
+  }
   {% else %}
   console.error('Stripe publishable key is not configured');
   document.getElementById('card-errors').textContent = 'Payment system is not configured. Please contact support.';
