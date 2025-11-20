@@ -365,9 +365,19 @@ EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
 # Stripe
 # -------------------------
 # Strip whitespace and newlines from Stripe keys (common issue when copying from Railway/Dashboard)
-STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "").strip().replace('\n', '').replace('\r', '')
-STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "").strip().replace('\n', '').replace('\r', '')
-STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "").strip().replace('\n', '').replace('\r', '')
+def _clean_stripe_key(key: str) -> str:
+    """Clean Stripe API key by removing all whitespace, newlines, and non-printable characters."""
+    if not key:
+        return ""
+    # Remove all whitespace characters (spaces, tabs, newlines, etc.)
+    cleaned = ''.join(key.split())
+    # Remove any remaining non-printable characters except alphanumeric and underscore/hyphen
+    cleaned = ''.join(c for c in cleaned if c.isprintable() and (c.isalnum() or c in ['_', '-']))
+    return cleaned
+
+STRIPE_SECRET_KEY = _clean_stripe_key(env("STRIPE_SECRET_KEY", ""))
+STRIPE_PUBLISHABLE_KEY = _clean_stripe_key(env("STRIPE_PUBLISHABLE_KEY", ""))
+STRIPE_WEBHOOK_SECRET = _clean_stripe_key(env("STRIPE_WEBHOOK_SECRET", ""))
 
 # -------------------------
 # Caching (Redis/Memcached)

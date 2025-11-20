@@ -1009,10 +1009,10 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Payment system error. Please try again.")
         return redirect("cart_view")
 
-    # Validate Stripe publishable key
-    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY.strip() if settings.STRIPE_PUBLISHABLE_KEY else ""
+    # Validate Stripe publishable key (already cleaned in settings.py)
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
     if not stripe_public_key or not stripe_public_key.startswith(('pk_test_', 'pk_live_')):
-        logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}...")
+        logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}... (length: {len(stripe_public_key) if stripe_public_key else 0})")
         messages.error(request, "Payment system configuration error. Please contact support.")
         return redirect("cart_view")
     
@@ -1133,10 +1133,10 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Payment system error. Please try again.")
         return redirect("cart_view")
 
-    # Validate Stripe publishable key
-    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY.strip() if settings.STRIPE_PUBLISHABLE_KEY else ""
+    # Validate Stripe publishable key (already cleaned in settings.py)
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
     if not stripe_public_key or not stripe_public_key.startswith(('pk_test_', 'pk_live_')):
-        logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}...")
+        logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}... (length: {len(stripe_public_key) if stripe_public_key else 0})")
         messages.error(request, "Payment system configuration error. Please contact support.")
         return redirect("cart_view")
     
