@@ -22,7 +22,7 @@ env/
 db.sqlite3
 # /media  # Commented out to include media files in Docker image
 /staticfiles
-/static
+# /static  # Commented out to include static files (banner.jpg, placeholder.jpg) in Docker image
 
 # Environment
 .env
