@@ -466,32 +466,34 @@
       
       // Handle payment method
       paymentRequest.on('paymentmethod', async function(ev) {
-        // Confirm payment with PaymentIntent
-        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
-          '{{ client_secret }}',
-          {
-            payment_method: ev.paymentMethod.id,
-          },
-          { handleActions: false }
-        );
+        try {
+          // Confirm payment with PaymentIntent using the payment method from Apple Pay/Google Pay
+          const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
+            '{{ client_secret }}',
+            {
+              payment_method: ev.paymentMethod.id,
+            },
+            { handleActions: false }
+          );
 
-        if (confirmError) {
-          ev.complete('fail');
-          document.getElementById('card-errors').textContent = confirmError.message || 'Payment failed.';
-        } else {
-          ev.complete('success');
-          
-          // If payment requires action, handle it
+          if (confirmError) {
+            ev.complete('fail');
+            document.getElementById('card-errors').textContent = confirmError.message || 'Payment failed.';
+            return;
+          }
+
+          // If payment requires action (3D Secure, etc.), handle it
           if (paymentIntent.status === 'requires_action') {
             const { error: actionError } = await stripe.confirmCardPayment('{{ client_secret }}');
             if (actionError) {
+              ev.complete('fail');
               document.getElementById('card-errors').textContent = actionError.message || 'Payment failed.';
               return;
             }
           }
-          
+
           // Payment succeeded
-          document.getElementById('payment_intent_id').value = paymentIntent.id;
+          ev.complete('success');
           
           // Fill form with payment method details
           if (ev.payerName) {
@@ -504,8 +506,14 @@
             document.getElementById('phone').value = ev.payerPhone;
           }
           
+          // Set payment intent ID
+          document.getElementById('payment_intent_id').value = paymentIntent.id;
+          
           // Submit form
           document.getElementById('payment-form').submit();
+        } catch (error) {
+          ev.complete('fail');
+          document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
         }
       });
     } else {
