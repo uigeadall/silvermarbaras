@@ -516,20 +516,20 @@
               <div class="mt-6">
                 <h3 class="text-lg font-extrabold mb-3">🧩 Buy as a set</h3>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                   {% for row in bundle_items_data %}
                     {% with b=row.product qa=row.qa %}
-                    <div class="flex items-center gap-3 p-2 rounded-xl bg-white shadow-sm">
-                      <a href="{% url 'product_detail' b.pk %}" class="flex items-center gap-3 flex-1 min-w-0 group">
-                        <div class="w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+                    <div class="flex flex-col items-center gap-2 p-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+                      <a href="{% url 'product_detail' b.pk %}" class="flex flex-col items-center gap-1.5 w-full min-w-0 group">
+                        <div class="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-slate-100">
                           {% if b.image %}
                             <img src="{{ b.image.url }}" alt="{{ b.name }}" class="w-full h-full object-cover">
                           {% else %}
                             <img src="{% static 'images/placeholder.jpg' %}" alt="No image" class="w-full h-full object-cover">
                           {% endif %}
                         </div>
-                        <div class="min-w-0">
-                          <p class="text-sm font-semibold line-clamp-2 group-hover:underline">{{ b.name }}</p>
+                        <div class="min-w-0 w-full text-center">
+                          <p class="text-xs font-semibold line-clamp-2 group-hover:underline">{{ b.name }}</p>
                           {% with price=b.discount_price|default_if_none:b.price %}
                             <div class="text-xs font-bold text-slate-700 mt-0.5">
                               ${{ price|floatformat:2 }}
@@ -538,28 +538,28 @@
                         </div>
                       </a>
 
-                      <div class="shrink-0">
+                      <div class="w-full">
                         {% if qa.can %}
-                          <form method="post" action="{% url 'add_to_cart' b.pk %}">
+                          <form method="post" action="{% url 'add_to_cart' b.pk %}" class="bundle-add-form">
                             {% csrf_token %}
                             {% if qa.variant_id %}
                               <input type="hidden" name="variant_id" value="{{ qa.variant_id }}">
                             {% endif %}
                             <input type="hidden" name="quantity" value="1">
                             <button type="submit"
-                                    class="px-3 py-1.5 rounded-md bg-black text-white text-xs font-bold hover:bg-[#111]">
+                                    class="w-full px-2 py-1.5 rounded-md bg-black text-white text-xs font-bold hover:bg-[#111] transition-colors">
                               + Add
                             </button>
                           </form>
                         {% elif qa.needs_size %}
                           <a href="{% url 'product_detail' b.pk %}"
-                             class="px-3 py-1.5 rounded-md border border-slate-300 text-xs font-bold hover:bg-slate-50">
+                             class="block w-full px-2 py-1.5 rounded-md border border-slate-300 text-xs font-bold hover:bg-slate-50 text-center transition-colors">
                             Choose size
                           </a>
                         {% else %}
                           <button type="button" disabled
                                   title="{{ qa.reason|default:'Unavailable' }}"
-                                  class="px-3 py-1.5 rounded-md bg-slate-200 text-slate-500 text-xs font-bold cursor-not-allowed">
+                                  class="w-full px-2 py-1.5 rounded-md bg-slate-200 text-slate-500 text-xs font-bold cursor-not-allowed">
                             Out
                           </button>
                         {% endif %}
@@ -1023,6 +1023,68 @@
     qtyInput.addEventListener('change', () => setQty(qtyInput.value));
 
     setQty(qtyInput.value);
+  })();
+
+  // Handle bundle "Add to Cart" forms with AJAX to avoid page reload
+  (function() {
+    const bundleForms = document.querySelectorAll('.bundle-add-form');
+    bundleForms.forEach(form => {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const button = form.querySelector('button[type="submit"]');
+        const originalText = button.textContent;
+        const originalBg = button.className;
+        
+        // Disable button and show loading state
+        button.disabled = true;
+        button.textContent = 'Adding...';
+        
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          });
+          
+          const data = await response.json();
+          if (response.ok && data.success) {
+            // Show success feedback
+            button.textContent = '✓ Added';
+            button.className = originalBg.replace('bg-black', 'bg-green-600');
+            setTimeout(() => {
+              button.textContent = originalText;
+              button.className = originalBg;
+              button.disabled = false;
+            }, 1500);
+            
+            // Show message if available
+            if (data.message) {
+              // You could show a toast notification here if you have one
+              console.log(data.message);
+            }
+          } else {
+            // Handle error
+            button.textContent = 'Error';
+            button.className = originalBg.replace('bg-black', 'bg-red-600');
+            setTimeout(() => {
+              button.textContent = originalText;
+              button.className = originalBg;
+              button.disabled = false;
+            }, 2000);
+            if (data.message) {
+              alert(data.message);
+            }
+          }
+        } catch (error) {
+          // Fallback to normal form submission if AJAX fails
+          console.error('AJAX error:', error);
+          form.submit();
+        }
+      });
+    });
   })();
 </script>
 {% endblock %}

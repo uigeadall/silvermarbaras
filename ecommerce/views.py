@@ -748,6 +748,8 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
             variant_obj = ProductVariant.objects.get(id=variant_id, product=product)
             lookup_filter["variant"] = variant_obj
         except ProductVariant.DoesNotExist:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'Invalid variant selected.'}, status=400)
             messages.error(request, "Invalid variant selected.")
             return redirect("product_detail", pk=pk)
     else:
@@ -760,6 +762,8 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
     capped_total = _cap_quantity(requested_total, available)
 
     if capped_total == 0:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Този артикул е изчерпан.'}, status=400)
         messages.error(request, "Този артикул е изчерпан.")
         return redirect("product_detail", pk=pk)
 
@@ -773,6 +777,21 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         product.cart_add_count = (product.cart_add_count or 0) + actually_added
         product.save(update_fields=["cart_add_count"])
 
+    # Check if this is an AJAX request (from bundle "Add to Cart")
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if capped_total < requested_total:
+            return JsonResponse({
+                'success': True,
+                'message': f'Налично е максимум {available}. Количеството е зададено на {capped_total}.',
+                'warning': True
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'message': '✅ Добавено в количката.'
+            })
+    
+    # Normal form submission - redirect
     if capped_total < requested_total:
         messages.warning(request, f"Налично е максимум {available}. Количеството е зададено на {capped_total}.")
     else:
