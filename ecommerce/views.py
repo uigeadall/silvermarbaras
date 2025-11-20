@@ -1420,6 +1420,8 @@ def health_check(request: HttpRequest) -> JsonResponse:
 
 def handler404(request: HttpRequest, exception) -> HttpResponse:
     """Custom 404 error handler."""
+    # Log 404 for debugging
+    logger.warning(f"404 error: {request.path} from {request.get_host()}, allowed hosts: {settings.ALLOWED_HOSTS}")
     return render(request, '404.html', status=404)
 
 def handler500(request: HttpRequest) -> HttpResponse:

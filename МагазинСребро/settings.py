@@ -27,7 +27,9 @@ def env_list(key: str, default=None, sep=","):
 # Core
 # -------------------------
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
-DEBUG = env_bool("DJANGO_DEBUG", True)
+# In production (Railway), DEBUG should be False
+# Check if we're in production by checking for Railway-specific env vars
+DEBUG = env_bool("DJANGO_DEBUG", not bool(env("RAILWAY_ENVIRONMENT", "")))
 
 # Warn if using insecure default SECRET_KEY in production
 if not DEBUG and SECRET_KEY == "dev-insecure-change-me":
