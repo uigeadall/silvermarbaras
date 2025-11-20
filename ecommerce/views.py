@@ -778,7 +778,8 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         product.save(update_fields=["cart_add_count"])
 
     # Check if this is an AJAX request (from bundle "Add to Cart")
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if is_ajax:
         if capped_total < requested_total:
             return JsonResponse({
                 'success': True,
