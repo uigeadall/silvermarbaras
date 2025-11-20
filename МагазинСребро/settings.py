@@ -364,9 +364,10 @@ EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
 # -------------------------
 # Stripe
 # -------------------------
-STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "")
-STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "")
-STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "")
+# Strip whitespace and newlines from Stripe keys (common issue when copying from Railway/Dashboard)
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "").strip().replace('\n', '').replace('\r', '')
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "").strip().replace('\n', '').replace('\r', '')
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "").strip().replace('\n', '').replace('\r', '')
 
 # -------------------------
 # Caching (Redis/Memcached)

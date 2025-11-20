@@ -59,9 +59,12 @@ logger = logging.getLogger(__name__)
 # Set Stripe API key with validation
 if settings.STRIPE_SECRET_KEY:
     try:
+        # Strip whitespace and newlines from the key (common issue when copying from Railway)
+        cleaned_key = settings.STRIPE_SECRET_KEY.strip().replace('\n', '').replace('\r', '')
         # Validate that API key is ASCII-safe
-        settings.STRIPE_SECRET_KEY.encode('latin-1')
-        stripe.api_key = settings.STRIPE_SECRET_KEY
+        cleaned_key.encode('latin-1')
+        stripe.api_key = cleaned_key
+        logger.debug("Stripe API key configured successfully")
     except UnicodeEncodeError:
         logger.error("Stripe secret key contains non-ASCII characters - Stripe API calls will fail")
         stripe.api_key = None
