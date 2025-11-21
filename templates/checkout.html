@@ -655,35 +655,39 @@
       }
       if (loadingDiv) loadingDiv.style.display = 'none';
     }
-  }).catch(function(error) {
-    console.error('Error checking Payment Request availability:', error);
-    console.error('Error stack:', error.stack);
-    if (unavailableDiv) {
-      unavailableDiv.style.display = 'block';
-      unavailableDiv.textContent = 'Error checking payment options: ' + error.message;
-    }
-    const divider = document.getElementById('payment-divider');
-    if (divider) divider.style.display = 'none';
-    if (loadingDiv) loadingDiv.style.display = 'none';
-  });
-
-    const form = document.getElementById('payment-form');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fullName = document.getElementById('full_name').value;
-
-      const { error, paymentIntent } = await stripe.confirmCardPayment('{{ client_secret }}', {
-        payment_method: { card, billing_details: { name: fullName } }
-      });
-
-      if (error) {
-        document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
-        return;
+    }).catch(function(error) {
+      console.error('Error checking Payment Request availability:', error);
+      console.error('Error stack:', error.stack);
+      if (unavailableDiv) {
+        unavailableDiv.style.display = 'block';
+        unavailableDiv.textContent = 'Error checking payment options: ' + error.message;
       }
-
-      document.getElementById('payment_intent_id').value = paymentIntent.id;
-      form.submit();
+      const divider = document.getElementById('payment-divider');
+      if (divider) divider.style.display = 'none';
+      if (loadingDiv) loadingDiv.style.display = 'none';
     });
+    } // End of else block for valid totalAmount
+
+    // Form submit handler (always available, regardless of Payment Request)
+    const form = document.getElementById('payment-form');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fullName = document.getElementById('full_name').value;
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment('{{ client_secret }}', {
+          payment_method: { card, billing_details: { name: fullName } }
+        });
+
+        if (error) {
+          document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
+          return;
+        }
+
+        document.getElementById('payment_intent_id').value = paymentIntent.id;
+        form.submit();
+      });
+    }
     
   } catch (error) {
     console.error('Error initializing Stripe Payment Request:', error);
