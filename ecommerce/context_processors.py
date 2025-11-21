@@ -17,7 +17,7 @@ def breadcrumbs(request):
     except Exception:
         home_url = "/"
     
-    trail = [{"name": "Начало", "url": home_url}]
+    trail = [{"name": "Home", "url": home_url}]
 
     try:
         match = resolve(request.path_info)
@@ -62,68 +62,68 @@ def breadcrumbs(request):
 
     # Cart
     if url_name == "cart_view":
-        trail.append({"name": "Количка", "url": request.path})
+        trail.append({"name": "Cart", "url": request.path})
         return {"breadcrumbs": trail}
 
     # Checkout
     if url_name in ("checkout", "guest_checkout"):
-        trail.append({"name": "Поръчка", "url": request.path})
+        trail.append({"name": "Checkout", "url": request.path})
         return {"breadcrumbs": trail}
 
     # Order success
     if url_name in ("order_success", "success", "payment_success"):
-        trail.append({"name": "Успешна поръчка", "url": request.path})
+        trail.append({"name": "Order Success", "url": request.path})
         return {"breadcrumbs": trail}
 
     # Favorites
     if url_name in ("favorites_list", "profile_favorites"):
-        trail.append({"name": "Любими", "url": request.path})
+        trail.append({"name": "Favorites", "url": request.path})
         return {"breadcrumbs": trail}
 
     # Profile pages
     if url_name == "profile_dashboard":
-        trail.append({"name": "Профил", "url": request.path})
+        trail.append({"name": "Profile", "url": request.path})
         return {"breadcrumbs": trail}
 
     if url_name == "profile_orders":
-        trail.append({"name": "Профил", "url": reverse("profile_dashboard")})
-        trail.append({"name": "Поръчки", "url": request.path})
+        trail.append({"name": "Profile", "url": reverse("profile_dashboard")})
+        trail.append({"name": "Orders", "url": request.path})
         return {"breadcrumbs": trail}
 
     if url_name == "profile_details":
-        trail.append({"name": "Профил", "url": reverse("profile_dashboard")})
-        trail.append({"name": "Детайли", "url": request.path})
+        trail.append({"name": "Profile", "url": reverse("profile_dashboard")})
+        trail.append({"name": "Details", "url": request.path})
         return {"breadcrumbs": trail}
 
     # Auth pages
     if url_name in ("account_login", "login"):
-        trail.append({"name": "Вход", "url": request.path})
+        trail.append({"name": "Login", "url": request.path})
         return {"breadcrumbs": trail}
 
     if url_name == "account_signup":
-        trail.append({"name": "Регистрация", "url": request.path})
+        trail.append({"name": "Register", "url": request.path})
         return {"breadcrumbs": trail}
 
     if url_name == "register":
-        trail.append({"name": "Регистрация", "url": request.path})
+        trail.append({"name": "Register", "url": request.path})
         return {"breadcrumbs": trail}
 
     # Legal pages
     if url_name == "terms":
-        trail.append({"name": "Условия", "url": request.path})
+        trail.append({"name": "Terms", "url": request.path})
         return {"breadcrumbs": trail}
 
     if url_name == "privacy":
-        trail.append({"name": "Поверителност", "url": request.path})
+        trail.append({"name": "Privacy", "url": request.path})
         return {"breadcrumbs": trail}
 
     if url_name == "contact":
-        trail.append({"name": "Контакт", "url": request.path})
+        trail.append({"name": "Contact", "url": request.path})
         return {"breadcrumbs": trail}
 
     # Product list
     if url_name == "product_list":
-        trail.append({"name": "Продукти", "url": request.path})
+        trail.append({"name": "Products", "url": request.path})
         return {"breadcrumbs": trail}
 
     # Default: return trail with Home only
