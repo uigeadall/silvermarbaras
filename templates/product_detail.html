@@ -195,12 +195,31 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   }
   .qty-btn {
-    padding: 0 10px; height: 100%; border: none; background: #f7f7f7;
-    cursor: pointer; font-size: 1.1rem; line-height: 1;
+    padding: 0 12px; 
+    height: 100%; 
+    border: none; 
+    background: #f7f7f7;
+    cursor: pointer; 
+    font-size: 1.2rem; 
+    line-height: 1;
+    font-weight: 600;
+    color: #333;
+    transition: background 0.15s ease;
   }
   .qty-btn:hover { background: #eaeaea; }
+  .qty-btn:active { background: #ddd; }
   .qty-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .qty-input { width: 54px; height: 100%; text-align: center; border: none; font-size: .95rem; outline: none; background: transparent; }
+  .qty-input { 
+    width: 50px; 
+    height: 100%; 
+    text-align: center; 
+    border: none; 
+    font-size: 1rem; 
+    font-weight: 600;
+    outline: none; 
+    background: transparent; 
+    color: #111;
+  }
   .qty-input::-webkit-inner-spin-button,
   .qty-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .qty-input { -moz-appearance: textfield; }
