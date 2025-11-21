@@ -254,18 +254,26 @@
               <div class="form-group" style="flex:1;"></div> {# spacer to push payment to bottom for symmetry #}
 
               {# Apple Pay / Google Pay Button #}
-              <div class="form-group" id="payment-request-button-container" style="margin-bottom: 15px; min-height: 48px; border: 1px dashed #ddd; padding: 10px; border-radius: 4px; background: #f9f9f9;">
-                <!-- Payment Request Button will be inserted here -->
-                <div id="payment-request-loading" style="display: none; text-align: center; color: #666; font-size: 0.9em; padding: 10px;">
-                  Checking payment options...
-                </div>
-                <div id="payment-request-unavailable" style="display: none; text-align: center; color: #999; font-size: 0.85em; padding: 10px;">
-                  Apple Pay / Google Pay not available on this device
+              <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 0.95rem;">Quick Payment</label>
+                <div id="payment-request-button-container" style="min-height: 48px; border: 1px solid #e5e7eb; padding: 8px; border-radius: 10px; background: #fafafa;">
+                  <!-- Payment Request Button will be inserted here -->
+                  <div id="payment-request-loading" style="display: none; text-align: center; color: #666; font-size: 0.9em; padding: 12px;">
+                    <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #333; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;"></div>
+                    Checking payment options...
+                  </div>
+                  <div id="payment-request-unavailable" style="display: none; text-align: center; color: #999; font-size: 0.85em; padding: 12px;">
+                    Apple Pay / Google Pay not available on this device
+                  </div>
                 </div>
               </div>
 
-              <div class="form-group" id="payment-divider" style="text-align: center; margin: 10px 0; display: none;">
-                <span style="color: #666; font-size: 0.9em;">— or —</span>
+              <div class="form-group" id="payment-divider" style="text-align: center; margin: 15px 0; display: none;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
+                  <span style="color: #666; font-size: 0.9em; font-weight: 500;">or pay with card</span>
+                  <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
+                </div>
               </div>
 
               <div class="form-group">
@@ -471,6 +479,7 @@
         paymentRequestButton: {
           theme: 'dark',
           height: '48px',
+          type: 'default',
         },
       },
     });
@@ -500,11 +509,12 @@
         paymentRequestButton.mount('#payment-request-button-container');
         console.log('Payment Request Button mounted successfully');
         
-        // Hide border/background when button is mounted
+        // Style container when button is mounted
         if (container) {
           container.style.border = 'none';
           container.style.background = 'transparent';
           container.style.padding = '0';
+          container.style.minHeight = '48px';
         }
         
         // Show divider
