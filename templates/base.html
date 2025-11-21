@@ -428,39 +428,86 @@
 
       // Initialize currency selector
       async function initCurrencySelector() {
-        const mobileSelector = document.getElementById('currencySelector');
-        const desktopSelector = document.getElementById('currencySelectorDesktop');
-        
         // Load exchange rates first
         await loadExchangeRates();
         
         const currentCurrency = getCurrentCurrency();
         
+        // Setup mobile selector
+        const mobileSelector = document.getElementById('currencySelector');
         if (mobileSelector) {
           mobileSelector.value = currentCurrency;
-          mobileSelector.addEventListener('change', function() {
+          // Remove existing listeners to avoid duplicates
+          const newMobileSelector = mobileSelector.cloneNode(true);
+          mobileSelector.parentNode.replaceChild(newMobileSelector, mobileSelector);
+          newMobileSelector.addEventListener('change', function() {
             setCurrentCurrency(this.value);
             updateAllPrices();
           });
         }
         
-        if (desktopSelector) {
-          desktopSelector.value = currentCurrency;
-          desktopSelector.addEventListener('change', function() {
-            setCurrentCurrency(this.value);
-            updateAllPrices();
-          });
-        }
+        // Setup desktop selector(s) - there might be multiple on different pages
+        const desktopSelectors = document.querySelectorAll('#currencySelectorDesktop');
+        desktopSelectors.forEach(desktopSelector => {
+          if (desktopSelector) {
+            desktopSelector.value = currentCurrency;
+            // Remove existing listeners to avoid duplicates
+            const newDesktopSelector = desktopSelector.cloneNode(true);
+            desktopSelector.parentNode.replaceChild(newDesktopSelector, desktopSelector);
+            newDesktopSelector.addEventListener('change', function() {
+              setCurrentCurrency(this.value);
+              updateAllPrices();
+            });
+          }
+        });
 
         // Update prices on page load
         updateAllPrices();
       }
 
       // Initialize when DOM is ready
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initCurrencySelector);
+      function startCurrencyConverter() {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initCurrencySelector);
+        } else {
+          // DOM already loaded, but wait a bit for dynamic content
+          setTimeout(initCurrencySelector, 100);
+        }
+      }
+
+      // Start immediately
+      startCurrencyConverter();
+
+      // Also listen for dynamic content changes (for AJAX-loaded content)
+      const observer = new MutationObserver(function(mutations) {
+        let shouldUpdate = false;
+        mutations.forEach(function(mutation) {
+          if (mutation.addedNodes.length > 0) {
+            mutation.addedNodes.forEach(function(node) {
+              if (node.nodeType === 1 && (node.hasAttribute('data-usd-price') || node.querySelector('[data-usd-price]'))) {
+                shouldUpdate = true;
+              }
+            });
+          }
+        });
+        if (shouldUpdate) {
+          updateAllPrices();
+        }
+      });
+
+      // Observe the document body for changes
+      if (document.body) {
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
       } else {
-        initCurrencySelector();
+        document.addEventListener('DOMContentLoaded', function() {
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+        });
       }
 
       // Expose functions globally for dynamic content
