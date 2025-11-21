@@ -257,7 +257,7 @@
 
               <!-- Price -->
               {% with price=p.discount_price|default_if_none:p.price %}
-                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left">
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ price }}">
                   ${{ price|floatformat:2 }}
                 </div>
               {% endwith %}
@@ -276,7 +276,7 @@
         </div>
         {% endif %}
 
-        {# ======= Editors’ Choice (BOTTOM) ======= #}
+        {# ======= Editors' Choice (BOTTOM) ======= #}
         {% if editors_choice %}
         <div class="mt-8">
           <h3 class="section-title"><span>Handpicked This Month</span></h3>
@@ -321,7 +321,7 @@
               </a>
 
               {% with price=p.discount_price|default_if_none:p.price %}
-                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left">
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ price }}">
                   ${{ price|floatformat:2 }}
                 </div>
               {% endwith %}
