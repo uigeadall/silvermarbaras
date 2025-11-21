@@ -513,8 +513,29 @@
 
 {% block extra_js %}
 <script>
-  // CSRF token from Django (set before this script runs)
-  window.csrfToken = '{{ csrf_token }}';
+  // CSRF token from Django - extract from hidden input or cookie
+  (function() {
+    // Try to get CSRF token from a hidden input field (if any form exists on page)
+    const csrfInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+    if (csrfInput && csrfInput.value) {
+      window.csrfToken = csrfInput.value;
+    } else {
+      // Fallback: try to get from cookie (may not work if HTTPONLY)
+      function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) === 0) {
+            return decodeURIComponent(c.substring(nameEQ.length, c.length));
+          }
+        }
+        return null;
+      }
+      window.csrfToken = getCookie('csrftoken');
+    }
+  })();
   
   /* Search toggles */
   function wireSearchToggle(btnId, formId){
