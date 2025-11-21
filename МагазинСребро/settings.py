@@ -312,7 +312,7 @@ ACCOUNT_ADAPTER = "ecommerce.adapters.CustomAccountAdapter"
 # -------------------------
 # I18N / TZ
 # -------------------------
-LANGUAGE_CODE = "bg"
+LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/Sofia"
 USE_I18N = True
 USE_TZ = True
