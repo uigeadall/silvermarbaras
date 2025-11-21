@@ -311,21 +311,27 @@
       });
     }, 2200);
 
-    /* === Currency Converter === */
+    /* === Currency Converter with API === */
     (function() {
-      // Exchange rates (base: USD = 1.0)
-      const exchangeRates = {
-        USD: 1.0,
-        EUR: 0.92,  // Approximate rate, update as needed
-        GBP: 0.79   // Approximate rate, update as needed
-      };
-
       // Currency symbols
       const currencySymbols = {
         USD: '$',
         EUR: '€',
         GBP: '£'
       };
+
+      // Exchange rates cache (will be loaded from API)
+      let exchangeRates = {
+        USD: 1.0,
+        EUR: 0.92,  // Fallback rates
+        GBP: 0.79   // Fallback rates
+      };
+
+      // API endpoint - using exchangerate-api.com (free, no API key needed)
+      const EXCHANGE_RATE_API = 'https://api.exchangerate-api.com/v4/latest/USD';
+      const CACHE_KEY = 'exchangeRatesCache';
+      const CACHE_TIMESTAMP_KEY = 'exchangeRatesTimestamp';
+      const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
       // Get current currency from localStorage or default to USD
       function getCurrentCurrency() {
@@ -335,6 +341,56 @@
       // Save currency to localStorage
       function setCurrentCurrency(currency) {
         localStorage.setItem('selectedCurrency', currency);
+      }
+
+      // Check if cache is still valid
+      function isCacheValid() {
+        const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+        if (!timestamp) return false;
+        const age = Date.now() - parseInt(timestamp);
+        return age < CACHE_DURATION;
+      }
+
+      // Load exchange rates from API
+      async function loadExchangeRates() {
+        try {
+          // Check cache first
+          if (isCacheValid()) {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+              exchangeRates = JSON.parse(cached);
+              console.log('Using cached exchange rates');
+              return;
+            }
+          }
+
+          // Fetch from API
+          console.log('Fetching exchange rates from API...');
+          const response = await fetch(EXCHANGE_RATE_API);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // Extract rates for EUR and GBP (USD is always 1.0)
+          exchangeRates = {
+            USD: 1.0,
+            EUR: data.rates.EUR || 0.92,
+            GBP: data.rates.GBP || 0.79
+          };
+
+          // Cache the rates
+          localStorage.setItem(CACHE_KEY, JSON.stringify(exchangeRates));
+          localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+          
+          console.log('Exchange rates updated:', exchangeRates);
+        } catch (error) {
+          console.error('Error loading exchange rates:', error);
+          // Use fallback rates if API fails
+          console.log('Using fallback exchange rates');
+        }
       }
 
       // Convert price from USD to selected currency
@@ -352,7 +408,6 @@
       // Update all prices on the page
       function updateAllPrices() {
         const currency = getCurrentCurrency();
-        const symbol = currencySymbols[currency] || '$';
 
         // Find all elements with data-usd-price attribute
         document.querySelectorAll('[data-usd-price]').forEach(element => {
@@ -372,9 +427,12 @@
       }
 
       // Initialize currency selector
-      function initCurrencySelector() {
+      async function initCurrencySelector() {
         const mobileSelector = document.getElementById('currencySelector');
         const desktopSelector = document.getElementById('currencySelectorDesktop');
+        
+        // Load exchange rates first
+        await loadExchangeRates();
         
         const currentCurrency = getCurrentCurrency();
         
@@ -405,11 +463,12 @@
         initCurrencySelector();
       }
 
-      // Expose updateAllPrices globally for dynamic content
+      // Expose functions globally for dynamic content
       window.updateAllPrices = updateAllPrices;
       window.getCurrentCurrency = getCurrentCurrency;
       window.convertPrice = convertPrice;
       window.formatPrice = formatPrice;
+      window.loadExchangeRates = loadExchangeRates;
     })();
 
     // Mobile menu toggle
