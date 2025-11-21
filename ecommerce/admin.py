@@ -124,17 +124,17 @@ class OrderAdmin(admin.ModelAdmin):
         if sent_count > 0:
             self.message_user(
                 request,
-                f"✅ Изпратени са {sent_count} имейла за изпратени поръчки.",
+                f"✅ Sent {sent_count} order shipped emails.",
                 messages.SUCCESS
             )
         if failed_count > 0:
             self.message_user(
                 request,
-                f"⚠️ {failed_count} имейла не можаха да бъдат изпратени (липсва email адрес или грешка).",
+                f"⚠️ {failed_count} emails could not be sent (missing email address or error).",
                 messages.WARNING
             )
     
-    send_shipped_email.short_description = "Изпрати имейл 'Поръчката е изпратена'"
+    send_shipped_email.short_description = "Send 'Order Shipped' email"
 
     def export_orders_csv(self, request, queryset):
         response = HttpResponse(content_type="text/csv")

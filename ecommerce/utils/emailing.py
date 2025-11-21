@@ -67,7 +67,7 @@ def send_order_confirmation_email(order, base_url, notify_admin=False) -> bool:
         "total": total,
     }
     try:
-        subject = f"Поръчка #{order.id} - Marbaras ✨"
+        subject = f"Order #{order.id} - Marbaras ✨"
         text = render_to_string("emails/order_confirmation.txt", ctx)
         html = render_to_string("emails/order_confirmation.html", ctx)
 
@@ -77,18 +77,18 @@ def send_order_confirmation_email(order, base_url, notify_admin=False) -> bool:
 
         if notify_admin:
             customer = getattr(order, "full_name", None) or getattr(order, "user", None)
-            admin_message = f"""Нова поръчка #{order.id}
+            admin_message = f"""New order #{order.id}
 
-Клиент: {customer}
+Customer: {customer}
 Email: {recipient}
-Обща сума: ${total}
-Адрес: {order.address}, {order.city}, {order.postal_code}
-Телефон: {order.phone}
+Total: ${total}
+Address: {order.address}, {order.city}, {order.postal_code}
+Phone: {order.phone}
 
-Преглед: {base_url}/admin/ecommerce/order/{order.id}/
+View: {base_url}/admin/ecommerce/order/{order.id}/
 """
             mail_admins(
-                subject=f"Нова поръчка #{order.id}",
+                subject=f"New order #{order.id}",
                 message=admin_message,
                 fail_silently=True,
             )
@@ -116,7 +116,7 @@ def send_order_shipped_email(order, base_url, tracking_number=None) -> bool:
         "shipping_option": order.shipping_option,
     }
     try:
-        subject = f"Вашата поръчка #{order.id} е изпратена 🚚"
+        subject = f"Your order #{order.id} has been shipped 🚚"
         text = render_to_string("emails/order_shipped.txt", ctx)
         html = render_to_string("emails/order_shipped.html", ctx)
 
@@ -139,7 +139,7 @@ def send_password_reset_email(user, reset_url, base_url) -> bool:
     ctx = {"user": user, "reset_url": reset_url, "base_url": base_url}
 
     try:
-        subject = "Възстановяване на парола - Marbaras"
+        subject = "Password Reset - Marbaras"
         text = render_to_string("emails/password_reset.txt", ctx)
         html = render_to_string("emails/password_reset.html", ctx)
 

@@ -874,13 +874,13 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         if actually_added < quantity:
             return JsonResponse({
                 'success': True,
-                'message': f'Налично е максимум {available}. Количеството е зададено на {capped_total}.',
+                'message': f'Maximum {available} available. Quantity set to {capped_total}.',
                 'warning': True
             })
         else:
             return JsonResponse({
                 'success': True,
-                'message': '✅ Добавено в количката.'
+                'message': '✅ Added to cart.'
             })
     
     # Handle bundle items if they were selected
@@ -930,15 +930,15 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
                 continue
         
         if bundle_added:
-            messages.success(request, f"✅ Добавено в количката: {', '.join(bundle_added)}")
+            messages.success(request, f"✅ Added to cart: {', '.join(bundle_added)}")
         if bundle_failed:
-            messages.warning(request, f"⚠️ Не можа да се добави: {', '.join(bundle_failed)}")
+            messages.warning(request, f"⚠️ Could not add: {', '.join(bundle_failed)}")
     
     # Normal form submission - redirect
     if capped_total < requested_total:
-        messages.warning(request, f"Налично е максимум {available}. Количеството е зададено на {capped_total}.")
+        messages.warning(request, f"Maximum {available} available. Quantity set to {capped_total}.")
     else:
-        messages.success(request, "✅ Добавено в количката.")
+        messages.success(request, "✅ Added to cart.")
 
     return redirect("product_detail", pk=pk)
 
@@ -1237,7 +1237,7 @@ def stripe_webhook(request: HttpRequest) -> HttpResponse:
         # 3. Or use a different webhook event that includes product information
         # For now, this is a placeholder that logs the issue
         logger.warning(
-            "Order created from Stripe webhook without OrderItem-и for user %s. "
+            "Order created from Stripe webhook without OrderItems for user %s. "
             "Consider storing cart data in session metadata or using line_items from session.",
             user.username
         )
