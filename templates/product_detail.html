@@ -200,21 +200,6 @@
 
   .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-height: 2.8em; }
 
-  /* Bundle checkbox styling */
-  label:has(.bundle-checkbox:checked) .bundle-checkbox-indicator {
-    display: flex !important;
-  }
-  label:has(.bundle-checkbox:checked) .w-20 {
-    border: 2px solid #000;
-  }
-  label:has(.bundle-checkbox:disabled) {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  label:has(.bundle-checkbox) {
-    cursor: pointer;
-  }
-
   h1 { font-size: 1.8rem !important; font-weight: 900 !important; line-height: 1.15; margin-bottom: 10px; }
   @media (max-width: 768px) {
     .image-section { flex-direction: column; }
@@ -532,66 +517,27 @@
                 <h3 class="text-lg font-extrabold mb-3">🧩 Buy as a set</h3>
                 <p class="text-sm text-slate-600 mb-3">Изберете артикули, които да се добавят заедно с главния продукт:</p>
 
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {% for row in bundle_items_data %}
                     {% with b=row.product qa=row.qa %}
-                    <div class="flex flex-col items-center gap-2 p-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-                      <label class="flex flex-col items-center gap-1.5 w-full min-w-0 group cursor-pointer">
-                        <input type="checkbox" 
-                               name="bundle_items" 
-                               value="{{ b.pk }}{% if qa.variant_id %}:{{ qa.variant_id }}{% endif %}"
-                               class="bundle-checkbox sr-only"
-                               {% if not qa.can %}disabled{% endif %}
-                               form="addToCartForm">
-                        <div class="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-slate-100 relative">
-                          {% if b.image %}
-                            <img src="{{ b.image.url }}" alt="{{ b.name }}" class="w-full h-full object-cover">
-                          {% else %}
-                            <img src="{% static 'images/placeholder.jpg' %}" alt="No image" class="w-full h-full object-cover">
-                          {% endif %}
-                          <div class="absolute top-1 right-1 w-5 h-5 bg-white rounded-full border-2 border-slate-300 flex items-center justify-center bundle-checkbox-indicator hidden">
-                            <svg class="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                          </div>
-                        </div>
-                        <div class="min-w-0 w-full text-center">
-                          <p class="text-xs font-semibold line-clamp-2 group-hover:underline">{{ b.name }}</p>
-                          {% with price=b.discount_price|default_if_none:b.price %}
-                            <div class="text-xs font-bold text-slate-700 mt-0.5">
-                              ${{ price|floatformat:2 }}
-                            </div>
-                          {% endwith %}
-                        </div>
-                      </label>
-
-                      <div class="w-full">
-                        {% if qa.can %}
-                          <form method="post" action="{% url 'add_to_cart' b.pk %}" class="bundle-add-form">
-                            {% csrf_token %}
-                            {% if qa.variant_id %}
-                              <input type="hidden" name="variant_id" value="{{ qa.variant_id }}">
-                            {% endif %}
-                            <input type="hidden" name="quantity" value="1">
-                            <button type="submit"
-                                    class="w-full px-2 py-1.5 rounded-md bg-black text-white text-xs font-bold hover:bg-[#111] transition-colors">
-                              + Add
-                            </button>
-                          </form>
-                        {% elif qa.needs_size %}
-                          <a href="{% url 'product_detail' b.pk %}"
-                             class="block w-full px-2 py-1.5 rounded-md border border-slate-300 text-xs font-bold hover:bg-slate-50 text-center transition-colors">
-                            Choose size
-                          </a>
+                    <a href="{% url 'product_detail' b.pk %}" 
+                       class="flex flex-col items-center gap-2 p-3 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow no-underline">
+                      <div class="w-28 h-28 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+                        {% if b.image %}
+                          <img src="{{ b.image.url }}" alt="{{ b.name }}" class="w-full h-full object-cover">
                         {% else %}
-                          <button type="button" disabled
-                                  title="{{ qa.reason|default:'Unavailable' }}"
-                                  class="w-full px-2 py-1.5 rounded-md bg-slate-200 text-slate-500 text-xs font-bold cursor-not-allowed">
-                            Out
-                          </button>
+                          <img src="{% static 'images/placeholder.jpg' %}" alt="No image" class="w-full h-full object-cover">
                         {% endif %}
                       </div>
-                    </div>
+                      <div class="min-w-0 w-full text-center">
+                        <p class="text-sm font-semibold line-clamp-2 text-slate-800 hover:text-slate-900">{{ b.name }}</p>
+                        {% with price=b.discount_price|default_if_none:b.price %}
+                          <div class="text-sm font-bold text-slate-700 mt-1">
+                            ${{ price|floatformat:2 }}
+                          </div>
+                        {% endwith %}
+                      </div>
+                    </a>
                     {% endwith %}
                   {% endfor %}
                 </div>
@@ -1024,18 +970,6 @@
         return;
       }
       
-      // Collect selected bundle items and add them as hidden fields
-      const bundleCheckboxes = document.querySelectorAll('.bundle-checkbox:checked');
-      bundleCheckboxes.forEach(checkbox => {
-        const value = checkbox.value;
-        if (value) {
-          const hiddenInput = document.createElement('input');
-          hiddenInput.type = 'hidden';
-          hiddenInput.name = 'bundle_items';
-          hiddenInput.value = value;
-          addToCartForm.appendChild(hiddenInput);
-        }
-      });
     });
   })();
 
@@ -1066,99 +1000,6 @@
     setQty(qtyInput.value);
   })();
 
-  // Handle bundle "Add to Cart" forms with AJAX to avoid page reload
-  (function() {
-    // Get CSRF token
-    function getCookie(name) {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
-    }
-    const csrftoken = getCookie('csrftoken');
-    
-    const bundleForms = document.querySelectorAll('.bundle-add-form');
-    bundleForms.forEach(form => {
-      form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const formData = new FormData(form);
-        const button = form.querySelector('button[type="submit"]');
-        const originalText = button.textContent;
-        const originalBg = button.className;
-        
-        // Disable button and show loading state
-        button.disabled = true;
-        button.textContent = 'Adding...';
-        
-        try {
-          const response = await fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest',
-              'X-CSRFToken': csrftoken,
-            },
-            credentials: 'same-origin',
-          });
-          
-          // Check if response is JSON
-          const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            // Not JSON response, fallback to normal submission
-            console.warn('Response is not JSON, status:', response.status, 'content-type:', contentType);
-            form.submit();
-            return;
-          }
-          
-          let data;
-          try {
-            data = await response.json();
-            console.log('Add to cart response:', data, 'status:', response.status);
-          } catch (jsonError) {
-            console.error('Failed to parse JSON response:', jsonError, 'status:', response.status);
-            // Fallback to normal submission if response is not JSON
-            button.disabled = false;
-            button.textContent = originalText;
-            form.submit();
-            return;
-          }
-          
-          if (response.ok && data && data.success) {
-            // Show success feedback
-            button.textContent = '✓ Added';
-            button.className = originalBg.replace('bg-black', 'bg-green-600');
-            setTimeout(() => {
-              button.textContent = originalText;
-              button.className = originalBg;
-              button.disabled = false;
-            }, 1500);
-            
-            // Show message if available
-            if (data.message) {
-              console.log('Success:', data.message);
-            }
-          } else {
-            // Handle error
-            const errorMsg = data && data.message ? data.message : 'Failed to add to cart';
-            console.error('Add to cart error:', errorMsg, data);
-            button.textContent = 'Error';
-            button.className = originalBg.replace('bg-black', 'bg-red-600');
-            setTimeout(() => {
-              button.textContent = originalText;
-              button.className = originalBg;
-              button.disabled = false;
-            }, 2000);
-            alert(errorMsg);
-          }
-        } catch (error) {
-          // Fallback to normal form submission if AJAX fails
-          console.error('AJAX error:', error);
-          button.disabled = false;
-          button.textContent = originalText;
-          form.submit();
-        }
-      });
-    });
-  })();
 </script>
 {% endblock %}
 
