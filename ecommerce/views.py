@@ -650,8 +650,13 @@ def favorites_list(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if request.method == "POST":
         try:
+            logger.info(f"Toggle favorite request: user={request.user.username}, product_id={pk}, is_ajax={request.headers.get('X-Requested-With') == 'XMLHttpRequest'}")
+            
             product = get_object_or_404(Product, pk=pk)
             favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
             
@@ -659,21 +664,23 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
             if not created:
                 favorite.delete()
                 is_favorite = False
+                logger.info(f"Removed favorite: user={request.user.username}, product_id={pk}")
             else:
                 is_favorite = True
+                logger.info(f"Added favorite: user={request.user.username}, product_id={pk}")
             
             # If AJAX request, return JSON instead of redirect
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
+                response_data = {
                     "success": True,
                     "is_favorite": is_favorite,
                     "message": "Added to favorites" if is_favorite else "Removed from favorites"
-                })
+                }
+                logger.info(f"Returning JSON response: {response_data}")
+                return JsonResponse(response_data)
             
             return redirect("product_detail", pk=pk)
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Error toggling favorite: {e}", exc_info=True)
             
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

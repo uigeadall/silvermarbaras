@@ -589,35 +589,50 @@
       console.error('No URL found for favorite button');
       return;
     }
-    if (!csrftoken) {
+    
+    // Get CSRF token from cookie or meta tag
+    let token = csrftoken;
+    if (!token) {
+      // Try to get from meta tag if available
+      const metaTag = document.querySelector('meta[name=csrf-token]');
+      if (metaTag) {
+        token = metaTag.getAttribute('content');
+      }
+    }
+    
+    if (!token) {
       console.error('CSRF token not found');
       alert('CSRF token not found. Please refresh the page.');
       return;
     }
     
     console.log('Toggling favorite:', url);
-    console.log('CSRF token:', csrftoken ? 'Found' : 'Not found');
+    console.log('CSRF token present:', !!token);
     
     // Disable button to prevent double clicks
+    const wasDisabled = btn.disabled;
     btn.disabled = true;
     
     try {
-      // Use FormData to send CSRF token properly
-      const formData = new FormData();
-      formData.append('csrfmiddlewaretoken', csrftoken);
-      
       const response = await fetch(url, {
         method: 'POST',
         headers: { 
-          'X-CSRFToken': csrftoken, 
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-CSRFToken': token,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
         },
-        body: formData,
-        credentials: 'same-origin'
+        credentials: 'same-origin',
+        body: 'csrfmiddlewaretoken=' + encodeURIComponent(token)
       });
       
       console.log('Response status:', response.status, response.statusText);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Check if response is a redirect (302) - this means CSRF failed or not AJAX
+      if (response.redirected) {
+        console.warn('Response was redirected. This might indicate CSRF failure or non-AJAX handling.');
+        window.location.href = response.url;
+        return;
+      }
       
       if (!response.ok) {
         // Try to get error message from response
@@ -629,7 +644,9 @@
             errorMsg = errorData.error || errorData.message || errorMsg;
           } else {
             const text = await response.text();
-            errorMsg = text || errorMsg;
+            if (text) {
+              errorMsg = text.substring(0, 200); // Limit error message length
+            }
           }
         } catch (e) {
           console.error('Error parsing error response:', e);
@@ -639,6 +656,8 @@
       
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Expected JSON but got:', contentType, text.substring(0, 200));
         throw new Error('Expected JSON response but got: ' + contentType);
       }
       
@@ -655,10 +674,15 @@
       }
     } catch (e) {
       console.error('Favorite toggle failed', e);
-      alert('Error: ' + e.message);
-      // Don't toggle UI optimistically if request failed
+      console.error('Error details:', {
+        message: e.message,
+        stack: e.stack,
+        url: url,
+        tokenPresent: !!token
+      });
+      alert('Error: ' + e.message + '\n\nCheck console for details.');
     } finally {
-      btn.disabled = false;
+      btn.disabled = wasDisabled;
     }
   }
 
