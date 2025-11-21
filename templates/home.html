@@ -513,6 +513,9 @@
 
 {% block extra_js %}
 <script>
+  // CSRF token from Django (set before this script runs)
+  window.csrfToken = '{{ csrf_token }}';
+  
   /* Search toggles */
   function wireSearchToggle(btnId, formId){
     const btn = document.getElementById(btnId);
@@ -578,11 +581,10 @@
   
   // Try multiple methods to get CSRF token
   function getCSRFToken() {
-    // Method 1: From cookie (most reliable)
-    const cookieToken = getCookie('csrftoken');
-    if (cookieToken && cookieToken.trim()) {
-      console.log('CSRF token found in cookie');
-      return cookieToken.trim();
+    // Method 1: From window.csrfToken (set by Django template)
+    if (window.csrfToken && window.csrfToken.trim()) {
+      console.log('CSRF token found in window.csrfToken');
+      return window.csrfToken.trim();
     }
     
     // Method 2: From hidden input in forms (if any exist)
@@ -592,7 +594,14 @@
       return formInput.value.trim();
     }
     
-    console.error('CSRF token not found in cookie or form');
+    // Method 3: From cookie (may not work if HTTPONLY is True)
+    const cookieToken = getCookie('csrftoken');
+    if (cookieToken && cookieToken.trim()) {
+      console.log('CSRF token found in cookie');
+      return cookieToken.trim();
+    }
+    
+    console.error('CSRF token not found!');
     return null;
   }
   
@@ -602,7 +611,7 @@
   if (csrftoken) {
     console.log('CSRF token loaded successfully, length:', csrftoken.length);
   } else {
-    console.warn('CSRF token not found! This may cause AJAX requests to fail.');
+    console.error('CSRF token not found! This will cause AJAX requests to fail.');
   }
 
   function showFavTip(fromButton){
