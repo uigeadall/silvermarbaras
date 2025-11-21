@@ -154,12 +154,13 @@
   .action-bar {
     display: flex; align-items: center; gap: 10px;
     padding: 0; background: transparent; border: none;
-    margin-top: 6px; flex-wrap: wrap;
+    margin-top: 6px; flex-wrap: nowrap;
   }
 
   .quantity-wrapper {
     display: inline-flex; align-items: center; justify-content: center;
     width: 220px; height: 40px; border-radius: 8px; background: #fff;
+    flex-shrink: 0;
   }
   .qty-btn {
     padding: 0 10px; height: 100%; border: none; background: #f7f7f7;
@@ -174,11 +175,25 @@
 
   .btn--icon {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px; background: #000; color: #fff;
-    border-radius: 8px; border: none; transition: background .15s, transform .06s; font-size: 16px;
+    width: 48px; height: 48px; background: #000; color: #fff;
+    border-radius: 8px; border: 2px solid #000; transition: background .15s, transform .06s, border-color .15s; 
+    font-size: 20px; flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
-  .btn--icon:hover { background: #111; }
+  .btn--icon:hover { background: #111; border-color: #111; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
   .btn--icon:active { transform: translateY(1px); }
+  /* Make favorite button more visible when favorited */
+  /* Make favorite button more visible when favorited */
+  .btn--icon.favorite-btn[data-favorited="true"] {
+    background: #dc2626; 
+    border-color: #dc2626;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+  }
+  .btn--icon.favorite-btn[data-favorited="true"]:hover {
+    background: #b91c1c; 
+    border-color: #b91c1c;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+  }
 
   .btn { padding: 8px 14px; border: none; border-radius: 0; background: transparent; cursor: pointer; font-weight: bold; }
   .btn:hover { background: rgba(0,0,0,.03); }
