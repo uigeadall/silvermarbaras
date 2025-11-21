@@ -137,6 +137,8 @@
 {% endblock %}
 
 {% block content %}
+<!-- Hidden CSRF token for AJAX requests -->
+{% csrf_token %}
 <div class="mx-auto max-w-site px-4">
   <!-- ===== 3-column desktop layout: [Left Sidebar | Center | Right] ===== -->
   <div class="grid grid-cols-1 gap-6 lg:grid-cols-[180px,minmax(0,1fr),180px]">
