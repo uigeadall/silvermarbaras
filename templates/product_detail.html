@@ -517,12 +517,12 @@
                 <h3 class="text-lg font-extrabold mb-3">🧩 Buy as a set</h3>
                 <p class="text-sm text-slate-600 mb-3">Изберете артикули, които да се добавят заедно с главния продукт:</p>
 
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {% for row in bundle_items_data %}
                     {% with b=row.product qa=row.qa %}
                     <a href="{% url 'product_detail' b.pk %}" 
                        class="flex flex-col items-center gap-2 p-3 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow no-underline">
-                      <div class="w-28 h-28 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+                      <div class="w-full h-24 shrink-0 rounded-lg overflow-hidden bg-slate-100">
                         {% if b.image %}
                           <img src="{{ b.image.url }}" alt="{{ b.name }}" class="w-full h-full object-cover">
                         {% else %}
