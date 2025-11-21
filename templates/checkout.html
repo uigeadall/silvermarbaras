@@ -300,7 +300,7 @@
                         {{ item.product.name|slice:":20" }}{% if item.product.name|length > 20 %}…{% endif %}
                       </a>
                       <div class="mini">
-                        ${{ item.product.get_discounted_price|floatformat:2 }} × {{ item.quantity }}
+                        <span data-usd-price="{{ item.product.get_discounted_price }}">${{ item.product.get_discounted_price|floatformat:2 }}</span> × {{ item.quantity }}
                         {% if item.variant %}
                           <span class="text-xs text-slate-600">(Size: {{ item.variant.size }})</span>
                         {% endif %}
@@ -308,7 +308,7 @@
                     </div>
 
                     <div class="line-subtotal">
-                      ${{ item.subtotal|floatformat:2 }}
+                      <span data-usd-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</span>
                     </div>
                   </div>
                 {% endfor %}
@@ -320,27 +320,27 @@
             <div class="totals">
               <div class="row">
                 <span>Subtotal</span>
-                <span>${{ subtotal|floatformat:2 }}</span>
+                <span data-usd-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
               </div>
 
               {% if discount %}
                 <div class="row">
                   <span>Discount</span>
-                  <span>- ${{ discount|floatformat:2 }}</span>
+                  <span data-usd-price="{{ discount }}">- ${{ discount|floatformat:2 }}</span>
                 </div>
               {% endif %}
 
               {% if shipping_cost %}
                 <div class="row">
                   <span>Shipping</span>
-                  <span>${{ shipping_cost|floatformat:2 }}</span>
+                  <span data-usd-price="{{ shipping_cost }}">${{ shipping_cost|floatformat:2 }}</span>
                 </div>
               {% endif %}
 
               <div class="row total">
                 <span>Total</span>
                 <span>
-                  {% if total %}${{ total|floatformat:2 }}{% else %}${{ subtotal|floatformat:2 }}{% endif %}
+                  {% if total %}<span data-usd-price="{{ total }}">${{ total|floatformat:2 }}</span>{% else %}<span data-usd-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>{% endif %}
                 </span>
               </div>
             </div>

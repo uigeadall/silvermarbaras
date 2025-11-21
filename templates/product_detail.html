@@ -503,10 +503,10 @@
               <h1>{{ product.name }}</h1>
               <div class="price">
                 {% if product.has_discount %}
-                  <span style="color: red; font-weight: bold;">${{ product.discount_price|floatformat:2 }}</span>
-                  <span style="text-decoration: line-through; color: #777; margin-left: 8px;">${{ product.price|floatformat:2 }}</span>
+                  <span style="color: red; font-weight: bold;" data-usd-price="{{ product.discount_price }}">${{ product.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration: line-through; color: #777; margin-left: 8px;" data-usd-price="{{ product.price }}">${{ product.price|floatformat:2 }}</span>
                 {% else %}
-                  ${{ product.price|floatformat:2 }}
+                  <span data-usd-price="{{ product.price }}">${{ product.price|floatformat:2 }}</span>
                 {% endif %}
               </div>
 

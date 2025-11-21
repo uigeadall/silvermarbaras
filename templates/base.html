@@ -311,6 +311,107 @@
       });
     }, 2200);
 
+    /* === Currency Converter === */
+    (function() {
+      // Exchange rates (base: USD = 1.0)
+      const exchangeRates = {
+        USD: 1.0,
+        EUR: 0.92,  // Approximate rate, update as needed
+        GBP: 0.79   // Approximate rate, update as needed
+      };
+
+      // Currency symbols
+      const currencySymbols = {
+        USD: '$',
+        EUR: '€',
+        GBP: '£'
+      };
+
+      // Get current currency from localStorage or default to USD
+      function getCurrentCurrency() {
+        return localStorage.getItem('selectedCurrency') || 'USD';
+      }
+
+      // Save currency to localStorage
+      function setCurrentCurrency(currency) {
+        localStorage.setItem('selectedCurrency', currency);
+      }
+
+      // Convert price from USD to selected currency
+      function convertPrice(usdPrice, currency) {
+        const rate = exchangeRates[currency] || 1.0;
+        return parseFloat(usdPrice) * rate;
+      }
+
+      // Format price with currency symbol
+      function formatPrice(price, currency) {
+        const symbol = currencySymbols[currency] || '$';
+        return symbol + parseFloat(price).toFixed(2);
+      }
+
+      // Update all prices on the page
+      function updateAllPrices() {
+        const currency = getCurrentCurrency();
+        const symbol = currencySymbols[currency] || '$';
+
+        // Find all elements with data-usd-price attribute
+        document.querySelectorAll('[data-usd-price]').forEach(element => {
+          const usdPrice = parseFloat(element.getAttribute('data-usd-price'));
+          if (!isNaN(usdPrice)) {
+            const convertedPrice = convertPrice(usdPrice, currency);
+            element.textContent = formatPrice(convertedPrice, currency);
+          }
+        });
+
+        // Update currency selector values
+        document.querySelectorAll('#currencySelector, #currencySelectorDesktop').forEach(select => {
+          if (select) {
+            select.value = currency;
+          }
+        });
+      }
+
+      // Initialize currency selector
+      function initCurrencySelector() {
+        const mobileSelector = document.getElementById('currencySelector');
+        const desktopSelector = document.getElementById('currencySelectorDesktop');
+        
+        const currentCurrency = getCurrentCurrency();
+        
+        if (mobileSelector) {
+          mobileSelector.value = currentCurrency;
+          mobileSelector.addEventListener('change', function() {
+            setCurrentCurrency(this.value);
+            updateAllPrices();
+          });
+        }
+        
+        if (desktopSelector) {
+          desktopSelector.value = currentCurrency;
+          desktopSelector.addEventListener('change', function() {
+            setCurrentCurrency(this.value);
+            updateAllPrices();
+          });
+        }
+
+        // Update prices on page load
+        updateAllPrices();
+      }
+
+      // Initialize when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCurrencySelector);
+      } else {
+        initCurrencySelector();
+      }
+
+      // Expose updateAllPrices globally for dynamic content
+      window.updateAllPrices = updateAllPrices;
+      window.getCurrentCurrency = getCurrentCurrency;
+      window.convertPrice = convertPrice;
+      window.formatPrice = formatPrice;
+    })();
+
     // Mobile menu toggle
     (function() {
       const menuToggle = document.getElementById('mobileMenuToggle');

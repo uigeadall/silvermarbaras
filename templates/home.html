@@ -412,7 +412,7 @@
               </a>
 
               {% with price=product.discount_price|default_if_none:product.price %}
-                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left">
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ price }}">
                   ${{ price|floatformat:2 }}
                 </div>
               {% endwith %}

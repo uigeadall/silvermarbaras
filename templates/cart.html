@@ -199,11 +199,11 @@
                   <td>
                     {% if item.product.has_discount %}
                       <div>
-                        <del>${{ item.product.price|floatformat:2 }}</del><br>
-                        <strong class="text-red-600">${{ item.product.get_discounted_price|floatformat:2 }}</strong>
+                        <del data-usd-price="{{ item.product.price }}">${{ item.product.price|floatformat:2 }}</del><br>
+                        <strong class="text-red-600" data-usd-price="{{ item.product.get_discounted_price }}">${{ item.product.get_discounted_price|floatformat:2 }}</strong>
                       </div>
                     {% else %}
-                      ${{ item.product.price|floatformat:2 }}
+                      <span data-usd-price="{{ item.product.price }}">${{ item.product.price|floatformat:2 }}</span>
                     {% endif %}
                   </td>
                   <td>
@@ -212,7 +212,7 @@
                       <input class="qty-input" type="number" name="quantity" value="{{ item.quantity }}" min="1" onchange="this.form.submit()">
                     </form>
                   </td>
-                  <td><strong>${{ item.subtotal|floatformat:2 }}</strong></td>
+                  <td><strong data-usd-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</strong></td>
                   <td>
                     <form method="post" action="{% url 'remove_from_cart' item.product.pk %}">
                       {% csrf_token %}
@@ -248,13 +248,13 @@
                     {% endif %}
                     <div class="text-sm font-bold text-slate-700">
                       {% if item.product.has_discount %}
-                        <span class="text-red-600">${{ item.product.get_discounted_price|floatformat:2 }}</span>
-                        <del class="text-slate-400 text-xs ml-1">${{ item.product.price|floatformat:2 }}</del>
+                        <span class="text-red-600" data-usd-price="{{ item.product.get_discounted_price }}">${{ item.product.get_discounted_price|floatformat:2 }}</span>
+                        <del class="text-slate-400 text-xs ml-1" data-usd-price="{{ item.product.price }}">${{ item.product.price|floatformat:2 }}</del>
                       {% else %}
-                        ${{ item.product.price|floatformat:2 }}
+                        <span data-usd-price="{{ item.product.price }}">${{ item.product.price|floatformat:2 }}</span>
                       {% endif %}
                     </div>
-                    <div class="text-sm font-bold">Subtotal: ${{ item.subtotal|floatformat:2 }}</div>
+                    <div class="text-sm font-bold">Subtotal: <span data-usd-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</span></div>
                   </div>
                   <div class="flex flex-col items-end gap-2">
                     <form method="post" action="{% url 'update_cart_quantity' item.product.pk %}">
@@ -271,7 +271,7 @@
             </div>
 
             <div class="cart-footer mt-4">
-              <h3 class="text-xl font-extrabold">Total: ${{ subtotal|floatformat:2 }}</h3>
+              <h3 class="text-xl font-extrabold">Total: <span data-usd-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span></h3>
               <div class="flex gap-3 flex-wrap">
                 <a href="{% url 'checkout' %}" class="btn btn-dark">🧾 Proceed to Checkout</a>
                 <a href="{% url 'home' %}?all=true" class="btn btn-outline">← Continue Shopping</a>

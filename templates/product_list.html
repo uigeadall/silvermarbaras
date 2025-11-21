@@ -113,10 +113,10 @@
             <h3>{{ p.name }}</h3>
             <p>
               {% if p.has_discount %}
-                <span style="color:#dc2626;">${{ p.discount_price|floatformat:2 }}</span>
-                <span style="text-decoration:line-through; color:#888;">${{ p.price|floatformat:2 }}</span>
+                <span style="color:#dc2626;" data-usd-price="{{ p.discount_price }}">${{ p.discount_price|floatformat:2 }}</span>
+                <span style="text-decoration:line-through; color:#888;" data-usd-price="{{ p.price }}">${{ p.price|floatformat:2 }}</span>
               {% else %}
-                ${{ p.price|floatformat:2 }}
+                <span data-usd-price="{{ p.price }}">${{ p.price|floatformat:2 }}</span>
               {% endif %}
             </p>
 
@@ -156,7 +156,7 @@
               {% endif %}
             </a>
             <h3>{{ rv.name }}</h3>
-            <p>${{ rv.price|floatformat:2 }}</p>
+            <p><span data-usd-price="{{ rv.price }}">${{ rv.price|floatformat:2 }}</span></p>
           </div>
         {% endfor %}
       </div>
