@@ -586,15 +586,28 @@
     }
     const url = btn.getAttribute('data-url');
     try {
-      await fetch(url, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With': 'XMLHttpRequest' },
       });
-      // Optimistically toggle UI
-      const pressed = btn.getAttribute('aria-pressed') === 'true';
-      btn.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update UI based on server response
+        btn.setAttribute('aria-pressed', data.is_favorite ? 'true' : 'false');
+      } else {
+        console.error('Favorite toggle failed:', data.error || 'Unknown error');
+      }
     } catch (e) {
       console.error('Favorite toggle failed', e);
+      // Fallback: toggle UI optimistically even if request failed
+      const pressed = btn.getAttribute('aria-pressed') === 'true';
+      btn.setAttribute('aria-pressed', pressed ? 'false' : 'true');
     }
   }
 

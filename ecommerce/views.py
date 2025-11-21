@@ -655,6 +655,15 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
         favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
         if not created:
             favorite.delete()
+        
+        # If AJAX request, return JSON instead of redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                "success": True,
+                "is_favorite": created,
+                "message": "Added to favorites" if created else "Removed from favorites"
+            })
+        
         return redirect("product_detail", pk=pk)
     return JsonResponse({"error": "Invalid request"}, status=400)
 
