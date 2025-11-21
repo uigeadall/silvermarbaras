@@ -563,39 +563,47 @@
 
   /* === Favorites toggle (AJAX, stays on page; show tooltip if not logged in) === */
   function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+    // Improved cookie reading that handles all cases
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) {
+        return decodeURIComponent(c.substring(nameEQ.length, c.length));
+      }
+    }
     return null;
   }
   
   // Try multiple methods to get CSRF token
   function getCSRFToken() {
-    // Method 1: From meta tag
-    const metaTag = document.querySelector('meta[name=csrf-token]');
-    if (metaTag) {
-      const token = metaTag.getAttribute('content');
-      if (token && token.trim()) {
-        return token.trim();
-      }
-    }
-    
-    // Method 2: From cookie
+    // Method 1: From cookie (most reliable)
     const cookieToken = getCookie('csrftoken');
-    if (cookieToken) {
-      return cookieToken;
+    if (cookieToken && cookieToken.trim()) {
+      console.log('CSRF token found in cookie');
+      return cookieToken.trim();
     }
     
-    // Method 3: From hidden input in forms (if any exist)
+    // Method 2: From hidden input in forms (if any exist)
     const formInput = document.querySelector('input[name=csrfmiddlewaretoken]');
-    if (formInput) {
-      return formInput.value;
+    if (formInput && formInput.value) {
+      console.log('CSRF token found in form input');
+      return formInput.value.trim();
     }
     
+    console.error('CSRF token not found in cookie or form');
     return null;
   }
   
   const csrftoken = getCSRFToken();
+  
+  // Log token status for debugging
+  if (csrftoken) {
+    console.log('CSRF token loaded successfully, length:', csrftoken.length);
+  } else {
+    console.warn('CSRF token not found! This may cause AJAX requests to fail.');
+  }
 
   function showFavTip(fromButton){
     const card = fromButton.closest('.card-rel');
