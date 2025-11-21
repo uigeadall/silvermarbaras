@@ -475,19 +475,35 @@
     console.log('Card element mounted');
 
     // Payment Request Button (Apple Pay / Google Pay)
-    console.log('Creating Payment Request...');
+    console.log('=== Creating Payment Request ===');
+    const totalAmount = {% if total %}{{ total }}{% else %}{{ subtotal|default:0 }}{% endif %};
+    console.log('Total amount:', totalAmount);
+    console.log('Total in cents:', Math.round(totalAmount * 100));
+    console.log('Currency: USD');
+    console.log('Country: BG (Bulgaria)');
+    
+    if (!totalAmount || totalAmount <= 0) {
+      console.error('❌ Invalid total amount:', totalAmount);
+      if (unavailableDiv) {
+        unavailableDiv.style.display = 'block';
+        unavailableDiv.textContent = 'Invalid order total. Please refresh the page.';
+      }
+      if (loadingDiv) loadingDiv.style.display = 'none';
+      return;
+    }
+    
     const paymentRequest = stripe.paymentRequest({
       country: 'BG', // Bulgaria
       currency: 'usd',
       total: {
         label: 'Total',
-        amount: Math.round({{ total }} * 100), // Convert to cents
+        amount: Math.round(totalAmount * 100), // Convert to cents
       },
       requestPayerName: true,
       requestPayerEmail: true,
       requestPayerPhone: true,
     });
-    console.log('Payment Request created');
+    console.log('✅ Payment Request object created');
 
     const paymentRequestButton = elements.create('paymentRequestButton', {
       paymentRequest: paymentRequest,
