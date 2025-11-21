@@ -262,6 +262,7 @@ def _get_categories():
     """Get all categories ordered by name."""
     return Category.objects.all().order_by("name")
 
+@ensure_csrf_cookie
 def home(request: HttpRequest) -> HttpResponse:
     query = request.GET.get("q")
     sort = request.GET.get("sort")
