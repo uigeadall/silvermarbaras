@@ -217,49 +217,6 @@
 
   </div>
 
-  {# ===== Mobile quick actions beneath grid ===== #}
-  <div class="lg:hidden mt-4 grid gap-2">
-    <button id="searchToggleMobile"
-            aria-expanded="false"
-            aria-controls="searchWrapMobile"
-            class="px-3 py-2 rounded-xl bg-white font-extrabold shadow-soft hover:shadow-card hover:bg-slate-50 transition text-sm">
-      🔎 Search
-    </button>
-    <form id="searchWrapMobile" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
-      <div class="flex gap-2">
-        <input type="text" name="q" placeholder="Search products…"
-               class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300">
-        <button type="submit"
-                class="px-3 py-2 rounded-xl bg-brand text-white font-extrabold text-sm hover:brightness-95 transition">
-          Go
-        </button>
-      </div>
-    </form>
-
-    {% if request.user.is_authenticated %}
-      <a href="{% url 'profile_dashboard' %}"
-         class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center">
-        👤 Profile
-      </a>
-      <a href="{% url 'profile_favorites' %}"
-         class="block px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 font-extrabold text-sm text-center">
-        ❤️ Favorites
-      </a>
-      <a href="{% url 'account_logout' %}"
-         class="block px-3 py-2 rounded-xl bg-white font-extrabold text-sm text-center">
-        Logout
-      </a>
-    {% else %}
-      <a href="{% url 'account_login' %}"
-         class="block px-3 py-2 rounded-xl bg-white font-extrabold text-sm text-center">
-        Login
-      </a>
-      <a href="{% url 'account_signup' %}"
-         class="block px-3 py-2 rounded-xl bg-white font-extrabold text-sm text-center">
-        Register
-      </a>
-    {% endif %}
-  </div>
 
 </div>
 {% endblock %}
@@ -279,7 +236,6 @@
     });
   }
   wireSearchToggle('searchToggle', 'searchWrap');
-  wireSearchToggle('searchToggleMobile', 'searchWrapMobile');
 
   /* Cart tip */
   function wireCart(linkId, tipId){
@@ -306,6 +262,5 @@
     document.addEventListener('scroll', () => tip?.classList.add('invisible', 'opacity-0'));
   }
   wireCart('cartLink', 'cartTip');
-  wireCart('cartLinkMobile', 'cartTipMobile');
 </script>
 {% endblock %}

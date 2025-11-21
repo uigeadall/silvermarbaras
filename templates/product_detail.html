@@ -658,61 +658,6 @@
       </div>
     </aside>
 
-    <!-- ===== Mobile quick actions: + Profile/Favorites when logged in ===== -->
-    <div class="lg:hidden grid gap-2">
-      <button id="searchToggleMobile" aria-expanded="false" aria-controls="searchWrapMobile"
-              class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold shadow-soft hover:shadow-card hover:bg-slate-50 transition text-sm">
-        🔎 Search
-      </button>
-      <form id="searchWrapMobile" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
-        <div class="flex gap-2">
-          <input type="text" name="q" placeholder="Search products…"
-                 class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300">
-          <button type="submit"
-                  class="px-3 py-2 rounded-xl border border-brand bg-brand text-white font-extrabold text-sm hover:brightness-95 transition">
-            Go
-          </button>
-        </div>
-      </form>
-
-      <div id="cartAreaMobile" class="relative">
-        <a id="cartLinkMobile" href="#" aria-describedby="cartTipMobile"
-           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold shadow-soft hover:shadow-card hover:bg-slate-50 transition text-sm">
-          🛒 Cart
-        </a>
-        <span id="cartTipMobile"
-              class="cart-tip invisible opacity-0 absolute left-1/2 -translate-x-1/2 mt-2
-                     bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg shadow-xl
-                     transition-opacity duration-200"
-              role="status" aria-live="polite">
-          Your cart is empty
-        </span>
-      </div>
-
-      {% if request.user.is_authenticated %}
-        <a href="{% url 'account_logout' %}"
-           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center">
-          Logout
-        </a>
-        <a href="{% url 'profile_dashboard' %}"
-           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center hover:shadow-card hover:bg-slate-50 transition">
-          👤 Profile
-        </a>
-        <a href="{% url 'profile_favorites' %}"
-           class="block px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 font-extrabold text-sm text-center hover:bg-red-100 transition">
-          ❤️ Favorites
-        </a>
-      {% else %}
-        <a href="{% url 'account_login' %}"
-           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center hover:shadow-card hover:bg-slate-50 transition">
-          Login
-        </a>
-        <a href="{% url 'account_signup' %}"
-           class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center hover:shadow-card hover:bg-slate-50 transition">
-          Register
-        </a>
-      {% endif %}
-    </div>
 
   </div>
 
@@ -741,7 +686,6 @@
     });
   }
   wireSearchToggle('searchToggle', 'searchWrap');
-  wireSearchToggle('searchToggleMobile', 'searchWrapMobile');
 
   function wireCart(linkId, tipId){
     const link = document.getElementById(linkId);
@@ -763,7 +707,6 @@
     });
   }
   wireCart('cartLink','cartTip');
-  wireCart('cartLinkMobile','cartTipMobile');
 
   function updateMainImage(url, thumbEl) {
     const mainImg = document.getElementById('mainImage');

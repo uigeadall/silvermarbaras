@@ -61,6 +61,54 @@
     .mobile-menu.open {
       transform: translateX(0);
     }
+    /* Floating mobile buttons (cart and search) */
+    .mobile-floating-buttons {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+    }
+    .mobile-floating-buttons.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+    .mobile-floating-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #000;
+      color: #fff;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+    .mobile-floating-btn:hover {
+      background: #111;
+    }
+    .mobile-floating-btn:active {
+      transform: scale(0.95);
+    }
+    .mobile-floating-btn svg {
+      width: 24px;
+      height: 24px;
+    }
+    @media (min-width: 1024px) {
+      .mobile-floating-buttons {
+        display: none;
+      }
+    }
   </style>
 
   {% block extra_head %}{% endblock %}
@@ -91,6 +139,27 @@
     </div>
   </nav>
 
+  <!-- Floating Mobile Buttons (Cart and Search) -->
+  <div id="mobileFloatingButtons" class="mobile-floating-buttons lg:hidden">
+    <button id="mobileFloatingSearch" aria-label="Search" class="mobile-floating-btn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+    </button>
+    <a id="mobileFloatingCart" href="#" aria-label="Cart" aria-describedby="mobileFloatingCartTip" class="mobile-floating-btn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+      </svg>
+      <span id="mobileFloatingCartTip"
+            class="cart-tip invisible opacity-0 absolute right-full mr-2 top-1/2 -translate-y-1/2
+                   bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap
+                   transition-opacity duration-200"
+            role="status" aria-live="polite">
+        Your cart is empty
+      </span>
+    </a>
+  </div>
+
   <!-- Mobile Header with Hamburger -->
   <header class="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200">
     <div class="px-4 py-3 flex items-center justify-between">
@@ -103,8 +172,41 @@
       <a href="{% url 'home' %}" class="font-extrabold text-xl tracking-tight text-brand">
         Marbaras
       </a>
-      <div class="w-10"></div> <!-- Spacer for centering -->
+      <div class="flex items-center gap-2">
+        <!-- Mobile Search Button -->
+        <button id="mobileHeaderSearchToggle" aria-expanded="false" aria-controls="mobileHeaderSearchWrap"
+                class="p-2 hover:bg-slate-100 rounded-lg">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </button>
+        <!-- Mobile Cart Button -->
+        <a id="mobileHeaderCartLink" href="#" aria-describedby="mobileHeaderCartTip"
+           class="p-2 hover:bg-slate-100 rounded-lg relative">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <span id="mobileHeaderCartTip"
+                class="cart-tip invisible opacity-0 absolute right-0 top-full mt-1
+                       bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg
+                       transition-opacity duration-200"
+                role="status" aria-live="polite">
+            Your cart is empty
+          </span>
+        </a>
+      </div>
     </div>
+    <!-- Mobile Header Search Form -->
+    <form id="mobileHeaderSearchWrap" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden px-4 pb-3">
+      <div class="flex gap-2">
+        <input type="text" name="q" placeholder="Search products…"
+               class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300">
+        <button type="submit"
+                class="px-3 py-2 rounded-xl bg-brand text-white font-extrabold text-sm hover:brightness-95 transition">
+          Go
+        </button>
+      </div>
+    </form>
   </header>
 
   <!-- Reduce bottom padding so there isn't a big band above the footer -->
@@ -201,6 +303,116 @@
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
           closeMenu();
+        }
+      });
+    })();
+
+    // Mobile header search toggle
+    (function() {
+      const searchToggle = document.getElementById('mobileHeaderSearchToggle');
+      const searchWrap = document.getElementById('mobileHeaderSearchWrap');
+      if (!searchToggle || !searchWrap) return;
+
+      searchToggle.addEventListener('click', () => {
+        const isHidden = searchWrap.classList.contains('hidden');
+        searchWrap.classList.toggle('hidden');
+        searchToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        searchWrap.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+        if (isHidden) searchWrap.querySelector('input')?.focus();
+      });
+    })();
+
+    // Mobile header cart
+    (function() {
+      const cartLink = document.getElementById('mobileHeaderCartLink');
+      const cartTip = document.getElementById('mobileHeaderCartTip');
+      if (!cartLink || !cartTip) return;
+
+      let timer = null;
+      function showTip() {
+        cartTip.classList.remove('invisible', 'opacity-0');
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          cartTip.classList.add('opacity-0');
+          setTimeout(() => cartTip.classList.add('invisible'), 200);
+        }, 2000);
+      }
+
+      cartLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const count = Number('{{ cart_count|default:"0" }}') || 0;
+        if (count > 0) {
+          window.location.href = "{% url 'cart_view' %}";
+        } else {
+          showTip();
+        }
+      });
+    })();
+
+    // Floating buttons - show/hide on scroll
+    (function() {
+      const floatingButtons = document.getElementById('mobileFloatingButtons');
+      const floatingSearch = document.getElementById('mobileFloatingSearch');
+      const floatingCart = document.getElementById('mobileFloatingCart');
+      const floatingCartTip = document.getElementById('mobileFloatingCartTip');
+      const headerSearchWrap = document.getElementById('mobileHeaderSearchWrap');
+      
+      if (!floatingButtons || !floatingSearch || !floatingCart) return;
+
+      let lastScrollY = window.scrollY;
+      let scrollTimeout = null;
+
+      function handleScroll() {
+        const currentScrollY = window.scrollY;
+        const scrollThreshold = 200; // Show buttons after scrolling 200px
+
+        if (currentScrollY > scrollThreshold && currentScrollY > lastScrollY) {
+          // Scrolling down - show buttons
+          floatingButtons.classList.add('visible');
+        } else if (currentScrollY < scrollThreshold || currentScrollY < lastScrollY) {
+          // Scrolling up or near top - hide buttons
+          floatingButtons.classList.remove('visible');
+        }
+
+        lastScrollY = currentScrollY;
+      }
+
+      // Throttle scroll events
+      window.addEventListener('scroll', () => {
+        if (scrollTimeout) return;
+        scrollTimeout = setTimeout(() => {
+          handleScroll();
+          scrollTimeout = null;
+        }, 100);
+      });
+
+      // Floating search button
+      floatingSearch.addEventListener('click', () => {
+        if (headerSearchWrap) {
+          headerSearchWrap.classList.remove('hidden');
+          headerSearchWrap.setAttribute('aria-hidden', 'false');
+          headerSearchWrap.querySelector('input')?.focus();
+          // Scroll to top to show search form
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+
+      // Floating cart button
+      let cartTimer = null;
+      floatingCart.addEventListener('click', (e) => {
+        e.preventDefault();
+        const count = Number('{{ cart_count|default:"0" }}') || 0;
+        if (count > 0) {
+          window.location.href = "{% url 'cart_view' %}";
+        } else {
+          if (floatingCartTip) {
+            floatingCartTip.classList.remove('invisible', 'opacity-0');
+            clearTimeout(cartTimer);
+            cartTimer = setTimeout(() => {
+              floatingCartTip.classList.add('opacity-0');
+              setTimeout(() => floatingCartTip.classList.add('invisible'), 200);
+            }, 2000);
+          }
         }
       });
     })();
