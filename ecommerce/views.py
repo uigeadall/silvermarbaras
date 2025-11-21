@@ -651,20 +651,39 @@ def favorites_list(request: HttpRequest) -> HttpResponse:
 @login_required
 def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == "POST":
-        product = get_object_or_404(Product, pk=pk)
-        favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
-        if not created:
-            favorite.delete()
-        
-        # If AJAX request, return JSON instead of redirect
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                "success": True,
-                "is_favorite": created,
-                "message": "Added to favorites" if created else "Removed from favorites"
-            })
-        
-        return redirect("product_detail", pk=pk)
+        try:
+            product = get_object_or_404(Product, pk=pk)
+            favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
+            
+            # If it already existed, delete it (toggle off)
+            if not created:
+                favorite.delete()
+                is_favorite = False
+            else:
+                is_favorite = True
+            
+            # If AJAX request, return JSON instead of redirect
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    "success": True,
+                    "is_favorite": is_favorite,
+                    "message": "Added to favorites" if is_favorite else "Removed from favorites"
+                })
+            
+            return redirect("product_detail", pk=pk)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error toggling favorite: {e}", exc_info=True)
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    "success": False,
+                    "error": str(e)
+                }, status=500)
+            
+            return redirect("product_detail", pk=pk)
+    
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 

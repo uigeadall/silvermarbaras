@@ -585,29 +585,80 @@
       return;
     }
     const url = btn.getAttribute('data-url');
+    if (!url) {
+      console.error('No URL found for favorite button');
+      return;
+    }
+    if (!csrftoken) {
+      console.error('CSRF token not found');
+      alert('CSRF token not found. Please refresh the page.');
+      return;
+    }
+    
+    console.log('Toggling favorite:', url);
+    console.log('CSRF token:', csrftoken ? 'Found' : 'Not found');
+    
+    // Disable button to prevent double clicks
+    btn.disabled = true;
+    
     try {
+      // Use FormData to send CSRF token properly
+      const formData = new FormData();
+      formData.append('csrfmiddlewaretoken', csrftoken);
+      
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 
+          'X-CSRFToken': csrftoken, 
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData,
+        credentials: 'same-origin'
       });
       
+      console.log('Response status:', response.status, response.statusText);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get error message from response
+        let errorMsg = `HTTP error! status: ${response.status}`;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorData.message || errorMsg;
+          } else {
+            const text = await response.text();
+            errorMsg = text || errorMsg;
+          }
+        } catch (e) {
+          console.error('Error parsing error response:', e);
+        }
+        throw new Error(errorMsg);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Expected JSON response but got: ' + contentType);
       }
       
       const data = await response.json();
+      console.log('Response data:', data);
       
       if (data.success) {
         // Update UI based on server response
         btn.setAttribute('aria-pressed', data.is_favorite ? 'true' : 'false');
+        console.log('Favorite toggled successfully. Is favorite:', data.is_favorite);
       } else {
         console.error('Favorite toggle failed:', data.error || 'Unknown error');
+        alert('Failed to update favorite: ' + (data.error || 'Unknown error'));
       }
     } catch (e) {
       console.error('Favorite toggle failed', e);
-      // Fallback: toggle UI optimistically even if request failed
-      const pressed = btn.getAttribute('aria-pressed') === 'true';
-      btn.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+      alert('Error: ' + e.message);
+      // Don't toggle UI optimistically if request failed
+    } finally {
+      btn.disabled = false;
     }
   }
 
