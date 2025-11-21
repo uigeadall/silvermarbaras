@@ -521,9 +521,10 @@
                   <button type="button" class="qty-btn" id="qtyPlus" aria-label="Increase quantity">+</button>
                 </div>
 
-                <form method="post" action="{% url 'toggle_favorite' product.pk %}">
+                <form method="post" action="{% url 'toggle_favorite' product.pk %}" style="flex-shrink: 0;">
                   {% csrf_token %}
-                  <button class="btn btn--icon" type="submit" aria-label="Toggle favorite" title="Favorite">
+                  <button class="btn btn--icon favorite-btn" type="submit" aria-label="Toggle favorite" title="Favorite" 
+                          {% if product.id in favorite_ids %}data-favorited="true"{% else %}data-favorited="false"{% endif %}>
                     {% if product.id in favorite_ids %} ❤️ {% else %} 🤍 {% endif %}
                   </button>
                 </form>
