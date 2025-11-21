@@ -255,8 +255,31 @@
       max-width: 100%;
     }
     h1 { font-size: 1.5rem !important; font-weight: 900 !important; }
-    .action-bar { gap: 10px; }
-    .quantity-wrapper, .btn--primary { width: 100%; }
+    .action-bar-container {
+      width: 100%;
+      max-width: 100%;
+    }
+    .action-bar { 
+      gap: 6px; 
+      flex-wrap: nowrap;
+      width: 100%;
+    }
+    .quantity-wrapper { 
+      width: 100px;
+      flex-shrink: 0;
+    }
+    .btn--primary { 
+      flex: 1; 
+      min-width: 0;
+      font-size: 0.85rem;
+      padding: 0 8px;
+    }
+    .btn--icon {
+      width: 40px;
+      height: 40px;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
   }
 
   /* Lightbox (transparent / frosted backdrop) */
