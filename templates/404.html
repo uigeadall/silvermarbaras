@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}404 - Страницата не е намерена{% endblock %}
+{% block title %}404 - Page Not Found{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
     <div class="max-w-md w-full text-center">
         <h1 class="text-9xl font-bold text-gray-200">404</h1>
-        <h2 class="text-3xl font-bold text-gray-800 mt-4">Страницата не е намерена</h2>
+        <h2 class="text-3xl font-bold text-gray-800 mt-4">Page Not Found</h2>
         <p class="text-gray-600 mt-4">
-            Съжаляваме, но страницата, която търсите, не съществува или е премахната.
+            Sorry, but the page you are looking for does not exist or has been removed.
         </p>
         <div class="mt-8">
             <a href="{% url 'home' %}" class="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition">
-                Начална страница
+                Home
             </a>
         </div>
     </div>

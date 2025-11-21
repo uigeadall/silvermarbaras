@@ -1,14 +1,14 @@
-Здравейте, {{ user.username }},
+Hello, {{ user.username }},
 
-Благодарим ви, че се регистрирахте в Marbaras! Радваме се да ви приветстваме в нашето семейство.
+Thank you for registering with Marbaras! We're excited to welcome you to our family.
 
-Сега можете да:
-- Разглеждате нашата колекция от сребърни бижута
-- Създавате списък с любими продукти
-- Следете поръчките си
-- Получавайте ексклузивни оферти
+Now you can:
+- Browse our collection of silver jewelry
+- Create a list of favorite products
+- Track your orders
+- Receive exclusive offers
 
-Разгледай продуктите: {{ base_url }}{% url 'home' %}?all=true
+Browse products: {{ base_url }}{% url 'home' %}?all=true
 
-С уважение,
-Екипът на Marbaras
+Best regards,
+The Marbaras Team

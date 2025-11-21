@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Изход от профила{% endblock %}
+{% block title %}Logout{% endblock %}
 
 {% block content %}
 <style>
@@ -45,11 +45,11 @@
 </style>
 
 <div class="logout-container">
-  <h2>Излизане от профила</h2>
-  <p>Сигурен ли си, че искаш да излезеш?</p>
+  <h2>Logging Out</h2>
+  <p>Are you sure you want to log out?</p>
   <form method="post" action="{% url 'account_logout' %}">
     {% csrf_token %}
-    <button type="submit">Изход</button>
+    <button type="submit">Logout</button>
   </form>
 </div>
 {% endblock %}

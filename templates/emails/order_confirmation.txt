@@ -1,29 +1,29 @@
-Здравейте, {{ order.full_name|default:order.user.username }},
+Hello, {{ order.full_name|default:order.user.username }},
 
-Благодарим ви за поръчката! Вашата поръчка #{{ order.id }} е получена и се обработва.
+Thank you for your order! Your order #{{ order.id }} has been received and is being processed.
 
-Поръчани продукти:
+Ordered products:
 {% for item in items %}
-- {{ item.product.name }}{% if item.variant %} (Размер: {{ item.variant.size }}){% endif %} × {{ item.quantity }} = ${{ item.product.get_discounted_price|floatformat:2 }}
+- {{ item.product.name }}{% if item.variant %} (Size: {{ item.variant.size }}){% endif %} × {{ item.quantity }} = ${{ item.product.get_discounted_price|floatformat:2 }}
 {% endfor %}
 
-Детайли на поръчката:
-Междинна сума: ${{ subtotal|floatformat:2 }}
-{% if discount_amount > 0 %}Отстъпка{% if order.coupon %} ({{ order.coupon.code }}){% endif %}: -${{ discount_amount|floatformat:2 }}
-{% endif %}{% if shipping_cost > 0 %}Доставка{% if order.shipping_option %} ({{ order.shipping_option.name }}){% endif %}: ${{ shipping_cost|floatformat:2 }}
+Order details:
+Subtotal: ${{ subtotal|floatformat:2 }}
+{% if discount_amount > 0 %}Discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}: -${{ discount_amount|floatformat:2 }}
+{% endif %}{% if shipping_cost > 0 %}Shipping{% if order.shipping_option %} ({{ order.shipping_option.name }}){% endif %}: ${{ shipping_cost|floatformat:2 }}
 {% endif %}
-Общо: ${{ total|floatformat:2 }}
+Total: ${{ total|floatformat:2 }}
 
-Адрес за доставка:
+Shipping address:
 {{ order.full_name }}
 {{ order.address }}
 {{ order.city }}{% if order.postal_code %}, {{ order.postal_code }}{% endif %}
 {% if order.country %}{{ order.country }}{% endif %}
-Телефон: {{ order.phone }}
+Phone: {{ order.phone }}
 
-Ще ви информираме, когато поръчката ви бъде изпратена.
+We will notify you when your order has been shipped.
 
-Преглед на поръчки: {{ base_url }}{% url 'profile_orders' %}
+View orders: {{ base_url }}{% url 'profile_orders' %}
 
-С уважение,
-Екипът на Marbaras
+Best regards,
+The Marbaras Team

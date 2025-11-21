@@ -842,8 +842,8 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         quantity_to_add = min(quantity, available - current) if available != UNLIMITED_STOCK else quantity
         if quantity_to_add <= 0:
             if is_bundle_add:
-                return JsonResponse({'success': False, 'message': 'Този артикул е изчерпан или вече имате максимума в количката.'}, status=400)
-            messages.error(request, "Този артикул е изчерпан.")
+                return JsonResponse({'success': False, 'message': 'This item is out of stock or you already have the maximum in your cart.'}, status=400)
+            messages.error(request, "This item is out of stock.")
             return redirect("product_detail", pk=pk)
         requested_total = current + quantity_to_add
     else:
@@ -854,8 +854,8 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
 
     if capped_total == 0:
         if is_bundle_add:
-            return JsonResponse({'success': False, 'message': 'Този артикул е изчерпан.'}, status=400)
-        messages.error(request, "Този артикул е изчерпан.")
+            return JsonResponse({'success': False, 'message': 'This item is out of stock.'}, status=400)
+        messages.error(request, "This item is out of stock.")
         return redirect("product_detail", pk=pk)
 
     # Persist capped quantity
