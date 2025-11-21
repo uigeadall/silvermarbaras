@@ -482,53 +482,54 @@
     console.log('Currency: USD');
     console.log('Country: BG (Bulgaria)');
     
-    if (!totalAmount || totalAmount <= 0) {
+    // Get container elements before checking totalAmount
+    const loadingDiv = document.getElementById('payment-request-loading');
+    const unavailableDiv = document.getElementById('payment-request-unavailable');
+    const container = document.getElementById('payment-request-button-container');
+    
+    if (!totalAmount || totalAmount <= 0 || isNaN(totalAmount)) {
       console.error('❌ Invalid total amount:', totalAmount);
       if (unavailableDiv) {
         unavailableDiv.style.display = 'block';
         unavailableDiv.textContent = 'Invalid order total. Please refresh the page.';
       }
       if (loadingDiv) loadingDiv.style.display = 'none';
-      return;
-    }
-    
-    const paymentRequest = stripe.paymentRequest({
-      country: 'BG', // Bulgaria
-      currency: 'usd',
-      total: {
-        label: 'Total',
-        amount: Math.round(totalAmount * 100), // Convert to cents
-      },
-      requestPayerName: true,
-      requestPayerEmail: true,
-      requestPayerPhone: true,
-    });
-    console.log('✅ Payment Request object created');
-
-    const paymentRequestButton = elements.create('paymentRequestButton', {
-      paymentRequest: paymentRequest,
-      style: {
-        paymentRequestButton: {
-          theme: 'dark',
-          height: '48px',
-          type: 'default',
+      // Don't create Payment Request if amount is invalid
+    } else {
+      // Only create Payment Request if amount is valid
+      const paymentRequest = stripe.paymentRequest({
+        country: 'BG', // Bulgaria
+        currency: 'usd',
+        total: {
+          label: 'Total',
+          amount: Math.round(totalAmount * 100), // Convert to cents
         },
-      },
-    });
-    console.log('Payment Request Button element created');
+        requestPayerName: true,
+        requestPayerEmail: true,
+        requestPayerPhone: true,
+      });
+      console.log('✅ Payment Request object created');
 
-    // Show loading state
-    const loadingDiv = document.getElementById('payment-request-loading');
-    const unavailableDiv = document.getElementById('payment-request-unavailable');
-    const container = document.getElementById('payment-request-button-container');
-    
-    if (loadingDiv) loadingDiv.style.display = 'block';
-    console.log('Checking Payment Request availability...');
-    console.log('User agent:', navigator.userAgent);
-    console.log('Is HTTPS:', window.location.protocol === 'https:');
+      const paymentRequestButton = elements.create('paymentRequestButton', {
+        paymentRequest: paymentRequest,
+        style: {
+          paymentRequestButton: {
+            theme: 'dark',
+            height: '48px',
+            type: 'default',
+          },
+        },
+      });
+      console.log('Payment Request Button element created');
 
-    // Check if Payment Request is available (Apple Pay / Google Pay)
-    paymentRequest.canMakePayment().then(function(result) {
+      // Show loading state
+      if (loadingDiv) loadingDiv.style.display = 'block';
+      console.log('Checking Payment Request availability...');
+      console.log('User agent:', navigator.userAgent);
+      console.log('Is HTTPS:', window.location.protocol === 'https:');
+
+      // Check if Payment Request is available (Apple Pay / Google Pay)
+      paymentRequest.canMakePayment().then(function(result) {
     console.log('=== Payment Request Check ===');
     console.log('Payment Request available:', result);
     console.log('Result details:', JSON.stringify(result, null, 2));
