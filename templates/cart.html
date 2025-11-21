@@ -272,9 +272,9 @@
 
             <div class="cart-footer mt-4">
               <h3 class="text-xl font-extrabold">Total: <span data-usd-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span></h3>
-              <div class="flex gap-3 flex-wrap">
-                <a href="{% url 'checkout' %}" class="btn btn-dark">🧾 Proceed to Checkout</a>
+              <div class="flex gap-3 flex-wrap" style="justify-content: space-between;">
                 <a href="{% url 'home' %}?all=true" class="btn btn-outline">← Continue Shopping</a>
+                <a href="{% url 'checkout' %}" class="btn btn-dark">🧾 Proceed to Checkout</a>
               </div>
             </div>
 
