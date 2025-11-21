@@ -29,6 +29,31 @@
       content:""; position:absolute; top:-6px; left:50%; transform:translateX(-50%);
       border:6px solid transparent; border-bottom-color:#0b1220;
     }
+    /* Currency selector */
+    .currency-selector {
+      position: relative;
+      display: inline-block;
+    }
+    .currency-selector select {
+      padding: 4px 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      font-size: 0.875rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 6px center;
+      padding-right: 24px;
+    }
+    .currency-selector select:hover {
+      border-color: #999;
+    }
+    .currency-selector select:focus {
+      outline: none;
+      border-color: #333;
+    }
     /* Mobile menu overlay */
     .mobile-menu-overlay {
       position: fixed;
@@ -178,6 +203,14 @@
         Marbaras
       </a>
       <div class="flex items-center gap-2">
+        <!-- Currency Selector -->
+        <div class="currency-selector">
+          <select id="currencySelector" aria-label="Select currency">
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+            <option value="GBP">£ GBP</option>
+          </select>
+        </div>
         <!-- Mobile Search Button -->
         <button id="mobileHeaderSearchToggle" aria-expanded="false" aria-controls="mobileHeaderSearchWrap"
                 class="p-2 hover:bg-slate-100 rounded-lg">
