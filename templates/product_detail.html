@@ -162,6 +162,19 @@
     width: 100%;
     flex-wrap: nowrap;
   }
+  
+  /* Group quantity and favorite together */
+  .action-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  
+  /* Add space between left group and add to cart */
+  .action-bar form#addToCartForm {
+    margin-left: auto;
+  }
 
   .quantity-wrapper {
     display: inline-flex; align-items: center; justify-content: center;
@@ -537,30 +550,32 @@
               <input type="hidden" name="variant_id" id="variantInput" value="" form="addToCartForm">
               <div class="action-bar-container">
                 <div class="action-bar">
-                  <div class="quantity-wrapper" aria-label="Quantity selector">
-                    <button type="button" class="qty-btn" id="qtyMinus" aria-label="Decrease quantity">−</button>
-                    <input
-                      type="number"
-                      name="quantity"
-                      id="qtyInput"
-                      value="1"
-                      min="1"
-                      {% if not product.variants.count and product.stock|default:0 > 0 %}
-                        max="{{ product.stock }}"
-                      {% endif %}
-                      class="qty-input"
-                      aria-live="polite"
-                      form="addToCartForm">
-                    <button type="button" class="qty-btn" id="qtyPlus" aria-label="Increase quantity">+</button>
-                  </div>
+                  <div class="action-bar-left">
+                    <div class="quantity-wrapper" aria-label="Quantity selector">
+                      <button type="button" class="qty-btn" id="qtyMinus" aria-label="Decrease quantity">−</button>
+                      <input
+                        type="number"
+                        name="quantity"
+                        id="qtyInput"
+                        value="1"
+                        min="1"
+                        {% if not product.variants.count and product.stock|default:0 > 0 %}
+                          max="{{ product.stock }}"
+                        {% endif %}
+                        class="qty-input"
+                        aria-live="polite"
+                        form="addToCartForm">
+                      <button type="button" class="qty-btn" id="qtyPlus" aria-label="Increase quantity">+</button>
+                    </div>
 
-                  <form method="post" action="{% url 'toggle_favorite' product.pk %}" style="flex-shrink: 0;">
-                    {% csrf_token %}
-                    <button class="btn btn--icon favorite-btn" type="submit" aria-label="Toggle favorite" title="Favorite" 
-                            {% if product.id in favorite_ids %}data-favorited="true"{% else %}data-favorited="false"{% endif %}>
-                      {% if product.id in favorite_ids %} ❤️ {% else %} 🤍 {% endif %}
-                    </button>
-                  </form>
+                    <form method="post" action="{% url 'toggle_favorite' product.pk %}" style="flex-shrink: 0;">
+                      {% csrf_token %}
+                      <button class="btn btn--icon favorite-btn" type="submit" aria-label="Toggle favorite" title="Favorite" 
+                              {% if product.id in favorite_ids %}data-favorited="true"{% else %}data-favorited="false"{% endif %}>
+                        {% if product.id in favorite_ids %} ❤️ {% else %} 🤍 {% endif %}
+                      </button>
+                    </form>
+                  </div>
 
                   <form id="addToCartForm" method="post" action="{% url 'add_to_cart' product.pk %}">
                     {% csrf_token %}
