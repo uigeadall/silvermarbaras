@@ -513,17 +513,33 @@
 
     // Check if Payment Request is available (Apple Pay / Google Pay)
     paymentRequest.canMakePayment().then(function(result) {
+    console.log('=== Payment Request Check ===');
     console.log('Payment Request available:', result);
     console.log('Result details:', JSON.stringify(result, null, 2));
+    console.log('Is HTTPS:', window.location.protocol === 'https:');
+    console.log('Current URL:', window.location.href);
+    console.log('User Agent:', navigator.userAgent);
+    console.log('Stripe public key:', '{{ stripe_public_key }}'.substring(0, 20) + '...');
     
     if (loadingDiv) loadingDiv.style.display = 'none';
     
     if (result) {
+      console.log('✅ Payment Request is available!');
+      console.log('Available payment methods:', result);
+      
+      // Check what payment methods are available
+      if (result.applePay) {
+        console.log('✅ Apple Pay is available');
+      }
+      if (result.googlePay) {
+        console.log('✅ Google Pay is available');
+      }
+      
       console.log('Mounting Payment Request Button...');
       try {
         // Show the payment request button
         paymentRequestButton.mount('#payment-request-button-container');
-        console.log('Payment Request Button mounted successfully');
+        console.log('✅ Payment Request Button mounted successfully');
         
         // Style container when button is mounted
         if (container) {
@@ -537,8 +553,12 @@
         const divider = document.getElementById('payment-divider');
         if (divider) divider.style.display = 'block';
       } catch (error) {
-        console.error('Error mounting Payment Request Button:', error);
-        if (unavailableDiv) unavailableDiv.style.display = 'block';
+        console.error('❌ Error mounting Payment Request Button:', error);
+        console.error('Error stack:', error.stack);
+        if (unavailableDiv) {
+          unavailableDiv.style.display = 'block';
+          unavailableDiv.textContent = 'Error: ' + error.message;
+        }
       }
       
       // Handle payment method
