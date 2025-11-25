@@ -143,6 +143,7 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "ecommerce.context_processors.breadcrumbs",
                 "ecommerce.context_processors.cart_count",
+                "ecommerce.context_processors.categories",
             ],
         },
     },

@@ -163,3 +163,19 @@ def cart_count(request):
     except Exception:
         # Never break rendering because of cart issues
         return {"cart_count": 0}
+
+
+def categories(request):
+    """
+    Return all categories for use in templates (e.g., mobile menu, sidebar).
+    Uses cached categories if available.
+    """
+    from django.core.cache import cache
+    from .views import _get_categories
+    
+    try:
+        categories_list = _get_categories()
+        return {"categories": categories_list}
+    except Exception:
+        # Never break rendering because of category issues
+        return {"categories": []}
