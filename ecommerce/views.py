@@ -1314,7 +1314,6 @@ def profile_dashboard(request: HttpRequest) -> HttpResponse:
     order_qs = Order.objects.filter(user=request.user).order_by("-created_at")
     order_count = order_qs.count()
     total_spent = order_qs.aggregate(s=Sum("total_price"))["s"] or 0
-
     recent_orders = (
         order_qs
         .select_related("shipping_option", "coupon")
