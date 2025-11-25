@@ -3,6 +3,13 @@
 {% block title %}Register{% endblock %}
 
 {% block mobile_menu_content %}
+  <div>
+    <a href="{% url 'home' %}"
+       class="block px-3 py-2 rounded-md text-sm font-semibold transition hover:bg-slate-100 text-slate-800">
+      Home
+    </a>
+  </div>
+
   {% if categories %}
   <div>
     <h2 class="text-xs font-extrabold tracking-widest text-slate-600 mb-3">CATEGORIES</h2>
@@ -23,16 +30,9 @@
       {% endfor %}
     </ul>
   </div>
-  {% else %}
-  <div>
-    <a href="{% url 'home' %}"
-       class="block px-3 py-2 rounded-md text-sm font-semibold transition hover:bg-slate-100 text-slate-800">
-      Home
-    </a>
-  </div>
   {% endif %}
 
-  <div class="{% if categories %}pt-4 border-t border-slate-200{% endif %}">
+  <div class="pt-4 border-t border-slate-200">
     {% if user.is_authenticated %}
       <a href="{% url 'profile_dashboard' %}"
          class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
