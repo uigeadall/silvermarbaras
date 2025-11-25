@@ -16,6 +16,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import (
     Avg,
@@ -259,8 +260,13 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
 
 
 def _get_categories():
-    """Get all categories ordered by name."""
-    return Category.objects.all().order_by("name")
+    """Get all categories ordered by name (cached for 1 hour)."""
+    cache_key = 'all_categories'
+    categories = cache.get(cache_key)
+    if categories is None:
+        categories = list(Category.objects.all().order_by("name"))
+        cache.set(cache_key, categories, 3600)  # Cache for 1 hour
+    return categories
 
 @ensure_csrf_cookie
 def home(request: HttpRequest) -> HttpResponse:
@@ -306,27 +312,35 @@ def home(request: HttpRequest) -> HttpResponse:
             .order_by(preserved_order)
         )
 
-    # 🔥 Trending Now — 15 items (5 per row × 3 rows)
+    # 🔥 Trending Now — 15 items (5 per row × 3 rows) - Cached for 30 minutes
     POPULAR_LIMIT = 15
-    popular_products = (
-        Product.objects
-        .select_related("category")
-        .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
-        .annotate(_pop=Coalesce("cart_add_count", Value(0)))
-        .order_by("-_pop", "-id")[:POPULAR_LIMIT]
-    )
-
-    # ⭐ Editors' Choice — Top 10 by total stock (product.stock + sum(variants.stock))
-    editors_choice = (
-        Product.objects.select_related("category")
-        .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
-        .annotate(
-            variant_stock=Coalesce(Sum("variants__stock"), Value(0)),
-            base_stock=Coalesce(F("stock"), Value(0)),
+    cache_key_popular = 'popular_products'
+    popular_products = cache.get(cache_key_popular)
+    if popular_products is None:
+        popular_products = list(
+            Product.objects
+            .select_related("category")
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+            .annotate(_pop=Coalesce("cart_add_count", Value(0)))
+            .order_by("-_pop", "-id")[:POPULAR_LIMIT]
         )
-        .annotate(total_stock=F("base_stock") + F("variant_stock"))
-        .order_by("-total_stock", "name", "-id")[:10]
-    )
+        cache.set(cache_key_popular, popular_products, 1800)  # Cache for 30 minutes
+
+    # ⭐ Editors' Choice — Top 10 by total stock (product.stock + sum(variants.stock)) - Cached for 1 hour
+    cache_key_editors = 'editors_choice_products'
+    editors_choice = cache.get(cache_key_editors)
+    if editors_choice is None:
+        editors_choice = list(
+            Product.objects.select_related("category")
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+            .annotate(
+                variant_stock=Coalesce(Sum("variants__stock"), Value(0)),
+                base_stock=Coalesce(F("stock"), Value(0)),
+            )
+            .annotate(total_stock=F("base_stock") + F("variant_stock"))
+            .order_by("-total_stock", "name", "-id")[:10]
+        )
+        cache.set(cache_key_editors, editors_choice, 3600)  # Cache for 1 hour
 
     context = {
         "products": products,
@@ -364,7 +378,18 @@ def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
     recently_viewed_ids = request.session.get("recently_viewed", [])
     recently_viewed = Product.objects.filter(id__in=recently_viewed_ids)
 
-    popular_products = Product.objects.order_by("-cart_add_count")[:10]
+    # Use cached popular products (same as home view)
+    cache_key_popular = 'popular_products'
+    popular_products = cache.get(cache_key_popular)
+    if popular_products is None:
+        popular_products = list(
+            Product.objects
+            .select_related("category")
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+            .annotate(_pop=Coalesce("cart_add_count", Value(0)))
+            .order_by("-_pop", "-id")[:15]
+        )
+        cache.set(cache_key_popular, popular_products, 1800)  # Cache for 30 minutes
     favorite_ids = (
         list(Favorite.objects.filter(user=request.user).values_list("product_id", flat=True))
         if request.user.is_authenticated
@@ -867,6 +892,8 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
     if actually_added > 0:
         product.cart_add_count = (product.cart_add_count or 0) + actually_added
         product.save(update_fields=["cart_add_count"])
+        # Invalidate popular products cache when cart_add_count changes
+        cache.delete('popular_products')
 
     # Return JSON response for AJAX requests (bundle "Add to Cart")
     if is_bundle_add:
