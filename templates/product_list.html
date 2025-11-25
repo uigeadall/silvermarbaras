@@ -26,6 +26,8 @@
   .sidebar-fixed a { display: block; padding: 8px 12px; text-decoration: none; color: #333; border-radius: 6px; font-size: 0.9rem; }
   .sidebar-fixed a:hover { background-color: #f0f0f0; }
   .sidebar-fixed .active { background-color: #fee2e2; color: #b91c1c; font-weight: 600; }
+  .sidebar-fixed .sale-category { color: #dc2626; font-weight: bold; }
+  .sidebar-fixed .sale-category:hover { background-color: #fef2f2; }
 
   .section-title { text-align: center; font-size: clamp(1.8rem, 3vw, 2.5rem); margin: 16px 0 20px; }
 
@@ -73,7 +75,7 @@
         {% for category in categories %}
           <li>
             <a href="{% url 'products_by_category' category.pk %}?sort={{ request.GET.sort|default:'' }}"
-               class="{% if selected_category and selected_category.id == category.id %}active{% endif %}">
+               class="{% if category.name|lower == 'sale' %}sale-category{% elif selected_category and selected_category.id == category.id %}active{% endif %}">
               {{ category.name }}
             </a>
           </li>

@@ -81,7 +81,12 @@
           {% for cat in categories %}
           <li>
             <a href="{% url 'products_by_category' cat.pk %}"
-               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition hover:bg-slate-100 text-slate-800">
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if cat.name|lower == 'sale' %}
+                 text-red-600 font-bold hover:bg-red-50
+               {% else %}
+                 hover:bg-slate-100 text-slate-800
+               {% endif %}">
               {{ cat.name }}
             </a>
           </li>

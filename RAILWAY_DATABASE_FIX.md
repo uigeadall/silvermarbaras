@@ -144,3 +144,4 @@ Running migrations...
 
 **Най-важното:** Убеди се че `DATABASE_URL` е в Web Service Variables и започва с `postgresql://`! 🎯
 
+

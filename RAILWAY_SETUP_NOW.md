@@ -136,3 +136,4 @@ DATABASE_URL=postgresql://postgres:password@hostname:5432/railway
 
 **НАЙ-ВАЖНО:** Убеди се че `DATABASE_URL` е настроен в Railway Variables и започва с `postgresql://`! 🎯
 
+
