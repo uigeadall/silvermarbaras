@@ -73,6 +73,20 @@
     white-space: nowrap; z-index: 10;
   }
   .fav-tip.show { opacity: 1; transform: translateY(0); }
+
+  /* Image loading optimization */
+  img[loading="lazy"], img[loading="eager"] {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+  @keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  img[decoding="async"] {
+    content-visibility: auto;
+  }
 </style>
 {% endblock %}
 
@@ -219,10 +233,18 @@
               <article class="rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
                 <a href="{% url 'product_detail' p.pk %}" class="block">
                   {% if p.main_image %}
-                    <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy"
-                         class="w-full aspect-square object-cover">
+                    {% if forloop.counter <= 5 %}
+                      <link rel="preload" as="image" href="{{ p.main_image.url }}">
+                      <img src="{{ p.main_image.url }}" alt="{{ p.name }}" 
+                           loading="eager" fetchpriority="high" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% else %}
+                      <img src="{{ p.main_image.url }}" alt="{{ p.name }}" 
+                           loading="lazy" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% endif %}
                   {% else %}
-                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy"
+                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy" decoding="async"
                          class="w-full aspect-square object-cover">
                   {% endif %}
                 </a>
@@ -287,10 +309,18 @@
               <article class="rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
                 <a href="{% url 'product_detail' p.pk %}" class="block">
                   {% if p.main_image %}
-                    <img src="{{ p.main_image.url }}" alt="{{ p.name }}" loading="lazy"
-                         class="w-full aspect-square object-cover">
+                    {% if forloop.counter <= 5 %}
+                      <link rel="preload" as="image" href="{{ p.main_image.url }}">
+                      <img src="{{ p.main_image.url }}" alt="{{ p.name }}" 
+                           loading="eager" fetchpriority="high" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% else %}
+                      <img src="{{ p.main_image.url }}" alt="{{ p.name }}" 
+                           loading="lazy" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% endif %}
                   {% else %}
-                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy"
+                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy" decoding="async"
                          class="w-full aspect-square object-cover">
                   {% endif %}
                 </a>
@@ -376,10 +406,18 @@
               <article class="group rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
                 <a href="{% url 'product_detail' product.pk %}" class="block">
                   {% if product.main_image %}
-                    <img src="{{ product.main_image.url }}" alt="{{ product.name }}" loading="lazy"
-                         class="w-full aspect-square object-cover">
+                    {% if forloop.counter <= 5 %}
+                      <link rel="preload" as="image" href="{{ product.main_image.url }}">
+                      <img src="{{ product.main_image.url }}" alt="{{ product.name }}" 
+                           loading="eager" fetchpriority="high" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% else %}
+                      <img src="{{ product.main_image.url }}" alt="{{ product.name }}" 
+                           loading="lazy" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% endif %}
                   {% else %}
-                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy"
+                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy" decoding="async"
                          class="w-full aspect-square object-cover">
                   {% endif %}
                 </a>
