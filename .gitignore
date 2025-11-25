@@ -84,3 +84,6 @@ htmlcov/
 *.tar.gz
 *.rar
 *.zip
+
+# Documentation files
+*.md
