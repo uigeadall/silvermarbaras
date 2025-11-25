@@ -686,9 +686,15 @@
                       <div class="min-w-0 w-full text-center">
                         <p class="text-sm font-semibold line-clamp-2 text-slate-800 hover:text-slate-900">{{ b.name }}</p>
                         {% with price=b.discount_price|default_if_none:b.price %}
-                          <div class="text-sm font-bold text-slate-700 mt-1">
-                            ${{ price|floatformat:2 }}
-                          </div>
+                          {% if b.has_discount %}
+                            <div class="text-sm font-bold text-slate-700 mt-1" data-usd-price="{{ b.discount_price }}">
+                              ${{ b.discount_price|floatformat:2 }}
+                            </div>
+                          {% else %}
+                            <div class="text-sm font-bold text-slate-700 mt-1" data-usd-price="{{ b.price }}">
+                              ${{ price|floatformat:2 }}
+                            </div>
+                          {% endif %}
                         {% endwith %}
                       </div>
                     </a>
@@ -715,7 +721,11 @@
                     {% endif %}
                     <p class="line-clamp-2">{{ item.name }}</p>
                     {% with price=item.discount_price|default_if_none:item.price %}
-                      <strong>${{ price|floatformat:2 }}</strong>
+                      {% if item.has_discount %}
+                        <strong data-usd-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
+                      {% else %}
+                        <strong data-usd-price="{{ item.price }}">${{ price|floatformat:2 }}</strong>
+                      {% endif %}
                     {% endwith %}
                   </div>
                 </a>
@@ -737,7 +747,11 @@
                       <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
                     {% endif %}
                     <p class="line-clamp-2">{{ item.name }}</p>
-                    <strong>${{ item.price|floatformat:2 }}</strong>
+                    {% if item.has_discount %}
+                      <strong data-usd-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
+                    {% else %}
+                      <strong data-usd-price="{{ item.price }}">${{ item.price|floatformat:2 }}</strong>
+                    {% endif %}
                   </div>
                 </a>
               {% endfor %}
