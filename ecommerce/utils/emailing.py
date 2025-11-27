@@ -102,7 +102,7 @@ def send_order_shipped_email(order, base_url, tracking_number=None) -> bool:
     """Send email when order is shipped."""
     recipient = getattr(order, "email", None) or getattr(getattr(order, "user", None), "email", None)
     if not recipient:
-        log.warning("Order shipped email skipped, no recipient for order #%s", order.id)
+        log.warning("Order shipped email skipped, no recipient for order #%s", getattr(order, 'id', 'unknown'))
         return False
 
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or "no-reply@example.com"
