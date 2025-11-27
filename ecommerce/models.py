@@ -406,7 +406,7 @@ class Order(models.Model):
         return self.total_price
 
     def __str__(self) -> str:
-        return f"Order
+        return f"Order #{self.pk} by {self.full_name}"
 
 
 class OrderItem(models.Model):
@@ -422,4 +422,6 @@ class OrderItem(models.Model):
 
     def __str__(self) -> str:
         label = f"{self.quantity} x {self.product.name}"
-        return f"{label} (size {self.variant.size}) in order
+        if self.variant:
+            return f"{label} (size {self.variant.size}) in order #{self.order_id}"
+        return f"{label} in order #{self.order_id}"

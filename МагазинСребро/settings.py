@@ -96,11 +96,8 @@ INSTALLED_APPS = [
 
     "allauth",
     "allauth.account",
-
-
-
-
-
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     "ecommerce.apps.EcommerceConfig",
 ]
 
@@ -308,6 +305,28 @@ CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 ACCOUNT_ADAPTER = "ecommerce.adapters.CustomAccountAdapter"
+
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": env("GOOGLE_CLIENT_ID", ""),
+            "secret": env("GOOGLE_CLIENT_SECRET", ""),
+            "key": "",
+        },
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+    }
+}
 
 
 
