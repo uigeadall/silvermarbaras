@@ -97,9 +97,14 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
     "ecommerce.apps.EcommerceConfig",
 ]
+
+try:
+    import jwt
+    INSTALLED_APPS.append("allauth.socialaccount.providers.google")
+except ImportError:
+    pass
 
 
 
