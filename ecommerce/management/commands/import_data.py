@@ -30,40 +30,40 @@ class Command(BaseCommand):
         file_path = options.get('file')
 
         if file_path:
-            # Use local file
+
             if not os.path.exists(file_path):
                 self.stdout.write(self.style.ERROR(f'File not found: {file_path}'))
                 return
-            
+
             self.stdout.write(self.style.SUCCESS(f'Importing data from local file: {file_path}'))
             call_command('loaddata', file_path)
             self.stdout.write(self.style.SUCCESS('✅ Data imported successfully!'))
-            
+
         elif url:
-            # Download from URL
+
             self.stdout.write(self.style.WARNING(f'Downloading data from: {url}'))
-            
+
             try:
-                # Create temporary file
+
                 with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.json') as tmp_file:
                     tmp_path = tmp_file.name
-                    
-                    # Download file
+
+
                     with urllib.request.urlopen(url) as response:
                         data = response.read()
                         tmp_file.write(data)
-                    
+
                     self.stdout.write(self.style.SUCCESS(f'✅ Downloaded {len(data)} bytes'))
                     self.stdout.write(self.style.WARNING(f'Importing data from temporary file...'))
-                    
-                    # Import data
+
+
                     call_command('loaddata', tmp_path)
-                    
-                    # Clean up
+
+
                     os.unlink(tmp_path)
-                    
+
                     self.stdout.write(self.style.SUCCESS('✅ Data imported successfully!'))
-                    
+
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'❌ Error importing data: {e}'))
                 if 'tmp_path' in locals():
@@ -72,7 +72,7 @@ class Command(BaseCommand):
                     except:
                         pass
         else:
-            # Try local data.json
+
             local_file = 'data.json'
             if os.path.exists(local_file):
                 self.stdout.write(self.style.SUCCESS(f'Importing data from local file: {local_file}'))

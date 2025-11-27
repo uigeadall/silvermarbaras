@@ -9,7 +9,7 @@ class WWWRedirectMiddleware:
 
     def __call__(self, request):
         host = request.get_host().lower()
-        # Redirect marbaras.com to www.marbaras.com
+
         if host == 'marbaras.com':
             return HttpResponsePermanentRedirect(
                 f"https://www.marbaras.com{request.get_full_path()}"

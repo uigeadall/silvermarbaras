@@ -29,28 +29,28 @@ urlpatterns = [
     path('login/', lambda request: redirect('/accounts/login/')),
 ]
 
-# Error handlers (only work when DEBUG=False)
+
 handler404 = 'ecommerce.views.handler404'
 handler500 = 'ecommerce.views.handler500'
 
-# Serve static and media files in production (Railway doesn't have Nginx)
-# Django will serve these files directly in production
 
-# Serve static files (for Django admin and other static assets)
+
+
+
 if settings.DEBUG:
-    # In development, use staticfiles_urlpatterns
+
     urlpatterns += staticfiles_urlpatterns()
 else:
-    # In production, serve static files from STATIC_ROOT
+
     urlpatterns += [
         re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     ]
 
-# Serve media files
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 else:
-    # In production, serve media files through Django
+
     urlpatterns += [
         re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     ]

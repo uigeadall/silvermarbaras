@@ -30,11 +30,11 @@ path("account/", views.profile_dashboard, name="profile_dashboard"),
     path("account/favorites/", views.profile_favorites, name="profile_favorites"),
     path("account/orders/", views.profile_orders, name="profile_orders"),
     path("account/details/", views.profile_details, name="profile_details"),
-# urls.py
-# urls.py
+
+
 path('checkout/guest/', views.guest_checkout_view, name='guest_checkout'),
 
-    # ✅ Use only this login path (custom Allauth-based)
+
     path("login/", CustomLoginView.as_view(), name="account_login"),
 path("login/", CustomLoginView.as_view(), name="login"),
     path("health/", views.health_check, name="health_check"),

@@ -1,4 +1,4 @@
-# admin.py
+
 from django.contrib import admin
 from django.db.models import Count, Sum
 from django.http import HttpResponse
@@ -11,7 +11,7 @@ from .models import (
 )
 from .utils.emailing import send_order_shipped_email
 
-# ---------- Inlines ----------
+
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
@@ -24,16 +24,16 @@ class ProductVariantInline(admin.TabularInline):
 
 class ProductBundleItemInline(admin.TabularInline):
     model = ProductBundleItem
-    fk_name = "product"                 # edit bundle items from the main product page
+    fk_name = "product"
     extra = 1
-    autocomplete_fields = ["item"]      # quick search for products
+    autocomplete_fields = ["item"]
     fields = ("item", "position", "is_active", "note")
     ordering = ("position",)
 
-    # Optional: don't allow selecting the same product as the item
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "item":
-            # instance is available on change form; on add it won't exist yet
+
             obj_id = request.resolver_match.kwargs.get("object_id")
             if obj_id:
                 kwargs["queryset"] = Product.objects.exclude(pk=obj_id)
@@ -45,14 +45,14 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ("name", "serial_number", "price", "discount_price", "category", "brand", "cart_add_count")
     list_filter = ("category", "brand")
 
-    # Exact match on serial (fast) + partials on name/brand/serial
-    # '=' prefix => exact; '^' => startswith; full field name => icontains
+
+
     search_fields = ("=serial_number", "^name", "name", "serial_number", "brand", "category__name")
     search_help_text = "Search by exact serial (best), name, brand, or category."
 
     list_select_related = ("category",)
 
-    # (Optional) Bubble exact serial hits to the top even when other terms are present
+
     def get_search_results(self, request, queryset, search_term):
         qs, use_distinct = super().get_search_results(request, queryset, search_term)
         if search_term:
@@ -61,7 +61,7 @@ class ProductAdmin(admin.ModelAdmin):
         return qs, use_distinct
 
 
-# Optional registrations (or remove if only via inline)
+
 admin.site.register(Category)
 admin.site.register(ProductImage)
 admin.site.register(CartItem)
@@ -71,7 +71,7 @@ admin.site.register(Discount)
 admin.site.register(ShippingOption)
 
 
-# ---------- Orders (no custom template) ----------
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -84,7 +84,7 @@ class OrderAdmin(admin.ModelAdmin):
         "coupon_code",
         "items_count",
     )
-    # date_hierarchy = "created_at"  # Disabled due to MySQL timezone issues
+
     search_fields = ("id", "full_name", "email", "phone", "address", "city", "postal_code")
     list_filter = ("shipping_option", "coupon", "created_at")
     list_select_related = ("shipping_option", "coupon", "user")

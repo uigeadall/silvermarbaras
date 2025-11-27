@@ -1,4 +1,4 @@
-# ecommerce/apps.py
+
 from django.apps import AppConfig
 
 class EcommerceConfig(AppConfig):
@@ -6,5 +6,5 @@ class EcommerceConfig(AppConfig):
     name = "ecommerce"
 
     def ready(self):
-        # Register signal receivers at startup
-        from . import signals  # noqa: F401
+
+        from . import signals

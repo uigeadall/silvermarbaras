@@ -10,8 +10,8 @@ class Command(BaseCommand):
         parser.add_argument("--prefix", type=str, default="PROMO-")
         parser.add_argument("--percent", type=float, default=None)
         parser.add_argument("--amount", type=float, default=None)
-        parser.add_argument("--days", type=int, default=30)  # validity
-        parser.add_argument("--usage", type=int, default=1)  # per-code usage
+        parser.add_argument("--days", type=int, default=30)
+        parser.add_argument("--usage", type=int, default=1)
 
     def handle(self, *args, **opts):
         now = timezone.now()

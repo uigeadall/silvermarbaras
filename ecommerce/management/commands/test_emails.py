@@ -1,4 +1,4 @@
-# ecommerce/management/commands/test_emails.py
+
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -38,11 +38,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'\n📧 Тестване на имейли до: {email}'))
         self.stdout.write(self.style.SUCCESS(f'🌐 Base URL: {base_url}\n'))
 
-        # Test Welcome Email
+
         if email_type in ['welcome', 'all']:
             self.stdout.write(self.style.WARNING('Тестване на Welcome Email...'))
             try:
-                # Create or get a test user
+
                 user, created = User.objects.get_or_create(
                     username='test_user',
                     defaults={'email': email, 'first_name': 'Тест', 'last_name': 'Потребител'}
@@ -58,11 +58,11 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'❌ Грешка: {e}\n'))
 
-        # Test Order Confirmation Email
+
         if email_type in ['order', 'all']:
             self.stdout.write(self.style.WARNING('Тестване на Order Confirmation Email...'))
             try:
-                # Get or create a test user
+
                 user, _ = User.objects.get_or_create(
                     username='test_user',
                     defaults={'email': email}
@@ -71,19 +71,19 @@ class Command(BaseCommand):
                     user.email = email
                     user.save()
 
-                # Get or create a shipping option
+
                 shipping, _ = ShippingOption.objects.get_or_create(
                     name='Standard',
                     defaults={'price': Decimal('5.00'), 'delivery_time': '3-5 дни'}
                 )
 
-                # Get a product (or create a dummy one)
+
                 product = Product.objects.first()
                 if not product:
                     self.stdout.write(self.style.ERROR('❌ Няма продукти в базата данни. Създайте поне един продукт.\n'))
                     return
 
-                # Create a test order
+
                 order = Order.objects.create(
                     user=user,
                     email=email,
@@ -96,7 +96,7 @@ class Command(BaseCommand):
                     total_price=Decimal('99.99'),
                 )
 
-                # Create order items
+
                 variant = product.variants.first()
                 OrderItem.objects.create(
                     order=order,
@@ -112,11 +112,11 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'❌ Грешка: {e}\n'))
 
-        # Test Order Shipped Email
+
         if email_type in ['shipped', 'all']:
             self.stdout.write(self.style.WARNING('Тестване на Order Shipped Email...'))
             try:
-                # Get the test order or create a new one
+
                 order = Order.objects.filter(email=email).first()
                 if not order:
                     user, _ = User.objects.get_or_create(
@@ -158,7 +158,7 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'❌ Грешка: {e}\n'))
 
-        # Test Password Reset Email
+
         if email_type in ['reset', 'all']:
             self.stdout.write(self.style.WARNING('Тестване на Password Reset Email...'))
             try:

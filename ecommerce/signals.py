@@ -1,4 +1,4 @@
-# ecommerce/signals.py
+
 from django.dispatch import Signal, receiver
 from django.db import transaction
 from django.db.models.signals import post_save, post_delete
@@ -11,9 +11,9 @@ from .utils.emailing import (
     send_order_confirmation_email,
 )
 
-# Custom signals your views will emit
-user_registered = Signal()   # args: user, request
-order_submitted = Signal()   # args: order, request, base_url (optional)
+
+user_registered = Signal()
+order_submitted = Signal()
 
 
 @receiver(user_signed_up, dispatch_uid="ecommerce_welcome_allauth_v1")

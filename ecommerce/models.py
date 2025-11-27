@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.contrib.auth.models import User  # keep if you use default auth.User elsewhere
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 
-# Ring sizes (string values to match your templates/forms)
+
 RING_SIZE_CHOICES = [(s, s) for s in [
     "48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66"
 ]]
@@ -59,13 +59,13 @@ class Product(models.Model):
 
     cart_add_count = models.PositiveIntegerField(default=0)
     stock = models.PositiveIntegerField(default=0)
-    
+
     class Meta:
         ordering = ["-id"]
         verbose_name = "Product"
         verbose_name_plural = "Products"
 
-    # Manual “Buy as a set” (ordered, toggleable) via a through model
+
     bundle_items = models.ManyToManyField(
         "self",
         through="ProductBundleItem",
@@ -168,7 +168,7 @@ class ProductVariant(models.Model):
     def clean(self):
         if self.product_id and not self.product.is_ring:
             raise ValidationError("Sizes/variants are allowed only for ring products.")
-    
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
@@ -376,7 +376,7 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     stripe_checkout_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
 
-    # Contact & Shipping Fields
+
     email = models.EmailField(blank=True, null=True)
     full_name = models.CharField(max_length=100)
     country = models.CharField(max_length=100, blank=True, null=True)
@@ -386,7 +386,7 @@ class Order(models.Model):
     phone = models.CharField(max_length=20)
 
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
-    
+
     class Meta:
         ordering = ["-created_at"]
         verbose_name = "Order"
@@ -395,7 +395,7 @@ class Order(models.Model):
     def clean(self):
         if not self.user and not self.email:
             raise ValidationError("Either user or email must be provided.")
-    
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
@@ -406,7 +406,7 @@ class Order(models.Model):
         return self.total_price
 
     def __str__(self) -> str:
-        return f"Order #{self.pk} by {self.full_name}"
+        return f"Order
 
 
 class OrderItem(models.Model):
@@ -422,4 +422,4 @@ class OrderItem(models.Model):
 
     def __str__(self) -> str:
         label = f"{self.quantity} x {self.product.name}"
-        return f"{label} (size {self.variant.size}) in order #{self.order.id}" if self.variant_id else f"{label} in order #{self.order.id}"
+        return f"{label} (size {self.variant.size}) in order

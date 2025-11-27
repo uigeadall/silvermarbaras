@@ -1,4 +1,4 @@
-# ecommerce/context_processors.py
+
 from django.urls import resolve, reverse
 from django.db.models import Sum
 from ecommerce.models import Product, Category, CartItem
@@ -16,22 +16,22 @@ def breadcrumbs(request):
         home_url = reverse("home")
     except Exception:
         home_url = "/"
-    
+
     trail = [{"name": "Home", "url": home_url}]
 
     try:
         match = resolve(request.path_info)
     except Exception:
-        # If we cannot resolve, return just Home
+
         return {"breadcrumbs": trail}
 
     url_name = match.url_name
 
-    # Home page - no additional breadcrumbs
+
     if url_name == "home":
         return {"breadcrumbs": trail}
 
-    # Category page
+
     if url_name == "products_by_category":
         cat_id = match.kwargs.get("pk")
         category = Category.objects.filter(pk=cat_id).first()
@@ -39,7 +39,7 @@ def breadcrumbs(request):
             trail.append({"name": category.name, "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Product detail page
+
     if url_name == "product_detail":
         product_id = match.kwargs.get("pk")
         product = (
@@ -53,34 +53,34 @@ def breadcrumbs(request):
                     "name": product.category.name,
                     "url": reverse("products_by_category", kwargs={"pk": product.category.pk})
                 })
-            # Truncate product name if too long
+
             product_name = product.name
             if len(product_name) > 50:
                 product_name = product_name[:47] + "..."
             trail.append({"name": product_name, "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Cart
+
     if url_name == "cart_view":
         trail.append({"name": "Cart", "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Checkout
+
     if url_name in ("checkout", "guest_checkout"):
         trail.append({"name": "Checkout", "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Order success
+
     if url_name in ("order_success", "success", "payment_success"):
         trail.append({"name": "Order Success", "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Favorites
+
     if url_name in ("favorites_list", "profile_favorites"):
         trail.append({"name": "Favorites", "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Profile pages
+
     if url_name == "profile_dashboard":
         trail.append({"name": "Profile", "url": request.path})
         return {"breadcrumbs": trail}
@@ -95,7 +95,7 @@ def breadcrumbs(request):
         trail.append({"name": "Details", "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Auth pages
+
     if url_name in ("account_login", "login"):
         trail.append({"name": "Login", "url": request.path})
         return {"breadcrumbs": trail}
@@ -108,7 +108,7 @@ def breadcrumbs(request):
         trail.append({"name": "Register", "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Legal pages
+
     if url_name == "terms":
         trail.append({"name": "Terms", "url": request.path})
         return {"breadcrumbs": trail}
@@ -121,12 +121,12 @@ def breadcrumbs(request):
         trail.append({"name": "Contact", "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Product list
+
     if url_name == "product_list":
         trail.append({"name": "Products", "url": request.path})
         return {"breadcrumbs": trail}
 
-    # Default: return trail with Home only
+
     return {"breadcrumbs": trail}
 
 
@@ -148,7 +148,7 @@ def cart_count(request):
             )
             return {"cart_count": int(total)}
 
-        # Guest: ensure a session exists so we can track their cart
+
         if not request.session.session_key:
             request.session.create()
 
@@ -161,7 +161,7 @@ def cart_count(request):
         return {"cart_count": int(total)}
 
     except Exception:
-        # Never break rendering because of cart issues
+
         return {"cart_count": 0}
 
 
@@ -172,10 +172,10 @@ def categories(request):
     """
     from django.core.cache import cache
     from .views import _get_categories
-    
+
     try:
         categories_list = _get_categories()
         return {"categories": categories_list}
     except Exception:
-        # Never break rendering because of category issues
+
         return {"categories": []}

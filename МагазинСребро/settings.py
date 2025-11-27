@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-# -------------------------
-# Env helpers
-# -------------------------
+
+
+
 def env(key: str, default=None):
     return os.environ.get(key, default)
 
@@ -23,15 +23,15 @@ def env_list(key: str, default=None, sep=","):
         return default or []
     return [item.strip() for item in val.split(sep) if item.strip()]
 
-# -------------------------
-# Core
-# -------------------------
+
+
+
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
-# In production (Railway), DEBUG should be False
-# Check if we're in production by checking for Railway-specific env vars
+
+
 DEBUG = env_bool("DJANGO_DEBUG", not bool(env("RAILWAY_ENVIRONMENT", "")))
 
-# Warn if using insecure default SECRET_KEY in production
+
 if not DEBUG and SECRET_KEY == "dev-insecure-change-me":
     import warnings
     warnings.warn(
@@ -40,29 +40,29 @@ if not DEBUG and SECRET_KEY == "dev-insecure-change-me":
         UserWarning
     )
 
-# -------------------------
-# Hosts & CSRF (supports ngrok, loca.lt, cloudflare)
-# -------------------------
-NGROK_HOST = env("NGROK_HOST", "").strip()  # optional single ngrok host
+
+
+
+NGROK_HOST = env("NGROK_HOST", "").strip()
 
 if DEBUG:
-    # In development, allow everything (to avoid DisallowedHost)
+
     ALLOWED_HOSTS = ["*"]
 else:
     base_allowed = {"localhost", "127.0.0.1"}
     ALLOWED_HOSTS = sorted(base_allowed.union(set(env_list("DJANGO_ALLOWED_HOSTS", []))))
 
-# Default CSRF origins
+
 default_csrf = {
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "https://*.ngrok-free.app",
-    "https://*.loca.lt",              # LocalTunnel
-    "https://*.trycloudflare.com",    # Cloudflare Tunnel (optional)
+    "https://*.loca.lt",
+    "https://*.trycloudflare.com",
 }
 CSRF_TRUSTED_ORIGINS = sorted(default_csrf.union(set(env_list("CSRF_TRUSTED_ORIGINS", []))))
 
-# Add explicitly defined ngrok/localtunnel hosts from .env
+
 if NGROK_HOST:
     if ALLOWED_HOSTS != ["*"] and NGROK_HOST not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(NGROK_HOST)
@@ -70,7 +70,7 @@ if NGROK_HOST:
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
 
-# Optional: list of tunnel hosts in .env (e.g., TUNNEL_HOSTS=b18e6d72e658.ngrok-free.app,floppy-webs-lie.loca.lt)
+
 for host in env_list("TUNNEL_HOSTS", []):
     if ALLOWED_HOSTS != ["*"] and host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(host)
@@ -80,11 +80,11 @@ for host in env_list("TUNNEL_HOSTS", []):
 
 SITE_ID = int(env("DJANGO_SITE_ID", "1"))
 
-# -------------------------
-# Applications
-# -------------------------
+
+
+
 INSTALLED_APPS = [
-    # Django Core
+
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -93,20 +93,20 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
 
-    # Allauth Authentication
+
     "allauth",
     "allauth.account",
 
-    # Rate limiting (optional, enabled if package is installed)
-    # "django_ratelimit",  # Uncomment if you want rate limiting
 
-    # Local App
+
+
+
     "ecommerce.apps.EcommerceConfig",
 ]
 
-# -------------------------
-# Middleware
-# -------------------------
+
+
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -118,7 +118,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# Add redirect middleware for non-www to www (only in production)
+
 if not DEBUG:
     MIDDLEWARE.insert(1, 'ecommerce.middleware.WWWRedirectMiddleware')
 
@@ -126,9 +126,9 @@ ROOT_URLCONF = "МагазинСребро.urls"
 WSGI_APPLICATION = "МагазинСребро.wsgi.application"
 
 
-# -------------------------
-# Templates
-# -------------------------
+
+
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -149,19 +149,19 @@ TEMPLATES = [
     },
 ]
 
-# -------------------------
-# Database (MySQL/PostgreSQL)
-# -------------------------
-# Support for DATABASE_URL (used by Render, Railway, Heroku, etc.)
+
+
+
+
 DATABASE_URL = env("DATABASE_URL", "")
 
 if DATABASE_URL:
-    # Parse DATABASE_URL (format: mysql://user:pass@host:port/dbname or postgresql://...)
+
     import re
     from urllib.parse import urlparse
-    
+
     try:
-        # Try urllib.parse first (more robust)
+
         parsed = urlparse(DATABASE_URL)
         db_type = parsed.scheme
         db_user = parsed.username
@@ -169,7 +169,7 @@ if DATABASE_URL:
         db_host = parsed.hostname
         db_port = parsed.port or (5432 if 'postgres' in db_type else 3306)
         db_name = parsed.path.lstrip('/')
-        
+
         if db_type in ('postgresql', 'postgres'):
             DATABASES = {
                 "default": {
@@ -204,7 +204,7 @@ if DATABASE_URL:
                 }
             }
         else:
-            # Fallback to regex if urllib.parse fails
+
             db_match = re.match(r'(\w+)://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', DATABASE_URL)
             if db_match:
                 db_type, db_user, db_password, db_host, db_port, db_name = db_match.groups()
@@ -240,10 +240,10 @@ if DATABASE_URL:
                         }
                     }
             else:
-                # Fallback to individual env vars
+
                 raise ValueError("Could not parse DATABASE_URL")
     except Exception as e:
-        # Fallback to individual env vars if DATABASE_URL parsing fails
+
         import logging
         logger = logging.getLogger(__name__)
         logger.warning(f"Failed to parse DATABASE_URL: {e}. Falling back to individual env vars.")
@@ -264,7 +264,7 @@ if DATABASE_URL:
             }
         }
 else:
-    # Use individual environment variables (existing database)
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
@@ -278,14 +278,14 @@ else:
                 "charset": "utf8mb4",
                 "connect_timeout": 10,
             },
-            "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),  # 10 minutes for production
+            "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "600")),
             "ATOMIC_REQUESTS": env_bool("DB_ATOMIC_REQUESTS", False),
         }
     }
 
-# -------------------------
-# Auth / Allauth
-# -------------------------
+
+
+
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
@@ -295,13 +295,13 @@ LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 
-# Session settings
-SESSION_COOKIE_AGE = int(env("SESSION_COOKIE_AGE", "1209600"))  # 2 weeks default
+
+SESSION_COOKIE_AGE = int(env("SESSION_COOKIE_AGE", "1209600"))
 SESSION_SAVE_EVERY_REQUEST = env_bool("SESSION_SAVE_EVERY_REQUEST", False)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool("SESSION_EXPIRE_AT_BROWSER_CLOSE", False)
 
-# CSRF settings
-CSRF_COOKIE_AGE = int(env("CSRF_COOKIE_AGE", "31449600"))  # 1 year default
+
+CSRF_COOKIE_AGE = int(env("CSRF_COOKIE_AGE", "31449600"))
 CSRF_COOKIE_HTTPONLY = True
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 
@@ -310,51 +310,51 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 ACCOUNT_ADAPTER = "ecommerce.adapters.CustomAccountAdapter"
 
 
-# -------------------------
-# I18N / TZ
-# -------------------------
+
+
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/Sofia"
 USE_I18N = True
 USE_TZ = True
 
-# -------------------------
-# Static & Media
-# -------------------------
+
+
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-# Only add static directory if it exists (to avoid warnings)
+
 import os
 static_dirs = []
 if os.path.exists(BASE_DIR / "static"):
     static_dirs.append(BASE_DIR / "static")
 STATICFILES_DIRS = static_dirs
 
-# Static files finders
+
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 
 MEDIA_URL = "/media/"
-# In Railway, use /app/media (persistent volume) if available, otherwise use BASE_DIR/media
-# Railway volumes are mounted at /app/media
+
+
 import os
 if os.path.exists("/app/media"):
     MEDIA_ROOT = "/app/media"
 else:
     MEDIA_ROOT = BASE_DIR / "media"
-# Ensure media directory exists
+
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 
-# File upload settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = int(env("FILE_UPLOAD_MAX_MEMORY_SIZE", "2621440"))  # 2.5 MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(env("DATA_UPLOAD_MAX_MEMORY_SIZE", "2621440"))  # 2.5 MB
+
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(env("FILE_UPLOAD_MAX_MEMORY_SIZE", "2621440"))
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(env("DATA_UPLOAD_MAX_MEMORY_SIZE", "2621440"))
 DATA_UPLOAD_MAX_NUMBER_FIELDS = int(env("DATA_UPLOAD_MAX_NUMBER_FIELDS", "1000"))
 
-# -------------------------
-# Email
-# -------------------------
+
+
+
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "sales@marbaras.com")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 ADMINS = [("Site Admin", env("ADMIN_EMAIL", "admin@example.com"))]
@@ -368,10 +368,10 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
 
-# -------------------------
-# Stripe
-# -------------------------
-# Strip whitespace and newlines from Stripe keys (common issue when copying from Railway/Dashboard)
+
+
+
+
 def _clean_stripe_key(key: str) -> str:
     """Clean Stripe API key by removing all whitespace, newlines, and non-printable characters."""
     if not key:
