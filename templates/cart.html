@@ -214,14 +214,14 @@
                     {% endif %}
                   </td>
                   <td>
-                    <form method="post" action="{% url 'update_cart_quantity' item.product.pk %}">
+                    <form method="post" action="{% url 'update_cart_quantity' item.pk %}">
                       {% csrf_token %}
                       <input class="qty-input" type="number" name="quantity" value="{{ item.quantity }}" min="1" onchange="this.form.submit()">
                     </form>
                   </td>
                   <td><strong data-usd-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</strong></td>
                   <td>
-                    <form method="post" action="{% url 'remove_from_cart' item.product.pk %}">
+                    <form method="post" action="{% url 'remove_from_cart' item.pk %}">
                       {% csrf_token %}
                       <button type="submit" class="btn-remove" title="Remove">✖</button>
                     </form>
@@ -264,11 +264,11 @@
                     <div class="text-sm font-bold">Subtotal: <span data-usd-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</span></div>
                   </div>
                   <div class="flex flex-col items-end gap-2">
-                    <form method="post" action="{% url 'update_cart_quantity' item.product.pk %}">
+                    <form method="post" action="{% url 'update_cart_quantity' item.pk %}">
                       {% csrf_token %}
                       <input class="qty-input" type="number" name="quantity" value="{{ item.quantity }}" min="1" style="width:64px;">
                     </form>
-                    <form method="post" action="{% url 'remove_from_cart' item.product.pk %}">
+                    <form method="post" action="{% url 'remove_from_cart' item.pk %}">
                       {% csrf_token %}
                       <button type="submit" class="btn-remove text-lg" title="Remove">✖</button>
                     </form>

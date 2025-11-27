@@ -57,12 +57,12 @@ from .signals import order_submitted, user_registered
 
 logger = logging.getLogger(__name__)
 
-# Set Stripe API key with validation
+
 if settings.STRIPE_SECRET_KEY:
     try:
-        # Strip whitespace and newlines from the key (common issue when copying from Railway)
+
         cleaned_key = settings.STRIPE_SECRET_KEY.strip().replace('\n', '').replace('\r', '')
-        # Validate that API key is ASCII-safe
+
         cleaned_key.encode('latin-1')
         stripe.api_key = cleaned_key
         logger.debug("Stripe API key configured successfully")
@@ -73,7 +73,7 @@ else:
     stripe.api_key = None
 
 
-UNLIMITED_STOCK = 10**9  # sentinel for "not tracked / unlimited"
+UNLIMITED_STOCK = 10**9
 
 
 def _ensure_session(request: HttpRequest) -> None:
@@ -165,7 +165,7 @@ def _cap_quantity(requested_total: int, available: int) -> int:
     return min(requested_total, available)
 
 
-# Checkout helper functions
+
 def _process_coupon(coupon_code: str, subtotal: Decimal) -> tuple[Decimal, Decimal, Optional[str], Optional[str]]:
     """Process coupon code and return (new_subtotal, discount, coupon_applied, coupon_error)."""
     discount = Decimal("0.00")
@@ -191,7 +191,7 @@ def _get_shipping_option(shipping_option_id: Optional[str]) -> tuple[Optional[Sh
     """Get shipping option and return (shipping_option, shipping_cost)."""
     shipping_option = None
     shipping_cost = Decimal("0.00")
-    
+
     if shipping_option_id:
         try:
             shipping_id = int(shipping_option_id)
@@ -200,7 +200,7 @@ def _get_shipping_option(shipping_option_id: Optional[str]) -> tuple[Optional[Sh
         except (ValueError, TypeError, ShippingOption.DoesNotExist):
             shipping_option = None
             shipping_cost = Decimal("0.00")
-    
+
     return shipping_option, shipping_cost
 
 
@@ -264,12 +264,12 @@ def _get_categories():
     cache_key = 'all_categories'
     categories = cache.get(cache_key)
     if categories is None:
-        # Order by name, but put 'Sale' at the end
+
         categories = list(Category.objects.all().order_by(
             Case(When(name__iexact='Sale', then=Value(1)), default=Value(0)),
             "name"
         ))
-        cache.set(cache_key, categories, 3600)  # Cache for 1 hour
+        cache.set(cache_key, categories, 3600)
     return categories
 
 @ensure_csrf_cookie
@@ -296,14 +296,14 @@ def home(request: HttpRequest) -> HttpResponse:
     if query:
         products = products.filter(Q(name__icontains=query) | Q(description__icontains=query))
 
-    # Robust price sorting using effective price = discount_price or price
+
     products = products.annotate(_eff_price=Coalesce("discount_price", "price"))
     if sort == "price_asc":
         products = products.order_by("_eff_price")
     elif sort == "price_desc":
         products = products.order_by("-_eff_price")
 
-    # Recently viewed (preserve session order)
+
     ids = [int(pk) for pk in request.session.get("recently_viewed", []) if str(pk).isdigit()]
     recently_viewed_qs = Product.objects.none()
     if ids:
@@ -316,7 +316,7 @@ def home(request: HttpRequest) -> HttpResponse:
             .order_by(preserved_order)
         )
 
-    # 🔥 Trending Now — 15 items (5 per row × 3 rows) - Cached for 30 minutes
+
     POPULAR_LIMIT = 15
     cache_key_popular = 'popular_products'
     popular_products = cache.get(cache_key_popular)
@@ -328,9 +328,9 @@ def home(request: HttpRequest) -> HttpResponse:
             .annotate(_pop=Coalesce("cart_add_count", Value(0)))
             .order_by("-_pop", "-id")[:POPULAR_LIMIT]
         )
-        cache.set(cache_key_popular, popular_products, 1800)  # Cache for 30 minutes
+        cache.set(cache_key_popular, popular_products, 1800)
 
-    # ⭐ Editors' Choice — Top 10 by total stock (product.stock + sum(variants.stock)) - Cached for 1 hour
+
     cache_key_editors = 'editors_choice_products'
     editors_choice = cache.get(cache_key_editors)
     if editors_choice is None:
@@ -344,7 +344,7 @@ def home(request: HttpRequest) -> HttpResponse:
             .annotate(total_stock=F("base_stock") + F("variant_stock"))
             .order_by("-total_stock", "name", "-id")[:10]
         )
-        cache.set(cache_key_editors, editors_choice, 3600)  # Cache for 1 hour
+        cache.set(cache_key_editors, editors_choice, 3600)
 
     context = {
         "products": products,
@@ -382,7 +382,7 @@ def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
     recently_viewed_ids = request.session.get("recently_viewed", [])
     recently_viewed = Product.objects.filter(id__in=recently_viewed_ids)
 
-    # Use cached popular products (same as home view)
+
     cache_key_popular = 'popular_products'
     popular_products = cache.get(cache_key_popular)
     if popular_products is None:
@@ -393,7 +393,7 @@ def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
             .annotate(_pop=Coalesce("cart_add_count", Value(0)))
             .order_by("-_pop", "-id")[:15]
         )
-        cache.set(cache_key_popular, popular_products, 1800)  # Cache for 30 minutes
+        cache.set(cache_key_popular, popular_products, 1800)
     favorite_ids = (
         list(Favorite.objects.filter(user=request.user).values_list("product_id", flat=True))
         if request.user.is_authenticated
@@ -409,7 +409,7 @@ def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
         "favorite_ids": favorite_ids,
         "sort": sort,
     }
-    
+
     return render(request, "home.html", context)
 
 
@@ -458,37 +458,37 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
     product = get_object_or_404(product_qs, pk=pk)
 
     comments = Comment.objects.filter(product=product).order_by("-created_at")
-    # Get all product images directly from database, ordered by ID to show all (old and new)
-    # This ensures we get all images even if prefetch didn't work correctly
+
+
     product_images = list(ProductImage.objects.filter(product=product).order_by('id'))
-    
-    # Debug: log how many images we found and their paths
+
+
     logger.debug(f"Product {product.pk} ({product.name}): Found {len(product_images)} ProductImage records")
     for idx, img in enumerate(product_images):
         logger.debug(f"  Image {idx}: {img.image.name if hasattr(img, 'image') else 'NO IMAGE ATTR'}")
-    
-    # If product has a main image (old way) and it's not already in product_images, add it
+
+
     if product.image:
-        # Check if the main image is already in product_images by comparing paths
+
         main_image_path = product.image.name
         image_exists = any(
-            hasattr(img, 'image') and img.image.name == main_image_path 
+            hasattr(img, 'image') and img.image.name == main_image_path
             for img in product_images
         )
         if not image_exists:
-            # Create a temporary ProductImage-like object to include the main image
+
             main_img_obj = SimpleNamespace(image=product.image)
             product_images.insert(0, main_img_obj)
             logger.debug(f"Added main image {main_image_path} to product_images list")
-    
-    # Filter out any images that don't have a valid image attribute
+
+
     product_images = [img for img in product_images if hasattr(img, 'image') and img.image]
-    
+
     logger.debug(f"Total images for product {product.pk} after filtering: {len(product_images)}")
     rating_form = None
     categories = _get_categories()
 
-    # Ratings + comments handling
+
     if request.user.is_authenticated:
         existing_rating = Rating.objects.filter(user=request.user, product=product).first()
         rating_form = RatingForm(instance=existing_rating)
@@ -511,7 +511,7 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
     average_rating = product.ratings.aggregate(Avg("value"))["value__avg"]
 
-    # Recently viewed (preserve order from session)
+
     rv = [int(i) for i in request.session.get("recently_viewed", []) if str(i).isdigit()]
     pk_i = int(pk)
     if pk_i in rv:
@@ -527,7 +527,7 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
         .order_by(preserved)
     )
 
-    # You Might Also Like (same category as current product)
+
     you_might_like = (
         Product.objects.filter(category=product.category)
         .exclude(pk=product.pk)
@@ -535,7 +535,7 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
         .order_by("-_pop", "-id")[:10]
     )
 
-    # ===== Buy as a set — ONLY manual picks; quick-add metadata for each item =====
+
     manual_links = (
         ProductBundleItem.objects
         .filter(product=product, is_active=True)
@@ -545,7 +545,7 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
     bundle_ids = [lnk.item_id for lnk in manual_links]
 
     bundle_items = []
-    bundle_items_data = []  # [{ "product": p, "qa": {...} }, ...]
+    bundle_items_data = []
     if bundle_ids:
         preserved_bundle = Case(
             *[When(id=pid, then=pos) for pos, pid in enumerate(bundle_ids)],
@@ -561,7 +561,7 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
         for p in bundle_qs:
             qa = {"can": False, "variant_id": None, "needs_size": False, "disabled": False, "reason": ""}
-            # If the Product model has a related_name "variants" for ProductVariant; adjust if different
+
             variants_mgr = getattr(p, "variants", None)
             variants = list(variants_mgr.all()) if variants_mgr is not None else []
 
@@ -576,7 +576,7 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 else:
                     qa["needs_size"] = True
             else:
-                # No variants → quick add if stock > 0
+
                 if (p.stock or 0) > 0:
                     qa["can"] = True
                 else:
@@ -601,8 +601,8 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "average_rating": average_rating,
         "recently_viewed_products": recently_viewed_products,
         "you_might_like": you_might_like,
-        "bundle_items": bundle_items,              # keeps compatibility if you still loop this anywhere
-        "bundle_items_data": bundle_items_data,    # <-- NEW: for quick-add buttons in template
+        "bundle_items": bundle_items,
+        "bundle_items_data": bundle_items_data,
         "show_bundle": show_bundle,
         "categories": categories,
         "selected_category": product.category,
@@ -668,9 +668,9 @@ class CustomLoginView(LoginView):
     template_name = "account/login.html"
 
 
-# =============================================================================
-# Favorites
-# =============================================================================
+
+
+
 
 @login_required
 def favorites_list(request: HttpRequest) -> HttpResponse:
@@ -682,15 +682,15 @@ def favorites_list(request: HttpRequest) -> HttpResponse:
 def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
     import logging
     logger = logging.getLogger(__name__)
-    
+
     if request.method == "POST":
         try:
             logger.info(f"Toggle favorite request: user={request.user.username}, product_id={pk}, is_ajax={request.headers.get('X-Requested-With') == 'XMLHttpRequest'}")
-            
+
             product = get_object_or_404(Product, pk=pk)
             favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
-            
-            # If it already existed, delete it (toggle off)
+
+
             if not created:
                 favorite.delete()
                 is_favorite = False
@@ -698,8 +698,8 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
             else:
                 is_favorite = True
                 logger.info(f"Added favorite: user={request.user.username}, product_id={pk}")
-            
-            # If AJAX request, return JSON instead of redirect
+
+
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 response_data = {
                     "success": True,
@@ -708,25 +708,25 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
                 }
                 logger.info(f"Returning JSON response: {response_data}")
                 return JsonResponse(response_data)
-            
+
             return redirect("product_detail", pk=pk)
         except Exception as e:
             logger.error(f"Error toggling favorite: {e}", exc_info=True)
-            
+
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
                     "success": False,
                     "error": str(e)
                 }, status=500)
-            
+
             return redirect("product_detail", pk=pk)
-    
+
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 
-# =============================================================================
-# Cart
-# =============================================================================
+
+
+
 
 def cart_view(request: HttpRequest) -> HttpResponse:
     cart_items = _cart_items_for(request)
@@ -757,8 +757,9 @@ def update_cart_quantity(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("cart_view")
 
     owner = _owner_filter(request)
-    cart_item = CartItem.objects.filter(product_id=pk, **owner).select_related("product", "variant").first()
-    if not cart_item:
+    try:
+        cart_item = CartItem.objects.filter(pk=pk, **owner).select_related("product", "variant").get()
+    except CartItem.DoesNotExist:
         messages.error(request, "Item not found in cart.")
         return redirect("cart_view")
 
@@ -784,19 +785,22 @@ def update_cart_quantity(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @require_POST
-def remove_from_cart(request: HttpRequest, product_id: int = None, pk: int = None) -> HttpResponse:
-    product_id = product_id or pk
+def remove_from_cart(request: HttpRequest, pk: int) -> HttpResponse:
     owner = _owner_filter(request)
-    CartItem.objects.filter(product_id=product_id, **owner).delete()
-    messages.success(request, "Item removed.")
+    try:
+        cart_item = CartItem.objects.filter(pk=pk, **owner).get()
+        cart_item.delete()
+        messages.success(request, "Item removed.")
+    except CartItem.DoesNotExist:
+        messages.error(request, "Item not found in cart.")
     return redirect("cart_view")
 
 
 @require_POST
 def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
-    # Ensure session exists before adding to cart (important for empty cart)
+
     _ensure_session(request)
-    
+
     product = get_object_or_404(Product, pk=pk)
     raw_variant = request.POST.get("variant_id")
     try:
@@ -810,23 +814,23 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         quantity = 1
 
     owner = _owner_filter(request)
-    
-    # Validate owner - ensure session_key exists for anonymous users
+
+
     if not request.user.is_authenticated:
         if not owner.get('session_key') or not request.session.session_key:
-            # Force session creation and save
+
             _ensure_session(request)
             request.session.save()
             owner = {"session_key": request.session.session_key}
             logger.debug(f"Session recreated - new session_key: {owner['session_key']}")
-    
-    # Debug: log owner info for troubleshooting
+
+
     logger.debug(f"Adding to cart - owner: {owner}, product: {product.pk}, variant: {variant_id}, quantity: {quantity}")
 
-    # CartItem has 'variant' field (ForeignKey), Django creates 'variant_id' automatically
+
     lookup_filter = {"product": product}
     if variant_id:
-        # Get variant object to ensure it exists and belongs to product
+
         try:
             variant_obj = ProductVariant.objects.get(id=variant_id, product=product)
             lookup_filter["variant"] = variant_obj
@@ -838,17 +842,17 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         lookup_filter["variant"] = None
 
-    # Ensure session is saved before creating cart item (important for empty cart)
+
     if not request.user.is_authenticated:
         request.session.save()
-        # Double-check session_key is still valid
+
         if not request.session.session_key:
             logger.error("Session key is None after save!")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'message': 'Session error. Please refresh the page.'}, status=500)
             messages.error(request, "Session error. Please try again.")
             return redirect("product_detail", pk=pk)
-    
+
     try:
         cart_item, created = CartItem.objects.get_or_create(defaults={"quantity": 0}, **owner, **lookup_filter)
         logger.debug(f"Cart item {'created' if created else 'retrieved'}: {cart_item.id}, owner: {owner}, quantity before: {cart_item.quantity}")
@@ -858,16 +862,16 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
             return JsonResponse({'success': False, 'message': f'Error adding to cart: {str(e)}'}, status=500)
         messages.error(request, f"Error adding to cart: {str(e)}")
         return redirect("product_detail", pk=pk)
-    
+
     available = _available_stock(product, variant_id=variant_id)
     current = int(cart_item.quantity or 0)
-    
-    # Check if this is an AJAX request (from bundle "Add to Cart")
+
+
     is_bundle_add = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-    
+
     if is_bundle_add:
-        # For bundle items, we want to add exactly the requested quantity (usually 1)
-        # Cap the quantity to add, not the total
+
+
         quantity_to_add = min(quantity, available - current) if available != UNLIMITED_STOCK else quantity
         if quantity_to_add <= 0:
             if is_bundle_add:
@@ -876,9 +880,9 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect("product_detail", pk=pk)
         requested_total = current + quantity_to_add
     else:
-        # For main product form, add to existing quantity
+
         requested_total = current + quantity
-    
+
     capped_total = _cap_quantity(requested_total, available)
 
     if capped_total == 0:
@@ -887,21 +891,21 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         messages.error(request, "This item is out of stock.")
         return redirect("product_detail", pk=pk)
 
-    # Persist capped quantity
+
     cart_item.quantity = capped_total
     cart_item.save(update_fields=["quantity"])
 
-    # Increment product.cart_add_count by the *actual* delta added
+
     actually_added = capped_total - current
     if actually_added > 0:
         product.cart_add_count = (product.cart_add_count or 0) + actually_added
         product.save(update_fields=["cart_add_count"])
-        # Invalidate popular products cache when cart_add_count changes
+
         cache.delete('popular_products')
 
-    # Return JSON response for AJAX requests (bundle "Add to Cart")
+
     if is_bundle_add:
-        # For bundle items, check if we added the requested quantity
+
         if actually_added < quantity:
             return JsonResponse({
                 'success': True,
@@ -913,22 +917,22 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
                 'success': True,
                 'message': '✅ Added to cart.'
             })
-    
-    # Handle bundle items if they were selected
+
+
     bundle_items = request.POST.getlist('bundle_items')
     if bundle_items:
         bundle_added = []
         bundle_failed = []
         for bundle_item_str in bundle_items:
             try:
-                # Format: "product_id" or "product_id:variant_id"
+
                 parts = bundle_item_str.split(':')
                 bundle_product_id = int(parts[0])
                 bundle_variant_id = int(parts[1]) if len(parts) > 1 and parts[1] else None
-                
+
                 bundle_product = get_object_or_404(Product, pk=bundle_product_id)
                 bundle_owner = _owner_filter(request)
-                
+
                 bundle_lookup = {"product": bundle_product}
                 if bundle_variant_id:
                     try:
@@ -939,17 +943,17 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
                         continue
                 else:
                     bundle_lookup["variant"] = None
-                
+
                 bundle_cart_item, bundle_created = CartItem.objects.get_or_create(
-                    defaults={"quantity": 0}, 
-                    **bundle_owner, 
+                    defaults={"quantity": 0},
+                    **bundle_owner,
                     **bundle_lookup
                 )
-                
+
                 bundle_available = _available_stock(bundle_product, variant_id=bundle_variant_id)
                 bundle_current = int(bundle_cart_item.quantity or 0)
                 bundle_quantity_to_add = min(1, bundle_available - bundle_current) if bundle_available != UNLIMITED_STOCK else 1
-                
+
                 if bundle_quantity_to_add > 0:
                     bundle_cart_item.quantity = bundle_current + bundle_quantity_to_add
                     bundle_cart_item.save(update_fields=["quantity"])
@@ -959,13 +963,13 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
             except (ValueError, Product.DoesNotExist) as e:
                 logger.error(f"Error adding bundle item {bundle_item_str}: {e}")
                 continue
-        
+
         if bundle_added:
             messages.success(request, f"✅ Added to cart: {', '.join(bundle_added)}")
         if bundle_failed:
             messages.warning(request, f"⚠️ Could not add: {', '.join(bundle_failed)}")
-    
-    # Normal form submission - redirect
+
+
     if capped_total < requested_total:
         messages.warning(request, f"Maximum {available} available. Quantity set to {capped_total}.")
     else:
@@ -974,9 +978,9 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("product_detail", pk=pk)
 
 
-# =============================================================================
-# Checkout (supports guests and users)
-# =============================================================================
+
+
+
 
 @require_http_methods(["GET", "POST"])
 def checkout_view(request: HttpRequest) -> HttpResponse:
@@ -985,7 +989,7 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
         messages.warning(request, "Your cart is empty.")
         return redirect("cart_view")
 
-    # Common data
+
     categories = _get_categories()
     cart_count = sum(getattr(it, "quantity", 0) for it in cart_items)
     subtotal = _compute_subtotal(cart_items)
@@ -1021,10 +1025,10 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
                 messages.error(request, "Invalid email address.")
                 return redirect("checkout")
 
-        # Process coupon
+
         subtotal, discount, coupon_applied, coupon_error = _process_coupon(coupon_code, subtotal)
 
-        # Get shipping option
+
         shipping_option, shipping_cost = _get_shipping_option(shipping_option_id)
         if shipping_option_id and not shipping_option:
             messages.error(request, "Invalid shipping option.")
@@ -1044,7 +1048,7 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
                 shipping_option=shipping_option,
                 total_price=total,
             )
-            # Validate quantities before creating order
+
             order_items = []
             for item in cart_items:
                 if item.quantity <= 0:
@@ -1058,31 +1062,31 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
                         quantity=item.quantity
                     )
                 )
-            
+
             if order_items:
                 OrderItem.objects.bulk_create(order_items)
             else:
                 messages.error(request, "No valid items in cart.")
                 return redirect("cart_view")
-            
+
             cart_items.delete()
             transaction.on_commit(lambda: order_submitted.send(sender=Order, order=order, request=request))
 
         return redirect("order_success")
 
-    # GET: create a PaymentIntent for the current subtotal
+
     intent = _create_stripe_intent(subtotal, request.session.session_key, is_guest=not request.user.is_authenticated)
     if not intent:
         messages.error(request, "Payment system error. Please try again.")
         return redirect("cart_view")
 
-    # Validate Stripe publishable key (already cleaned in settings.py)
+
     stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
     if not stripe_public_key or not stripe_public_key.startswith(('pk_test_', 'pk_live_')):
         logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}... (length: {len(stripe_public_key) if stripe_public_key else 0})")
         messages.error(request, "Payment system configuration error. Please contact support.")
         return redirect("cart_view")
-    
+
     return render(
         request,
         "checkout.html",
@@ -1104,15 +1108,15 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
             "is_guest": not request.user.is_authenticated,
         },
     )
-# =============================================================================
-# Guest checkout (explicit guest page)
-# =============================================================================
+
+
+
 
 @require_http_methods(["GET", "POST"])
 def guest_checkout_view(request: HttpRequest) -> HttpResponse:
     _ensure_session(request)
     cart_qs = CartItem.objects.filter(session_key=request.session.session_key).select_related("product")
-    
+
     if not cart_qs.exists():
         messages.warning(request, "Your cart is empty.")
         return redirect("cart_view")
@@ -1145,10 +1149,10 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
             messages.error(request, "Invalid email address.")
             return redirect("guest_checkout")
 
-        # Process coupon
+
         subtotal, discount, coupon_applied, coupon_error = _process_coupon(coupon_code, subtotal)
 
-        # Get shipping option
+
         shipping_option, shipping_cost = _get_shipping_option(shipping_option_id)
         if shipping_option_id and not shipping_option:
             messages.error(request, "Invalid shipping option.")
@@ -1168,7 +1172,7 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
                 shipping_option=shipping_option,
                 total_price=total,
             )
-            # Validate quantities before creating order
+
             order_items = []
             for item in cart_qs:
                 if item.quantity <= 0:
@@ -1182,31 +1186,31 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
                         quantity=item.quantity
                     )
                 )
-            
+
             if order_items:
                 OrderItem.objects.bulk_create(order_items)
             else:
                 messages.error(request, "No valid items in cart.")
                 return redirect("cart_view")
-            
+
             cart_qs.delete()
             transaction.on_commit(lambda: order_submitted.send(sender=Order, order=order, request=request))
 
         return redirect("order_success")
 
-    # GET: create a PaymentIntent
+
     intent = _create_stripe_intent(subtotal, request.session.session_key, is_guest=True)
     if not intent:
         messages.error(request, "Payment system error. Please try again.")
         return redirect("cart_view")
 
-    # Validate Stripe publishable key (already cleaned in settings.py)
+
     stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
     if not stripe_public_key or not stripe_public_key.startswith(('pk_test_', 'pk_live_')):
         logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}... (length: {len(stripe_public_key) if stripe_public_key else 0})")
         messages.error(request, "Payment system configuration error. Please contact support.")
         return redirect("cart_view")
-    
+
     return render(
         request,
         "guest_checkout.html",
@@ -1226,9 +1230,9 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-# =============================================================================
-# Stripe webhook
-# =============================================================================
+
+
+
 
 @csrf_exempt
 def stripe_webhook(request: HttpRequest) -> HttpResponse:
@@ -1261,18 +1265,18 @@ def stripe_webhook(request: HttpRequest) -> HttpResponse:
             logger.info("Stripe session completed for unknown email %s (guest flow).", customer_email)
             return HttpResponse(status=200)
 
-        # NOTE: This webhook creates an Order without OrderItem-и.
-        # If you need OrderItem-и, you should:
-        # 1. Store cart items in session metadata when creating PaymentIntent
-        # 2. Retrieve line_items from Stripe session
-        # 3. Or use a different webhook event that includes product information
-        # For now, this is a placeholder that logs the issue
+
+
+
+
+
+
         logger.warning(
             "Order created from Stripe webhook without OrderItems for user %s. "
             "Consider storing cart data in session metadata or using line_items from session.",
             user.username
         )
-        
+
         Order.objects.create(
             user=user,
             stripe_checkout_id=session["id"],
@@ -1283,9 +1287,9 @@ def stripe_webhook(request: HttpRequest) -> HttpResponse:
     return HttpResponse(status=200)
 
 
-# =============================================================================
-# Misc pages
-# =============================================================================
+
+
+
 
 def payment_success(request: HttpRequest) -> HttpResponse:
     return render(request, "payment_success.html")
@@ -1313,7 +1317,7 @@ def contact(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def profile_dashboard(request: HttpRequest) -> HttpResponse:
-    # Dashboard stats
+
     fav_count = Favorite.objects.filter(user=request.user).count()
     order_qs = Order.objects.filter(user=request.user).order_by("-created_at")
     order_count = order_qs.count()
@@ -1324,9 +1328,9 @@ def profile_dashboard(request: HttpRequest) -> HttpResponse:
         [:5]
     )
 
-    # Sidebars context (required by _profile_base.html)
+
     categories = _get_categories()
-    cart_items = _cart_items_for(request)                 # your helper
+    cart_items = _cart_items_for(request)
     cart_count = sum(getattr(it, "quantity", 0) for it in cart_items)
 
     return render(request, "dashboard.html", {
@@ -1336,20 +1340,20 @@ def profile_dashboard(request: HttpRequest) -> HttpResponse:
         "recent_orders": recent_orders,
         "active_tab": "dashboard",
 
-        # left/right rails
+
         "categories": categories,
         "cart_count": cart_count,
     })
 
 @login_required
 def profile_favorites(request: HttpRequest) -> HttpResponse:
-    # Build the product queryset the user has favorited
+
     qs = (
         Product.objects
         .filter(favorited_by__user=request.user)
         .select_related("category")
         .prefetch_related("images")
-        .annotate(last_fav_at=Max("favorited_by__created_at"))  # newest favorite timestamp
+        .annotate(last_fav_at=Max("favorited_by__created_at"))
         .order_by("-last_fav_at", "-id")
     )
 
@@ -1361,13 +1365,13 @@ def profile_favorites(request: HttpRequest) -> HttpResponse:
         .values_list("product_id", flat=True)
     )
 
-    # For sidebars (right search/cart/auth & left categories)
+
     categories = _get_categories()
     try:
-        cart_items = _cart_items_for(request)          # reuse your helper if available
+        cart_items = _cart_items_for(request)
         cart_count = sum(getattr(it, "quantity", 0) for it in cart_items)
     except NameError:
-        # fallback if helper isn't imported in this scope
+
         cart_count = 0
 
     return render(request, "favorites.html", {
@@ -1391,7 +1395,7 @@ def profile_orders(request: HttpRequest) -> HttpResponse:
     page = request.GET.get("page")
     orders_page = paginator.get_page(page)
 
-    
+
     item_counts = (
         OrderItem.objects
         .filter(order__in=orders_page.object_list)
@@ -1421,21 +1425,21 @@ def remove_from_favorites(request: HttpRequest, pk: int) -> HttpResponse:
     product = get_object_or_404(Product, pk=pk)
     Favorite.objects.filter(user=request.user, product=product).delete()
 
-    # Prefer going back to the page the user was on (with security check)
+
     back = request.META.get("HTTP_REFERER")
     if back:
-        # Basic security: ensure referer is from same host
+
         from django.utils.http import url_has_allowed_host_and_scheme
         if url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}):
             return redirect(back)
 
-    # Fallback to the unified favorites page
+
     return redirect("profile_favorites")
 
 
-# =============================================================================
-# Health Check & Monitoring
-# =============================================================================
+
+
+
 
 def health_check(request: HttpRequest) -> JsonResponse:
     """Health check endpoint for monitoring."""
@@ -1486,7 +1490,7 @@ def health_check(request: HttpRequest) -> JsonResponse:
 
 def handler404(request: HttpRequest, exception) -> HttpResponse:
     """Custom 404 error handler."""
-    # Log 404 for debugging
+
     logger.warning(f"404 error: {request.path} from {request.get_host()}, allowed hosts: {settings.ALLOWED_HOSTS}")
     return render(request, '404.html', status=404)
 
