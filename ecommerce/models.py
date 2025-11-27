@@ -425,3 +425,4 @@ class OrderItem(models.Model):
         if self.variant:
             return f"{label} (size {self.variant.size}) in order #{self.order_id}"
         return f"{label} in order #{self.order_id}"
+
