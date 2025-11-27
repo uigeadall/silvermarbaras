@@ -102,7 +102,7 @@ def send_order_shipped_email(order, base_url, tracking_number=None) -> bool:
     """Send email when order is shipped."""
     recipient = getattr(order, "email", None) or getattr(getattr(order, "user", None), "email", None)
     if not recipient:
-        log.warning("Order shipped email skipped, no recipient for order
+        log.warning("Order shipped email skipped, no recipient for order #%s", order.id)
         return False
 
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or "no-reply@example.com"
@@ -116,7 +116,7 @@ def send_order_shipped_email(order, base_url, tracking_number=None) -> bool:
         "shipping_option": order.shipping_option,
     }
     try:
-        subject = f"Your order
+        subject = f"Your order #{order.id} has been shipped - Marbaras"
         text = render_to_string("emails/order_shipped.txt", ctx)
         html = render_to_string("emails/order_shipped.html", ctx)
 
@@ -125,7 +125,7 @@ def send_order_shipped_email(order, base_url, tracking_number=None) -> bool:
         msg.send(fail_silently=False)
         return True
     except Exception as e:
-        log.exception("Failed to send order shipped email for
+        log.exception("Failed to send order shipped email for #%s: %s", order.id, e)
         return False
 
 
