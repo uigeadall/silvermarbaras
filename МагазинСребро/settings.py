@@ -102,6 +102,7 @@ INSTALLED_APPS = [
 
 try:
     import jwt
+    import cryptography
     INSTALLED_APPS.append("allauth.socialaccount.providers.google")
 except ImportError:
     pass
