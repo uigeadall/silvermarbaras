@@ -37,6 +37,25 @@
   .qty-input{
     width:72px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:8px;
   }
+  .qty-controls{
+    display:flex; align-items:center; gap:4px;
+  }
+  .qty-btn{
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+    border:1px solid #cbd5e1; background:#fff; border-radius:6px; cursor:pointer;
+    font-size:16px; font-weight:700; color:#475569; user-select:none;
+    transition:background-color 0.2s, border-color 0.2s;
+  }
+  .qty-btn:hover{
+    background:#f1f5f9; border-color:#94a3b8;
+  }
+  .qty-btn:active{
+    background:#e2e8f0;
+  }
+  .qty-input-mobile{
+    width:48px; padding:4px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;
+    font-size:14px; font-weight:600;
+  }
   .btn{ padding:8px 14px; border-radius:10px; border:1px solid transparent; font-weight:700; cursor:pointer; display:inline-block; }
   .btn-dark{ background:#111827; color:#fff; }
   .btn-dark:hover{ filter:brightness(0.95); }
@@ -264,9 +283,13 @@
                     <div class="text-sm font-bold">Subtotal: <span data-usd-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</span></div>
                   </div>
                   <div class="flex flex-col items-end gap-2">
-                    <form method="post" action="{% url 'update_cart_quantity' item.pk %}">
+                    <form method="post" action="{% url 'update_cart_quantity' item.pk %}" class="qty-form-mobile" data-item-id="{{ item.pk }}">
                       {% csrf_token %}
-                      <input class="qty-input" type="number" name="quantity" value="{{ item.quantity }}" min="1" style="width:64px;">
+                      <div class="qty-controls">
+                        <button type="button" class="qty-btn qty-decrease" aria-label="Decrease quantity">−</button>
+                        <input class="qty-input-mobile" type="number" name="quantity" value="{{ item.quantity }}" min="1" readonly>
+                        <button type="button" class="qty-btn qty-increase" aria-label="Increase quantity">+</button>
+                      </div>
                     </form>
                     <form method="post" action="{% url 'remove_from_cart' item.pk %}">
                       {% csrf_token %}
@@ -402,7 +425,35 @@
 
 {% block extra_js %}
 <script>
-  document.querySelectorAll('.cart-list form[action$="update_cart_quantity/"]').forEach(f=>{
+  // Mobile quantity controls with arrows
+  document.querySelectorAll('.qty-form-mobile').forEach(form => {
+    const input = form.querySelector('.qty-input-mobile');
+    const decreaseBtn = form.querySelector('.qty-decrease');
+    const increaseBtn = form.querySelector('.qty-increase');
+    
+    if (!input || !decreaseBtn || !increaseBtn) return;
+    
+    function updateQuantity(change) {
+      const currentValue = parseInt(input.value) || 1;
+      const newValue = Math.max(1, currentValue + change);
+      input.value = newValue;
+      form.submit();
+    }
+    
+    decreaseBtn.addEventListener('click', () => {
+      const currentValue = parseInt(input.value) || 1;
+      if (currentValue > 1) {
+        updateQuantity(-1);
+      }
+    });
+    
+    increaseBtn.addEventListener('click', () => {
+      updateQuantity(1);
+    });
+  });
+  
+  // Desktop quantity input change handler
+  document.querySelectorAll('.cart-table form[action$="update_cart_quantity/"]').forEach(f=>{
     const i=f.querySelector('input[type="number"]'); if(i){ i.addEventListener('change',()=>f.submit()); }
   });
 
