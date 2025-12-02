@@ -53,7 +53,40 @@
   </div>
   
   {% if recent_orders %}
-    <div class="overflow-x-auto rounded-lg border border-slate-200">
+    <!-- Mobile: Card Layout -->
+    <div class="lg:hidden space-y-3">
+      {% for o in recent_orders %}
+      <div class="bg-white rounded-lg border border-slate-200 p-4">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <p class="font-extrabold text-slate-900">Order #{{ o.id }}</p>
+            <p class="text-sm text-slate-600 mt-1">
+              {{ o.created_at|date:"M d, Y" }} at {{ o.created_at|date:"H:i" }}
+            </p>
+          </div>
+          <span class="font-extrabold text-slate-900">${{ o.total_price|floatformat:2 }}</span>
+        </div>
+        <div class="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
+          {% if o.shipping_option %}
+          <div class="text-xs">
+            <span class="text-slate-500">Shipping:</span>
+            <span class="font-semibold text-slate-700 ml-1">{{ o.shipping_option.name }}</span>
+          </div>
+          {% endif %}
+          {% if o.coupon %}
+          <div class="text-xs">
+            <span class="px-2 py-1 bg-green-100 text-green-700 rounded-md font-semibold">
+              {{ o.coupon.code }}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Desktop: Table Layout -->
+    <div class="hidden lg:block overflow-x-auto rounded-lg border border-slate-200">
       <table class="min-w-full divide-y divide-slate-200">
         <thead class="bg-slate-50">
           <tr>
