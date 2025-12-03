@@ -527,26 +527,20 @@
     const debugMode = true; // Set to false to hide when not available
     const paymentSection = document.getElementById('cart-payment-section');
     
-    // Hide placeholder button initially
+    // Get placeholder button - it's visible by default in HTML
     const placeholderBtn = document.getElementById('cart-apple-pay-placeholder');
-    if (placeholderBtn) placeholderBtn.style.display = 'none';
     
     if (!stripePublicKey || !stripePublicKey.startsWith('pk_') || !totalAmount || totalAmount <= 0) {
-      // Show placeholder button if Stripe is not configured
-      if (placeholderBtn) {
-        placeholderBtn.style.display = 'inline-flex';
-        loadingDiv.style.display = 'none';
-      }
+      // Keep placeholder button visible if Stripe is not configured
+      if (loadingDiv) loadingDiv.style.display = 'none';
+      console.log('📱 Stripe not configured, showing placeholder button');
       return;
     }
 
     if (typeof Stripe === 'undefined') {
       console.error('Stripe.js not loaded');
-      // Show placeholder button if Stripe.js is not loaded
-      if (placeholderBtn) {
-        placeholderBtn.style.display = 'inline-flex';
-        loadingDiv.style.display = 'none';
-      }
+      // Keep placeholder button visible if Stripe.js is not loaded
+      if (loadingDiv) loadingDiv.style.display = 'none';
       return;
     }
 
