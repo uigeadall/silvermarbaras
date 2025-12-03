@@ -101,6 +101,15 @@ class Migration(migrations.Migration):
                 to="ecommerce.category",
             ),
         ),
+        migrations.RunPython(
+            # Populate categories field with primary category for existing products
+            lambda apps, schema_editor: [
+                p.categories.add(p.category) 
+                for p in apps.get_model('ecommerce', 'Product').objects.select_related('category').all()
+                if p.category and p.category not in p.categories.all()
+            ],
+            reverse_code=migrations.RunPython.noop,
+        ),
         migrations.AlterField(
             model_name="category",
             name="slug",
