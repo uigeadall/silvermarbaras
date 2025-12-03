@@ -10,31 +10,33 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     default-libmysqlclient-dev \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Install Python dependencies first (for better caching)
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . /app/
-
-# Copy and set permissions for entrypoint script
+# Copy only necessary files (exclude large files)
+COPY МагазинСребро/ /app/МагазинСребро/
+COPY ecommerce/ /app/ecommerce/
+COPY templates/ /app/templates/
+COPY static/ /app/static/
+COPY manage.py /app/
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Create logs, static, and media directories (if not using Railway Volume)
 # Railway Volume should be mounted at /app/media
-RUN mkdir -p /app/logs /app/static /app/media /app/media/products /app/media/products/multiple
+RUN mkdir -p /app/logs /app/staticfiles /app/media /app/media/products /app/media/products/multiple
 
 # Expose port
 EXPOSE 8000
 
 # Use entrypoint script
-# Usefull
 ENTRYPOINT ["/app/entrypoint.sh"]
 
