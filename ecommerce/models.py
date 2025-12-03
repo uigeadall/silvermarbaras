@@ -89,29 +89,10 @@ class Product(models.Model):
         return bool(self.discount_price and self.discount_price < self.price)
 
     def save(self, *args, **kwargs):
-        """Ensure primary category is also in categories, and auto-add to Sale if discount_price is set."""
+        """Ensure primary category is also in categories."""
         super().save(*args, **kwargs)
-        
-        # Ensure primary category is in categories
         if self.category and self.category not in self.categories.all():
             self.categories.add(self.category)
-        
-        # Auto-add to Sale category if discount_price is set
-        if self.discount_price and self.has_discount():
-            try:
-                sale_category = Category.objects.filter(name__iexact='Sale').first()
-                if sale_category and sale_category not in self.categories.all():
-                    self.categories.add(sale_category)
-            except Exception:
-                pass  # Ignore if Sale category doesn't exist
-        else:
-            # Remove from Sale category if discount_price is removed or invalid
-            try:
-                sale_category = Category.objects.filter(name__iexact='Sale').first()
-                if sale_category and sale_category in self.categories.all():
-                    self.categories.remove(sale_category)
-            except Exception:
-                pass  # Ignore if Sale category doesn't exist
 
     @property
     def is_ring(self) -> bool:
