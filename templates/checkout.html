@@ -467,6 +467,51 @@
 
   // Stripe
   {% if stripe_public_key %}
+  // Load Apple Pay / Google Pay data from sessionStorage (if coming from cart)
+  (function() {
+    try {
+      const applePayData = sessionStorage.getItem('applePayData');
+      if (applePayData) {
+        const data = JSON.parse(applePayData);
+        if (data.payerName) {
+          const nameField = document.getElementById('full_name');
+          if (nameField && !nameField.value) nameField.value = data.payerName;
+        }
+        if (data.payerEmail) {
+          const emailField = document.getElementById('email');
+          if (emailField && !emailField.value) emailField.value = data.payerEmail;
+        }
+        if (data.payerPhone) {
+          const phoneField = document.getElementById('phone');
+          if (phoneField && !phoneField.value) phoneField.value = data.payerPhone;
+        }
+        if (data.shippingAddress) {
+          const addr = data.shippingAddress;
+          if (addr.addressLine && addr.addressLine.length > 0) {
+            const addressField = document.getElementById('address');
+            if (addressField && !addressField.value) addressField.value = addr.addressLine.join(', ');
+          }
+          if (addr.city) {
+            const cityField = document.getElementById('city');
+            if (cityField && !cityField.value) cityField.value = addr.city;
+          }
+          if (addr.postalCode) {
+            const postalField = document.getElementById('postal_code');
+            if (postalField && !postalField.value) postalField.value = addr.postalCode;
+          }
+          if (addr.country) {
+            const countryField = document.getElementById('country');
+            if (countryField && !countryField.value) countryField.value = addr.country;
+          }
+        }
+        // Clear the data after using it
+        sessionStorage.removeItem('applePayData');
+      }
+    } catch (e) {
+      console.error('Error loading Apple Pay data:', e);
+    }
+  })();
+  
   console.log('Initializing Stripe...');
   console.log('Stripe public key:', '{{ stripe_public_key }}'.substring(0, 20) + '...');
   
