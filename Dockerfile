@@ -21,13 +21,8 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy only necessary files (exclude large files)
-COPY МагазинСребро/ /app/МагазинСребро/
-COPY ecommerce/ /app/ecommerce/
-COPY templates/ /app/templates/
-COPY static/ /app/static/
-COPY manage.py /app/
-COPY entrypoint.sh /app/entrypoint.sh
+# Copy project files (large files excluded via .dockerignore)
+COPY . /app/
 RUN chmod +x /app/entrypoint.sh
 
 # Create logs, static, and media directories (if not using Railway Volume)

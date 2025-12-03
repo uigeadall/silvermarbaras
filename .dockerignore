@@ -1,14 +1,13 @@
+# Git
+.git
+.gitignore
+
 # Python
-__pycache__/
+__pycache__
 *.py[cod]
 *$py.class
 *.so
 .Python
-*.egg-info/
-dist/
-build/
-
-# Virtual Environment
 venv/
 venv310/
 ENV/
@@ -18,16 +17,15 @@ env/
 # Django
 *.log
 *.pot
-*.pyc
 db.sqlite3
-# /media  # Commented out to include media files in Docker image
-/staticfiles
-# /static  # Commented out to include static files (banner.jpg, placeholder.jpg) in Docker image
+db.sqlite3-journal
+staticfiles/
+media/
 
-# Environment
-.env
-.env.local
-.env.*.local
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
 
 # IDE
 .vscode/
@@ -37,31 +35,56 @@ db.sqlite3
 
 # OS
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
 
-# Git
-.git/
-.gitignore
-
-# Node
-node_modules/
-npm-debug.log*
-
-# Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
-
-# Documentation
-*.md
-!README.md
-
-# Backups
-*.sql
-*.sql.gz
-*.db
-
-# Misc
+# Large files
 *.zip
 *.tar.gz
+*.rar
+МагазинСребро.zip
+silvershop_*.sql.gz
 
+# Documentation (not needed in production)
+*.md
+CHECK_*.md
+DEBUG_*.md
+DEPLOY_*.md
+FIX_*.md
+HOW_*.md
+IMPORT_*.md
+RAILWAY_*.md
+RENDER_*.md
+SETUP_*.md
+STRIPE_*.md
+TESTING_*.md
+UPDATE_*.md
+UPLOAD_*.md
+WORKING_*.md
+PRODUCTION_*.md
+QUICK_*.md
+NEXT_*.md
+MIGRATE_*.md
+PASSENGER_*.md
+HOSTING_*.md
+CONNECT_*.md
+EXPORT_*.md
+FIND_*.md
+VOLUME_*.md
+SUCCESS_*.md
+
+# Scripts (not needed in production)
+scripts/
+remove_comments.py
+QUICK_SETUP_STRIPE_EMAIL.sh
+RENDER_DEPLOY_NOW.sh
+
+# Config files not needed
+docker-compose.yml
+nginx.conf
+passenger_wsgi.py
+render.yaml
+
+# Duplicate directories
+magazinsrebro/
