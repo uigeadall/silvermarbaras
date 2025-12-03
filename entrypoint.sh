@@ -64,7 +64,7 @@ echo "Collecting static files..."
 python manage.py collectstatic --noinput --clear || {
     echo "Collectstatic failed, but continuing..."
 }
-# Ensure banner exists in staticfiles (always copy after collectstatic)
+# Ensure banner and payment methods image exist in staticfiles (always copy after collectstatic)
 if [ -f "static/images/banner.jpg" ]; then
     echo "✅ Ensuring banner.jpg is in staticfiles..."
     mkdir -p staticfiles/images
@@ -73,6 +73,14 @@ elif [ -f "staticfiles/images/banner.jpg" ]; then
     echo "✅ Banner already exists in staticfiles"
 else
     echo "⚠️  Warning: Banner not found in static/images/"
+fi
+
+if [ -f "static/images/payment-methods.jpg" ]; then
+    echo "✅ Ensuring payment-methods.jpg is in staticfiles..."
+    mkdir -p staticfiles/images
+    cp static/images/payment-methods.jpg staticfiles/images/payment-methods.jpg && echo "✅ Payment methods image copied successfully" || echo "⚠️  Could not copy payment methods image"
+elif [ -f "staticfiles/images/payment-methods.jpg" ]; then
+    echo "✅ Payment methods image already exists in staticfiles"
 fi
 
 # Import data if database is empty (only on first run)
