@@ -374,7 +374,7 @@ def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
 
     # Use categories ManyToManyField if available, fallback to category ForeignKey
     products = Product.objects.filter(
-        models.Q(categories=category) | models.Q(category=category)
+        Q(categories=category) | Q(category=category)
     ).select_related("category").distinct()
     products = products.annotate(_eff_price=Coalesce("discount_price", "price"))
     if sort == "price_asc":
