@@ -244,7 +244,7 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
         # Ensure all parameters are ASCII-safe
         intent = stripe.PaymentIntent.create(
             amount=int(_to_cents(amount)),
-            currency="usd",
+            currency="eur",  # Changed to EUR as base currency
             idempotency_key=idempotency_key,
         )
         return intent
