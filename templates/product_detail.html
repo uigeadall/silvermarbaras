@@ -294,6 +294,37 @@
   .inline-warning { min-height: 18px; font-size: 12px; color: #b91c1c; margin-top: 6px; display: none; }
   .inline-warning.show { display: block; }
 
+  /* Tooltip for Add to Cart button */
+  .add-to-cart-tooltip {
+    position: fixed;
+    background: #1f2937;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .add-to-cart-tooltip.show {
+    opacity: 1;
+    visibility: visible;
+  }
+  .add-to-cart-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1f2937;
+  }
+
   .description { margin-top: 30px; }
   .description h3 { font-weight: 700; }
   .description-text { font-size: 0.90rem; line-height: 1.6; background: transparent; border: none; }
@@ -652,7 +683,7 @@
 
                   <form id="addToCartForm" method="post" action="{% url 'add_to_cart' product.pk %}">
                     {% csrf_token %}
-                    <div class="btn-wrap">
+                    <div class="btn-wrap" style="position: relative;">
                       <button
                         id="addToCartBtn"
                         class="btn btn--primary"
@@ -661,6 +692,9 @@
                         🛒 Add to Cart
                       </button>
                       <div id="sizeWarning" class="inline-warning" aria-live="polite"></div>
+                      {% if product.variants.count %}
+                      <div id="addToCartTooltip" class="add-to-cart-tooltip">You must choose size first</div>
+                      {% endif %}
                     </div>
                   </form>
                 </div>
@@ -983,8 +1017,10 @@
     const qtyMinus = document.getElementById('qtyMinus');
     const warning  = document.getElementById('sizeWarning');
     const stockLine = document.getElementById('stockLine');
+    const tooltip = document.getElementById('addToCartTooltip');
 
     const hasVariants = !!grid;
+    let selectedVariantId = null;
 
     function showWarning(msg) {
       if (!warning) return;
@@ -1044,9 +1080,11 @@
       const vid = pill.getAttribute('data-variant-id');
       const stock = parseInt(pill.getAttribute('data-stock')||'0',10);
       hidden.value = vid || '';
+      selectedVariantId = vid || null;
       hideWarning();
       setStockLine(stock);
       updateQtyControls(stock);
+      if (tooltip) tooltip.classList.remove('show');
     }
 
     grid?.addEventListener('click', function(e){
@@ -1064,12 +1102,38 @@
       if (['Enter',' '].includes(e.key))             { e.preventDefault(); selectPill(document.activeElement.closest('.size-pill')); }
     });
 
+    // Tooltip functionality for Add to Cart button
+    if (btn && tooltip && hasVariants) {
+      btn.addEventListener('mouseenter', function(e) {
+        if (!selectedVariantId) {
+          updateTooltipPosition(e);
+          tooltip.classList.add('show');
+        }
+      });
+      btn.addEventListener('mouseleave', function() {
+        tooltip.classList.remove('show');
+      });
+      btn.addEventListener('mousemove', function(e) {
+        if (!selectedVariantId && tooltip.classList.contains('show')) {
+          updateTooltipPosition(e);
+        }
+      });
+      
+      function updateTooltipPosition(e) {
+        const offset = 15;
+        tooltip.style.left = (e.clientX) + 'px';
+        tooltip.style.top = (e.clientY - offset) + 'px';
+        tooltip.style.transform = 'translate(-50%, -100%)';
+      }
+    }
+
     if (hasVariants) {
       const inStock = grid.querySelectorAll('.size-pill:not(.out)');
       if (inStock.length === 1) {
         selectPill(inStock[0]);
       } else {
         hidden.value='';
+        selectedVariantId = null;
         setStockLine(undefined);
         qtyPlus.disabled=false;
         qtyMinus.disabled=true;
@@ -1093,6 +1157,7 @@
       if (hasVariants && !hidden.value) {
         e.preventDefault();
         showWarning('⚠️ Please select a size');
+        if (tooltip) tooltip.classList.remove('show');
         grid?.focus?.();
         return;
       }
