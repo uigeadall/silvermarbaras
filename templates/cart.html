@@ -501,10 +501,10 @@
   }
   wireCart('cartLink','cartTip');
 
-  {% if stripe_public_key and cart_items %}
+  {% if cart_items %}
   // Apple Pay / Google Pay in Cart
   (function() {
-    const stripePublicKey = '{{ stripe_public_key }}';
+    const stripePublicKey = '{{ stripe_public_key|default:"" }}';
     const totalAmount = {{ subtotal|default:0 }};
     const container = document.getElementById('cart-payment-request-button-container');
     const loadingDiv = document.getElementById('cart-payment-request-loading');
