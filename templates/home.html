@@ -282,11 +282,16 @@
               </a>
 
               <!-- Price -->
-              {% with price=p.discount_price|default_if_none:p.price %}
-                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ price }}">
-                  ${{ price|floatformat:2 }}
+              {% if p.has_discount %}
+                <div class="mt-1 px-2 text-xs font-bold text-left">
+                  <span style="color:#dc2626;" data-usd-price="{{ p.discount_price }}">${{ p.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration:line-through; color:#888; margin-left:4px;" data-usd-price="{{ p.price }}">${{ p.price|floatformat:2 }}</span>
                 </div>
-              {% endwith %}
+              {% else %}
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ p.price }}">
+                  ${{ p.price|floatformat:2 }}
+                </div>
+              {% endif %}
             </div>
             {% endfor %}
           </div>
@@ -354,11 +359,16 @@
                 {{ p.name }}
               </a>
 
-              {% with price=p.discount_price|default_if_none:p.price %}
-                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ price }}">
-                  ${{ price|floatformat:2 }}
+              {% if p.has_discount %}
+                <div class="mt-1 px-2 text-xs font-bold text-left">
+                  <span style="color:#dc2626;" data-usd-price="{{ p.discount_price }}">${{ p.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration:line-through; color:#888; margin-left:4px;" data-usd-price="{{ p.price }}">${{ p.price|floatformat:2 }}</span>
                 </div>
-              {% endwith %}
+              {% else %}
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ p.price }}">
+                  ${{ p.price|floatformat:2 }}
+                </div>
+              {% endif %}
             </div>
             {% endfor %}
           </div>
@@ -453,11 +463,16 @@
                 {{ product.name }}
               </a>
 
-              {% with price=product.discount_price|default_if_none:product.price %}
-                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ price }}">
-                  ${{ price|floatformat:2 }}
+              {% if product.has_discount %}
+                <div class="mt-1 px-2 text-xs font-bold text-left">
+                  <span style="color:#dc2626;" data-usd-price="{{ product.discount_price }}">${{ product.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration:line-through; color:#888; margin-left:4px;" data-usd-price="{{ product.price }}">${{ product.price|floatformat:2 }}</span>
                 </div>
-              {% endwith %}
+              {% else %}
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-usd-price="{{ product.price }}">
+                  ${{ product.price|floatformat:2 }}
+                </div>
+              {% endif %}
             </div>
             {% endfor %}
           </div>

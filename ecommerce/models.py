@@ -45,6 +45,13 @@ class Product(models.Model):
         Category,
         on_delete=models.CASCADE,
         related_name="products",
+        help_text="Primary category (for backward compatibility)",
+    )
+    categories = models.ManyToManyField(
+        Category,
+        related_name="categorized_products",
+        blank=True,
+        help_text="All categories this product belongs to (including Sale)",
     )
 
     image = models.ImageField(upload_to="products/", blank=True, null=True)
@@ -80,6 +87,12 @@ class Product(models.Model):
 
     def has_discount(self) -> bool:
         return bool(self.discount_price and self.discount_price < self.price)
+
+    def save(self, *args, **kwargs):
+        """Ensure primary category is also in categories."""
+        super().save(*args, **kwargs)
+        if self.category and self.category not in self.categories.all():
+            self.categories.add(self.category)
 
     @property
     def is_ring(self) -> bool:

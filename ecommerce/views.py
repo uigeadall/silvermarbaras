@@ -372,7 +372,10 @@ def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
     category = get_object_or_404(Category, pk=pk)
     sort = request.GET.get("sort")
 
-    products = Product.objects.filter(category=category).select_related("category")
+    # Use categories ManyToManyField if available, fallback to category ForeignKey
+    products = Product.objects.filter(
+        models.Q(categories=category) | models.Q(category=category)
+    ).select_related("category").distinct()
     products = products.annotate(_eff_price=Coalesce("discount_price", "price"))
     if sort == "price_asc":
         products = products.order_by("_eff_price")

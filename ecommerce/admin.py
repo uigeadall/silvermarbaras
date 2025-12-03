@@ -43,7 +43,8 @@ class ProductBundleItemInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     inlines = [ProductImageInline, ProductVariantInline, ProductBundleItemInline]
     list_display = ("name", "serial_number", "price", "discount_price", "category", "brand", "cart_add_count")
-    list_filter = ("category", "brand")
+    list_filter = ("category", "brand", "categories")
+    filter_horizontal = ("categories",)
 
 
 
