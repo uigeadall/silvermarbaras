@@ -300,13 +300,31 @@
   </main>
 
   <footer class="border-t border-slate-200">
-  <div class="mx-auto max-w-site px-4 py-2 text-[11px] leading-tight flex flex-col sm:flex-row items-center justify-between gap-2 text-slate-600">
-    <nav class="flex flex-wrap gap-4 justify-center sm:justify-start">
-      <a href="{% url 'terms' %}" class="hover:text-slate-900">Terms</a>
-      <a href="{% url 'privacy' %}" class="hover:text-slate-900">Privacy</a>
-      <a href="{% url 'contact' %}" class="hover:text-slate-900">Contact</a>
-    </nav>
-    <span class="text-center sm:text-left">© {% now "Y" %} Marbaras</span>
+  <div class="mx-auto max-w-site px-4 py-3 text-[11px] leading-tight">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-600">
+      <nav class="flex flex-wrap gap-4 justify-center sm:justify-start">
+        <a href="{% url 'terms' %}" class="hover:text-slate-900">Terms</a>
+        <a href="{% url 'privacy' %}" class="hover:text-slate-900">Privacy</a>
+        <a href="{% url 'contact' %}" class="hover:text-slate-900">Contact</a>
+      </nav>
+      
+      <!-- Payment Methods -->
+      <div class="flex items-center gap-3 flex-wrap justify-center">
+        <div class="flex items-center gap-1">
+          <span class="text-[10px] text-slate-500">Powered by</span>
+          <span class="font-bold text-slate-900 text-xs">stripe</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded">
+          <div class="px-1.5 py-0.5 rounded bg-blue-900 text-white text-[8px] font-bold">VISA</div>
+          <div class="px-1.5 py-0.5 rounded text-[8px] font-bold" style="background: linear-gradient(135deg, #EB001B 0%, #FF5F00 100%); color: white;">MC</div>
+          <div class="px-1.5 py-0.5 rounded text-[8px] font-bold" style="background: linear-gradient(135deg, #0064CB 0%, #E41E24 100%); color: white;">M</div>
+          <div class="px-1.5 py-0.5 rounded bg-white text-[8px] font-medium text-black border border-slate-100">G Pay</div>
+          <div class="px-1.5 py-0.5 rounded bg-white text-[8px] font-medium text-black border border-slate-100">🍎 Pay</div>
+        </div>
+      </div>
+      
+      <span class="text-center sm:text-left">© {% now "Y" %} Marbaras</span>
+    </div>
   </div>
 </footer>
 
