@@ -514,6 +514,7 @@
         requestPayerName: true,
         requestPayerEmail: true,
         requestPayerPhone: true,
+        requestPayerAddress: true,
       });
       console.log('✅ Payment Request object created');
 
@@ -625,6 +626,23 @@
           }
           if (ev.payerPhone) {
             document.getElementById('phone').value = ev.payerPhone;
+          }
+          
+          // Fill address fields from Apple Pay / Google Pay
+          if (ev.shippingAddress) {
+            const addr = ev.shippingAddress;
+            if (addr.addressLine && addr.addressLine.length > 0) {
+              document.getElementById('address').value = addr.addressLine.join(', ');
+            }
+            if (addr.city) {
+              document.getElementById('city').value = addr.city;
+            }
+            if (addr.postalCode) {
+              document.getElementById('postal_code').value = addr.postalCode;
+            }
+            if (addr.country) {
+              document.getElementById('country').value = addr.country;
+            }
           }
           
           // Set payment intent ID

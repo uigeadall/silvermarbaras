@@ -537,6 +537,7 @@
         requestPayerName: true,
         requestPayerEmail: true,
         requestPayerPhone: true,
+        requestPayerAddress: true,
       });
 
       const paymentRequestButton = elements.create('paymentRequestButton', {
@@ -583,6 +584,21 @@
 
       // Handle payment method
       paymentRequest.on('paymentmethod', async function(ev) {
+        // Store payment method data in sessionStorage to pass to checkout
+        if (ev.payerName || ev.payerEmail || ev.payerPhone || ev.shippingAddress) {
+          const paymentData = {
+            payerName: ev.payerName,
+            payerEmail: ev.payerEmail,
+            payerPhone: ev.payerPhone,
+            shippingAddress: ev.shippingAddress ? {
+              addressLine: ev.shippingAddress.addressLine,
+              city: ev.shippingAddress.city,
+              postalCode: ev.shippingAddress.postalCode,
+              country: ev.shippingAddress.country,
+            } : null
+          };
+          sessionStorage.setItem('applePayData', JSON.stringify(paymentData));
+        }
         // Redirect to checkout for payment processing
         window.location.href = "{% url 'checkout' %}";
         ev.complete('success');
