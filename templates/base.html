@@ -310,14 +310,11 @@
       
       <!-- Payment Methods -->
       <div class="flex items-center gap-3 flex-wrap justify-center">
-        <div class="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded">
-          <span class="text-[10px] text-slate-500">Powered by</span>
-          <span class="font-bold text-slate-900 text-xs">stripe</span>
-          <img src="https://cdn.jsdelivr.net/gh/stripe/stripe-payments-demo@main/public/images/payment-methods.png" 
-               alt="Payment methods: VISA, MasterCard, Maestro, Google Pay, Apple Pay" 
-               class="h-5 object-contain ml-1"
-               onerror="this.onerror=null; this.src='https://stripe.com/img/v3/home/social.png'; this.style.height='20px';">
-        </div>
+        {% load static %}
+        <img src="{% static 'images/payment-methods.png' %}" 
+             alt="Payment methods: VISA, MasterCard, Maestro, Google Pay, Apple Pay - Powered by Stripe" 
+             class="h-6 object-contain"
+             onerror="this.onerror=null; this.style.display='none';">
       </div>
       
       <span class="text-center sm:text-left">© {% now "Y" %} Marbaras</span>
