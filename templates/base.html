@@ -206,8 +206,8 @@
         <!-- Currency Selector -->
         <div class="currency-selector">
           <select id="currencySelector" aria-label="Select currency">
-            <option value="USD">$ USD</option>
             <option value="EUR">€ EUR</option>
+            <option value="USD">$ USD</option>
             <option value="GBP">£ GBP</option>
           </select>
         </div>
@@ -341,21 +341,23 @@
       };
 
       // Exchange rates cache (will be loaded from API)
+      // EUR is now the base currency (1.0)
       let exchangeRates = {
-        USD: 1.0,
-        EUR: 0.92,  // Fallback rates
-        GBP: 0.79   // Fallback rates
+        EUR: 1.0,
+        USD: 1.09,  // Fallback rates (EUR to USD)
+        GBP: 0.86   // Fallback rates (EUR to GBP)
       };
 
       // API endpoint - using exchangerate-api.com (free, no API key needed)
-      const EXCHANGE_RATE_API = 'https://api.exchangerate-api.com/v4/latest/USD';
+      // Using EUR as base currency
+      const EXCHANGE_RATE_API = 'https://api.exchangerate-api.com/v4/latest/EUR';
       const CACHE_KEY = 'exchangeRatesCache';
       const CACHE_TIMESTAMP_KEY = 'exchangeRatesTimestamp';
       const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-      // Get current currency from localStorage or default to USD
+      // Get current currency from localStorage or default to EUR
       function getCurrentCurrency() {
-        return localStorage.getItem('selectedCurrency') || 'USD';
+        return localStorage.getItem('selectedCurrency') || 'EUR';
       }
 
       // Save currency to localStorage
@@ -394,11 +396,11 @@
           
           const data = await response.json();
           
-          // Extract rates for EUR and GBP (USD is always 1.0)
+          // Extract rates for USD and GBP (EUR is always 1.0 as base)
           exchangeRates = {
-            USD: 1.0,
-            EUR: data.rates.EUR || 0.92,
-            GBP: data.rates.GBP || 0.79
+            EUR: 1.0,
+            USD: data.rates.USD || 1.09,
+            GBP: data.rates.GBP || 0.86
           };
 
           // Cache the rates
@@ -413,10 +415,10 @@
         }
       }
 
-      // Convert price from USD to selected currency
-      function convertPrice(usdPrice, currency) {
+      // Convert price from EUR (base) to selected currency
+      function convertPrice(eurPrice, currency) {
         const rate = exchangeRates[currency] || 1.0;
-        return parseFloat(usdPrice) * rate;
+        return parseFloat(eurPrice) * rate;
       }
 
       // Format price with currency symbol
@@ -429,11 +431,22 @@
       function updateAllPrices() {
         const currency = getCurrentCurrency();
 
-        // Find all elements with data-usd-price attribute
-        document.querySelectorAll('[data-usd-price]').forEach(element => {
-          const usdPrice = parseFloat(element.getAttribute('data-usd-price'));
+        // Find all elements with data-eur-price attribute (EUR is base currency)
+        document.querySelectorAll('[data-eur-price]').forEach(element => {
+          const eurPrice = parseFloat(element.getAttribute('data-eur-price'));
+          if (!isNaN(eurPrice)) {
+            const convertedPrice = convertPrice(eurPrice, currency);
+            element.textContent = formatPrice(convertedPrice, currency);
+          }
+        });
+        
+        // Also support legacy data-eur-price for backward compatibility (convert USD to EUR first)
+        document.querySelectorAll('[data-eur-price]:not([data-eur-price])').forEach(element => {
+          const usdPrice = parseFloat(element.getAttribute('data-eur-price'));
           if (!isNaN(usdPrice)) {
-            const convertedPrice = convertPrice(usdPrice, currency);
+            // Convert USD to EUR first, then to selected currency
+            const eurPrice = usdPrice / (exchangeRates.USD || 1.09);
+            const convertedPrice = convertPrice(eurPrice, currency);
             element.textContent = formatPrice(convertedPrice, currency);
           }
         });
@@ -504,7 +517,7 @@
         mutations.forEach(function(mutation) {
           if (mutation.addedNodes.length > 0) {
             mutation.addedNodes.forEach(function(node) {
-              if (node.nodeType === 1 && (node.hasAttribute('data-usd-price') || node.querySelector('[data-usd-price]'))) {
+              if (node.nodeType === 1 && (node.hasAttribute('data-eur-price') || node.querySelector('[data-eur-price]'))) {
                 shouldUpdate = true;
               }
             });

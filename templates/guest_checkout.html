@@ -149,34 +149,34 @@
     <ul>
       {% for item in cart_items %}
         <li>
-          {{ item.product.name }}{% if item.variant %} (Size: {{ item.variant.size }}){% endif %} × {{ item.quantity }} — <span data-usd-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</span>
+          {{ item.product.name }}{% if item.variant %} (Size: {{ item.variant.size }}){% endif %} × {{ item.quantity }} — <span data-eur-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</span>
         </li>
       {% endfor %}
     </ul>
 
     <div class="totals-row">
       <span>Subtotal:</span>
-      <span data-usd-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
+      <span data-eur-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
     </div>
     {% if discount %}
     <div class="totals-row">
       <span>Discount:</span>
-      <span data-usd-price="{{ discount }}">- ${{ discount|floatformat:2 }}</span>
+      <span data-eur-price="{{ discount }}">- ${{ discount|floatformat:2 }}</span>
     </div>
     {% endif %}
     {% if shipping_cost %}
     <div class="totals-row">
       <span>Shipping:</span>
-      <span data-usd-price="{{ shipping_cost }}">${{ shipping_cost|floatformat:2 }}</span>
+      <span data-eur-price="{{ shipping_cost }}">${{ shipping_cost|floatformat:2 }}</span>
     </div>
     {% endif %}
     <div class="totals-row total">
       <span>Total:</span>
       <span>
         {% if total %}
-          <span data-usd-price="{{ total }}">${{ total|floatformat:2 }}</span>
+          <span data-eur-price="{{ total }}">${{ total|floatformat:2 }}</span>
         {% else %}
-          <span data-usd-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
+          <span data-eur-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
         {% endif %}
       </span>
     </div>

@@ -607,10 +607,10 @@
               <h1>{{ product.name }}</h1>
               <div class="price">
                 {% if product.has_discount %}
-                  <span style="color: red; font-weight: bold;" data-usd-price="{{ product.discount_price }}">${{ product.discount_price|floatformat:2 }}</span>
-                  <span style="text-decoration: line-through; color: #777; margin-left: 8px;" data-usd-price="{{ product.price }}">${{ product.price|floatformat:2 }}</span>
+                  <span style="color: red; font-weight: bold;" data-eur-price="{{ product.discount_price }}">${{ product.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration: line-through; color: #777; margin-left: 8px;" data-eur-price="{{ product.price }}">${{ product.price|floatformat:2 }}</span>
                 {% else %}
-                  <span data-usd-price="{{ product.price }}">${{ product.price|floatformat:2 }}</span>
+                  <span data-eur-price="{{ product.price }}">${{ product.price|floatformat:2 }}</span>
                 {% endif %}
               </div>
 
@@ -728,11 +728,11 @@
                         <p class="text-sm font-semibold line-clamp-2 text-slate-800 hover:text-slate-900">{{ b.name }}</p>
                         {% with price=b.discount_price|default_if_none:b.price %}
                           {% if b.has_discount %}
-                            <div class="text-sm font-bold text-slate-700 mt-1" data-usd-price="{{ b.discount_price }}">
+                            <div class="text-sm font-bold text-slate-700 mt-1" data-eur-price="{{ b.discount_price }}">
                               ${{ b.discount_price|floatformat:2 }}
                             </div>
                           {% else %}
-                            <div class="text-sm font-bold text-slate-700 mt-1" data-usd-price="{{ b.price }}">
+                            <div class="text-sm font-bold text-slate-700 mt-1" data-eur-price="{{ b.price }}">
                               ${{ price|floatformat:2 }}
                             </div>
                           {% endif %}
@@ -763,9 +763,9 @@
                     <p class="line-clamp-2">{{ item.name }}</p>
                     {% with price=item.discount_price|default_if_none:item.price %}
                       {% if item.has_discount %}
-                        <strong data-usd-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
+                        <strong data-eur-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
                       {% else %}
-                        <strong data-usd-price="{{ item.price }}">${{ price|floatformat:2 }}</strong>
+                        <strong data-eur-price="{{ item.price }}">${{ price|floatformat:2 }}</strong>
                       {% endif %}
                     {% endwith %}
                   </div>
@@ -789,9 +789,9 @@
                     {% endif %}
                     <p class="line-clamp-2">{{ item.name }}</p>
                     {% if item.has_discount %}
-                      <strong data-usd-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
+                      <strong data-eur-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
                     {% else %}
-                      <strong data-usd-price="{{ item.price }}">${{ item.price|floatformat:2 }}</strong>
+                      <strong data-eur-price="{{ item.price }}">${{ item.price|floatformat:2 }}</strong>
                     {% endif %}
                   </div>
                 </a>
