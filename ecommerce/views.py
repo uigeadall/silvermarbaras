@@ -733,6 +733,7 @@ def cart_view(request: HttpRequest) -> HttpResponse:
     subtotal = _compute_subtotal(cart_items)
     cart_count = sum(getattr(it, "quantity", 0) for it in cart_items)
     categories = _get_categories()
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
 
     context = {
         "cart_items": cart_items,
@@ -742,6 +743,7 @@ def cart_view(request: HttpRequest) -> HttpResponse:
         "selected_category": None,
         "cart_count": cart_count,
         "show_sidebars": True,
+        "stripe_public_key": stripe_public_key,
     }
     return render(request, "cart.html", context)
 
