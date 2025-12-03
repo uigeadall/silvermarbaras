@@ -510,14 +510,55 @@
     const loadingDiv = document.getElementById('cart-payment-request-loading');
     const unavailableDiv = document.getElementById('cart-payment-request-unavailable');
     
+    const debugMode = true; // Set to false to hide when not available
+    const paymentSection = document.getElementById('cart-payment-section');
+    
     if (!stripePublicKey || !stripePublicKey.startsWith('pk_') || !totalAmount || totalAmount <= 0) {
-      if (container) container.style.display = 'none';
+      if (debugMode && container) {
+        loadingDiv.style.display = 'none';
+        container.innerHTML = `
+          <div style="text-align: center; padding: 12px;">
+            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #000; color: #fff; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; margin-bottom: 8px;" 
+               onclick="alert('Apple Pay Popup Preview:\\n\\nTotal: $${totalAmount.toFixed(2) || '0.00'}\\n\\nName: [Your Name]\\nEmail: [Your Email]\\nPhone: [Your Phone]\\n\\nShipping Address:\\n[Street Address]\\n[City]\\n[Postal Code]\\n[Country]\\n\\n\\n(Реалният popup ще се покаже когато имате настроен Apple Pay/Google Pay)');">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              Pay with Apple Pay / Google Pay
+            </div>
+            <p style="font-size: 11px; color: #999; margin: 0;">(Preview mode - ще работи с реален Apple Pay/Google Pay)</p>
+          </div>
+        `;
+        container.style.border = 'none';
+        container.style.background = 'transparent';
+        container.style.padding = '0';
+      } else if (container) {
+        container.style.display = 'none';
+      }
       return;
     }
 
     if (typeof Stripe === 'undefined') {
       console.error('Stripe.js not loaded');
-      if (container) container.style.display = 'none';
+      if (debugMode && container) {
+        loadingDiv.style.display = 'none';
+        container.innerHTML = `
+          <div style="text-align: center; padding: 12px;">
+            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #000; color: #fff; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; margin-bottom: 8px;" 
+               onclick="alert('Apple Pay Popup Preview:\\n\\nTotal: $${totalAmount.toFixed(2)}\\n\\nName: [Your Name]\\nEmail: [Your Email]\\nPhone: [Your Phone]\\n\\nShipping Address:\\n[Street Address]\\n[City]\\n[Postal Code]\\n[Country]\\n\\n\\n(Реалният popup ще се покаже когато имате настроен Apple Pay/Google Pay)');">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              Pay with Apple Pay / Google Pay
+            </div>
+            <p style="font-size: 11px; color: #999; margin: 0;">(Preview mode - Stripe.js не е зареден)</p>
+          </div>
+        `;
+        container.style.border = 'none';
+        container.style.background = 'transparent';
+        container.style.padding = '0';
+      } else if (container) {
+        container.style.display = 'none';
+      }
       return;
     }
 
@@ -572,37 +613,50 @@
           }
         } else {
           // Show debug placeholder button for testing (even without Apple Pay)
-          const debugMode = true; // Set to false to hide when not available
-          if (debugMode) {
-            const placeholder = document.createElement('div');
-            placeholder.style.cssText = 'text-align: center; padding: 12px;';
-            placeholder.innerHTML = `
-              <div style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #000; color: #fff; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; margin-bottom: 8px;" 
+          if (debugMode && container) {
+            container.innerHTML = `
+              <div style="text-align: center; padding: 12px;">
+                <div style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #000; color: #fff; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; margin-bottom: 8px;" 
                    onclick="alert('Apple Pay Popup Preview:\\n\\nTotal: $${totalAmount.toFixed(2)}\\n\\nName: [Your Name]\\nEmail: [Your Email]\\nPhone: [Your Phone]\\n\\nShipping Address:\\n[Street Address]\\n[City]\\n[Postal Code]\\n[Country]\\n\\n\\n(Реалният popup ще се покаже когато имате настроен Apple Pay/Google Pay)');">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-                Pay with Apple Pay / Google Pay
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  </svg>
+                  Pay with Apple Pay / Google Pay
+                </div>
+                <p style="font-size: 11px; color: #999; margin: 0;">(Preview mode - ще работи с реален Apple Pay/Google Pay)</p>
               </div>
-              <p style="font-size: 11px; color: #999; margin: 0;">(Preview mode - ще работи с реален Apple Pay/Google Pay)</p>
             `;
-            container.innerHTML = '';
-            container.appendChild(placeholder);
             container.style.border = 'none';
             container.style.background = 'transparent';
             container.style.padding = '0';
             console.log('📱 Debug: Showing placeholder Apple Pay button');
           } else {
             // Hide the entire section if payment methods are not available
-            const paymentSection = document.getElementById('cart-payment-section');
             if (paymentSection) paymentSection.style.display = 'none';
           }
         }
       }).catch(function(error) {
         console.error('Error checking Payment Request availability:', error);
         if (loadingDiv) loadingDiv.style.display = 'none';
-        const paymentSection = document.getElementById('cart-payment-section');
-        if (paymentSection) paymentSection.style.display = 'none';
+        if (debugMode && container) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 12px;">
+              <div style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: #000; color: #fff; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; margin-bottom: 8px;" 
+                 onclick="alert('Apple Pay Popup Preview:\\n\\nTotal: $${totalAmount.toFixed(2)}\\n\\nName: [Your Name]\\nEmail: [Your Email]\\nPhone: [Your Phone]\\n\\nShipping Address:\\n[Street Address]\\n[City]\\n[Postal Code]\\n[Country]\\n\\n\\n(Реалният popup ще се покаже когато имате настроен Apple Pay/Google Pay)');">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                Pay with Apple Pay / Google Pay
+              </div>
+              <p style="font-size: 11px; color: #999; margin: 0;">(Preview mode - грешка при проверка)</p>
+            </div>
+          `;
+          container.style.border = 'none';
+          container.style.background = 'transparent';
+          container.style.padding = '0';
+        } else if (paymentSection) {
+          paymentSection.style.display = 'none';
+        }
       });
 
       // Handle payment method
