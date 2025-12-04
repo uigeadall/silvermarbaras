@@ -87,6 +87,16 @@
     .btn{ width:100%; text-align:center; }
     .cart-footer{ flex-direction:column; align-items:stretch; }
   }
+  
+  /* Hide Apple Pay/Google Pay buttons on desktop, show only on mobile */
+  #cart-payment-section {
+    display: none;
+  }
+  @media (max-width: 768px) {
+    #cart-payment-section {
+      display: block;
+    }
+  }
 </style>
 {% endblock %}
 
