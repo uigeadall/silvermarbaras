@@ -53,11 +53,71 @@ mkdir -p /app/media/products /app/media/products/multiple || {
     echo "Could not create media directories, but continuing..."
 }
 
-# Run migrations
+# Run migrations with error handling for existing tables
 echo "Running migrations..."
-python manage.py migrate --noinput || {
-    echo "Migration failed, but continuing..."
-}
+python manage.py migrate --noinput 2>&1 | tee /tmp/migration_output.log
+MIGRATION_EXIT_CODE=${PIPESTATUS[0]}
+
+if [ $MIGRATION_EXIT_CODE -ne 0 ]; then
+    echo "Migration exited with code $MIGRATION_EXIT_CODE"
+    
+    # Check if error is about existing table (MySQL error 1050)
+    if grep -q "Table.*already exists" /tmp/migration_output.log || grep -q "1050" /tmp/migration_output.log; then
+        echo "⚠️  Table already exists error detected. Attempting to mark migration as applied..."
+        
+        # Try to mark the problematic migration as applied if table exists
+        python << EOF
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'МагазинСребро.settings')
+django.setup()
+from django.db import connection
+
+try:
+    with connection.cursor() as cursor:
+        # Check if ecommerce_product_categories table exists
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM information_schema.tables 
+            WHERE table_schema = DATABASE() 
+            AND table_name = 'ecommerce_product_categories'
+        """)
+        table_exists = cursor.fetchone()[0] > 0
+        
+        if table_exists:
+            # Check if migration is already recorded
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM django_migrations 
+                WHERE app = 'ecommerce' 
+                AND name = '0008_add_categories_manytomany'
+            """)
+            migration_recorded = cursor.fetchone()[0] > 0
+            
+            if not migration_recorded:
+                print("Marking migration 0008_add_categories_manytomany as applied...")
+                cursor.execute("""
+                    INSERT INTO django_migrations (app, name, applied) 
+                    VALUES ('ecommerce', '0008_add_categories_manytomany', NOW())
+                """)
+                print("✅ Migration marked as applied")
+            else:
+                print("Migration already recorded")
+        else:
+            print("Table does not exist, cannot mark migration as applied")
+except Exception as e:
+    print(f"⚠️  Could not mark migration as applied: {e}")
+EOF
+        
+        # Try to continue with remaining migrations
+        echo "Continuing with remaining migrations..."
+        python manage.py migrate --noinput || {
+            echo "⚠️  Some migrations failed, but continuing..."
+        }
+    else
+        echo "Migration failed with different error, but continuing..."
+    fi
+fi
 
 # Collect static files
 echo "Collecting static files..."
