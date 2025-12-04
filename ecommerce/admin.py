@@ -42,17 +42,39 @@ class ProductBundleItemInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     inlines = [ProductImageInline, ProductVariantInline, ProductBundleItemInline]
-    list_display = ("name", "serial_number", "price", "discount_price", "category", "brand", "cart_add_count")
+    list_display = ("name", "serial_number", "price", "discount_price", "category", "brand", "cart_add_count", "sale_expires_at")
     list_filter = ("category", "brand", "categories")
     filter_horizontal = ("categories",)
-
-
+    fieldsets = (
+        ("Basic Information", {
+            "fields": ("name", "description", "category", "categories", "brand", "serial_number")
+        }),
+        ("Pricing", {
+            "fields": ("price", "discount_price")
+        }),
+        ("Sale Settings", {
+            "fields": ("sale_expires_at",),
+            "description": "Set expiration time for Sale category. Product will be automatically removed from Sale when time expires.",
+            "classes": ("collapse",),
+        }),
+        ("Inventory", {
+            "fields": ("stock", "cart_add_count")
+        }),
+        ("Images", {
+            "fields": ("image",)
+        }),
+    )
 
     search_fields = ("=serial_number", "^name", "name", "serial_number", "brand", "category__name")
     search_help_text = "Search by exact serial (best), name, brand, or category."
 
     list_select_related = ("category",)
 
+    class Media:
+        js = ("admin/js/sale_timer.js",)
+        css = {
+            'all': ('admin/css/sale_timer.css',)
+        }
 
     def get_search_results(self, request, queryset, search_term):
         qs, use_distinct = super().get_search_results(request, queryset, search_term)

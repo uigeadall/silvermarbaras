@@ -66,6 +66,11 @@ class Product(models.Model):
 
     cart_add_count = models.PositiveIntegerField(default=0)
     stock = models.PositiveIntegerField(default=0)
+    sale_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the product should be automatically removed from Sale category. Leave empty if no expiration.",
+    )
 
     class Meta:
         ordering = ["-id"]
