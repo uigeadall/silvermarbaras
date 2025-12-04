@@ -1005,18 +1005,32 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
     total = None
     coupon_code = ""
 
+    # Allowed shipping countries
+    ALLOWED_COUNTRIES = {
+        "Albania", "Andorra", "Bosnia and Herzegovina", "Vatican", "United Kingdom",
+        "Iceland", "Liechtenstein", "Monaco", "Montenegro", "Norway", "San Marino",
+        "Serbia", "Switzerland", "Bahrain", "Japan", "Qatar", "Saudi Arabia",
+        "United Arab Emirates", "South Africa", "Canada", "Costa Rica", "United States",
+        "Australia", "New Zealand"
+    }
+
     if request.method == "POST":
         full_name = (request.POST.get("full_name") or "").strip()
         address = (request.POST.get("address") or "").strip()
         city = (request.POST.get("city") or "").strip()
         postal_code = (request.POST.get("postal_code") or "").strip()
         phone = (request.POST.get("phone") or "").strip()
+        country = (request.POST.get("country") or "").strip()
         shipping_option_id = request.POST.get("shipping_option")
         email = request.user.email if request.user.is_authenticated else (request.POST.get("email") or "").strip()
         coupon_code = (request.POST.get("coupon") or "").strip().upper()
 
-        if not all([full_name, address, city, postal_code, phone]):
+        if not all([full_name, address, city, postal_code, phone, country]):
             messages.error(request, "All fields are required.")
+            return redirect("checkout")
+        
+        if country not in ALLOWED_COUNTRIES:
+            messages.error(request, "Sorry, we don't ship to this country. Please select a country from the list.")
             return redirect("checkout")
 
         if not request.user.is_authenticated and not email:
@@ -1174,6 +1188,7 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
                 city=city,
                 postal_code=postal_code,
                 phone=phone,
+                country=country,
                 shipping_option=shipping_option,
                 total_price=total,
             )
