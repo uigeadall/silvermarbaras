@@ -91,11 +91,6 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "Ratings",
             },
         ),
-        migrations.RunPython(
-            # Check if table exists before adding field
-            code=lambda apps, schema_editor: None,  # Will be handled by AddField
-            reverse_code=migrations.RunPython.noop,
-        ),
         migrations.AddField(
             model_name="product",
             name="categories",
