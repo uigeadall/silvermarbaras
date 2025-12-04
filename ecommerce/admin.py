@@ -42,28 +42,57 @@ class ProductBundleItemInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     inlines = [ProductImageInline, ProductVariantInline, ProductBundleItemInline]
-    list_display = ("name", "serial_number", "price", "discount_price", "category", "brand", "cart_add_count", "sale_expires_at")
+    
+    def get_list_display(self, request):
+        """Dynamically get list_display to handle missing sale_expires_at field."""
+        base_fields = ("name", "serial_number", "price", "discount_price", "category", "brand", "cart_add_count")
+        # Check if sale_expires_at field exists
+        try:
+            from ecommerce.models import Product
+            if hasattr(Product, 'sale_expires_at'):
+                return base_fields + ("sale_expires_at",)
+        except:
+            pass
+        return base_fields
+    
     list_filter = ("category", "brand", "categories")
     filter_horizontal = ("categories",)
-    fieldsets = (
-        ("Basic Information", {
-            "fields": ("name", "description", "category", "categories", "brand", "serial_number")
-        }),
-        ("Pricing", {
-            "fields": ("price", "discount_price")
-        }),
-        ("Sale Settings", {
-            "fields": ("sale_expires_at",),
-            "description": "Set expiration time for Sale category. Product will be automatically removed from Sale when time expires.",
-            "classes": ("collapse",),
-        }),
-        ("Inventory", {
-            "fields": ("stock", "cart_add_count")
-        }),
-        ("Images", {
-            "fields": ("image",)
-        }),
-    )
+    
+    def get_fieldsets(self, request, obj=None):
+        """Dynamically get fieldsets to handle missing sale_expires_at field."""
+        fieldsets = (
+            ("Basic Information", {
+                "fields": ("name", "description", "category", "categories", "brand", "serial_number")
+            }),
+            ("Pricing", {
+                "fields": ("price", "discount_price")
+            }),
+            ("Inventory", {
+                "fields": ("stock", "cart_add_count")
+            }),
+            ("Images", {
+                "fields": ("image",)
+            }),
+        )
+        
+        # Add Sale Settings only if sale_expires_at field exists
+        try:
+            from ecommerce.models import Product
+            if hasattr(Product, 'sale_expires_at'):
+                # Insert Sale Settings after Pricing
+                fieldsets_list = list(fieldsets)
+                fieldsets_list.insert(2, (
+                    "Sale Settings", {
+                        "fields": ("sale_expires_at",),
+                        "description": "Set expiration time for Sale category. Product will be automatically removed from Sale when time expires.",
+                        "classes": ("collapse",),
+                    }
+                ))
+                return tuple(fieldsets_list)
+        except:
+            pass
+        
+        return fieldsets
 
     search_fields = ("=serial_number", "^name", "name", "serial_number", "brand", "category__name")
     search_help_text = "Search by exact serial (best), name, brand, or category."

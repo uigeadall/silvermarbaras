@@ -83,6 +83,19 @@ elif [ -f "staticfiles/images/payment-methods.jpg" ]; then
     echo "✅ Payment methods image already exists in staticfiles"
 fi
 
+# Ensure admin custom static files are copied
+if [ -f "static/admin/js/sale_timer.js" ]; then
+    echo "✅ Ensuring admin/js/sale_timer.js is in staticfiles..."
+    mkdir -p staticfiles/admin/js
+    cp static/admin/js/sale_timer.js staticfiles/admin/js/sale_timer.js && echo "✅ Admin JS copied successfully" || echo "⚠️  Could not copy admin JS"
+fi
+
+if [ -f "static/admin/css/sale_timer.css" ]; then
+    echo "✅ Ensuring admin/css/sale_timer.css is in staticfiles..."
+    mkdir -p staticfiles/admin/css
+    cp static/admin/css/sale_timer.css staticfiles/admin/css/sale_timer.css && echo "✅ Admin CSS copied successfully" || echo "⚠️  Could not copy admin CSS"
+fi
+
 # Import data if database is empty (only on first run)
 echo "Checking if database needs initial data import..."
 python << EOF
