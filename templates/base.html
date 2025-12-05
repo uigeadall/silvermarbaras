@@ -300,7 +300,7 @@
 
   <script>
     setTimeout(() => {
-      document.querySelectorAll('.bg-indigo-50').forEach(el => {
+      document.querySelectorAll('.bg-indigo-50:not(.empty-cart-message)').forEach(el => {
         el.style.opacity = '0';
         setTimeout(() => el.remove(), 500);
       });
