@@ -515,28 +515,35 @@
       if (!country || !shippingSelect) return;
 
       const allOptions = Array.from(shippingSelect.options);
-      const standardOption = allOptions.find(opt => opt.getAttribute('data-name') === 'Standard Shipping');
-      const expressOption = allOptions.find(opt => opt.getAttribute('data-name') === 'Express Delivery');
-      const freeOption = allOptions.find(opt => opt.getAttribute('data-name') === 'Free Delivery');
-
-      // Hide all options except the first (-- Select --)
+      
+      // Find options by checking their text content and data attributes
       allOptions.forEach((opt, index) => {
-        if (index === 0) return; // Keep -- Select --
+        if (index === 0) return; // Keep -- Select -- option
+        
+        const optionName = opt.getAttribute('data-name') || opt.textContent.trim();
+        const optionPrice = parseFloat(opt.getAttribute('data-price')) || 0;
+        
+        // Hide all options first
         opt.style.display = 'none';
+        opt.disabled = true;
+        
+        if (country === 'Canada' || country === 'Australia') {
+          // Canada and Australia: Express Delivery ($19.99) only
+          if (optionName.includes('Express Delivery') || (optionPrice === 19.99 && optionName.includes('Express'))) {
+            opt.style.display = 'block';
+            opt.disabled = false;
+          }
+        } else {
+          // Other countries: Free Delivery ($0) and Express Delivery ($19.99)
+          if (optionName.includes('Free Delivery') || (optionPrice === 0 && !optionName.includes('Standard'))) {
+            opt.style.display = 'block';
+            opt.disabled = false;
+          } else if (optionName.includes('Express Delivery') || (optionPrice === 19.99 && optionName.includes('Express'))) {
+            opt.style.display = 'block';
+            opt.disabled = false;
+          }
+        }
       });
-
-      // Show options based on country
-      if (country === 'Canada' || country === 'Australia') {
-        // Canada and Australia: Express only (no Standard, no Free)
-        if (expressOption) expressOption.style.display = 'block';
-        if (standardOption) standardOption.style.display = 'none';
-        if (freeOption) freeOption.style.display = 'none';
-      } else {
-        // Other countries: Free and Express only
-        if (freeOption) freeOption.style.display = 'block';
-        if (expressOption) expressOption.style.display = 'block';
-        if (standardOption) standardOption.style.display = 'none';
-      }
     }
 
     function updateTotal() {
@@ -593,10 +600,29 @@
       shippingSelect.value = '';
       updateTotal();
     });
+    
+    // Also filter when country field gets focus/blur to handle pre-filled values
+    countrySelect?.addEventListener('input', function() {
+      filterShippingOptions();
+    });
 
     // Initialize on page load
-    filterShippingOptions();
-    updateTotal();
+    // Use setTimeout to ensure DOM is fully ready
+    setTimeout(function() {
+      filterShippingOptions();
+      updateTotal();
+    }, 100);
+    
+    // Also check periodically in case country is pre-filled
+    let checkCount = 0;
+    const checkInterval = setInterval(function() {
+      if (countrySelect?.value) {
+        filterShippingOptions();
+        clearInterval(checkInterval);
+      }
+      checkCount++;
+      if (checkCount > 10) clearInterval(checkInterval); // Stop after 1 second
+    }, 100);
   })();
 
   // Stripe
