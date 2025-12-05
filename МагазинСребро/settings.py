@@ -49,7 +49,7 @@ if DEBUG:
 
     ALLOWED_HOSTS = ["*"]
 else:
-    base_allowed = {"localhost", "127.0.0.1"}
+    base_allowed = {"localhost", "127.0.0.1", "marbaras.com", "www.marbaras.com"}
     ALLOWED_HOSTS = sorted(base_allowed.union(set(env_list("DJANGO_ALLOWED_HOSTS", []))))
 
 
@@ -59,6 +59,8 @@ default_csrf = {
     "https://*.ngrok-free.app",
     "https://*.loca.lt",
     "https://*.trycloudflare.com",
+    "https://marbaras.com",
+    "https://www.marbaras.com",
 }
 CSRF_TRUSTED_ORIGINS = sorted(default_csrf.union(set(env_list("CSRF_TRUSTED_ORIGINS", []))))
 
