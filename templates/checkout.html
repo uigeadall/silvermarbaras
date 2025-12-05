@@ -293,8 +293,8 @@
                   <select id="shipping_option" name="shipping_option">
                     <option value="">-- Select --</option>
                     {% for opt in shipping_options %}
-                      <option value="{{ opt.id }}" data-price="{{ opt.price }}">
-                        {{ opt.name }}{% if opt.price %} (${{ opt.price }}){% endif %}
+                      <option value="{{ opt.id }}" data-price="{{ opt.price }}" data-name="{{ opt.name }}">
+                        {{ opt.name }}{% if opt.price > 0 %} (${{ opt.price }}){% else %} (Free){% endif %}
                       </option>
                     {% endfor %}
                   </select>
@@ -509,6 +509,36 @@
     const totalDisplay = document.getElementById('total-display');
     const countrySelect = document.getElementById('country');
 
+    // Filter shipping options based on country
+    function filterShippingOptions() {
+      const country = countrySelect?.value;
+      if (!country || !shippingSelect) return;
+
+      const allOptions = Array.from(shippingSelect.options);
+      const standardOption = allOptions.find(opt => opt.getAttribute('data-name') === 'Standard Shipping');
+      const expressOption = allOptions.find(opt => opt.getAttribute('data-name') === 'Express Delivery');
+      const freeOption = allOptions.find(opt => opt.getAttribute('data-name') === 'Free Delivery');
+
+      // Hide all options except the first (-- Select --)
+      allOptions.forEach((opt, index) => {
+        if (index === 0) return; // Keep -- Select --
+        opt.style.display = 'none';
+      });
+
+      // Show options based on country
+      if (country === 'Canada' || country === 'Australia') {
+        // Canada and Australia: Standard and Express only
+        if (standardOption) standardOption.style.display = 'block';
+        if (expressOption) expressOption.style.display = 'block';
+        if (freeOption) freeOption.style.display = 'none';
+      } else {
+        // Other countries: Free and Express only
+        if (freeOption) freeOption.style.display = 'block';
+        if (expressOption) expressOption.style.display = 'block';
+        if (standardOption) standardOption.style.display = 'none';
+      }
+    }
+
     function updateTotal() {
       let shippingCost = 0;
       const selectedOption = shippingSelect?.options[shippingSelect?.selectedIndex];
@@ -516,10 +546,12 @@
       if (selectedOption && selectedOption.value) {
         shippingCost = parseFloat(selectedOption.getAttribute('data-price')) || 0;
       } else {
-        // Check if Canada is selected - minimum $5 shipping
+        // If no option selected, check country
         const country = countrySelect?.value;
-        if (country === 'Canada') {
-          shippingCost = 5.00; // Minimum shipping for Canada
+        if (country === 'Canada' || country === 'Australia') {
+          shippingCost = 5.99; // Default to Standard for Canada and Australia
+        } else {
+          shippingCost = 0.00; // Free for other countries
         }
       }
 
@@ -556,35 +588,14 @@
 
     shippingSelect?.addEventListener('change', updateTotal);
     countrySelect?.addEventListener('change', function() {
-      // If Canada is selected and no shipping option is chosen, show $5 minimum
-      if (this.value === 'Canada' && (!shippingSelect || !shippingSelect.value)) {
-        updateTotal();
-      } else if (this.value !== 'Canada' && (!shippingSelect || !shippingSelect.value)) {
-        // For other countries, hide shipping if no option selected
-        shippingRow.style.display = 'none';
-        const finalSubtotal = subtotal - discount;
-        totalDisplay.textContent = '$' + finalSubtotal.toFixed(2);
-        totalDisplay.setAttribute('data-eur-price', finalSubtotal);
-        
-        // Update Stripe Payment Intent
-        {% if stripe_public_key %}
-        if (typeof stripe !== 'undefined' && window.paymentRequest) {
-          try {
-            window.paymentRequest.update({
-              total: {
-                label: 'Total',
-                amount: Math.round(finalSubtotal * 100),
-              }
-            });
-          } catch (e) {
-            console.log('Could not update payment request:', e);
-          }
-        }
-        {% endif %}
-      }
+      filterShippingOptions();
+      // Reset selection when country changes
+      shippingSelect.value = '';
+      updateTotal();
     });
 
     // Initialize on page load
+    filterShippingOptions();
     updateTotal();
   })();
 

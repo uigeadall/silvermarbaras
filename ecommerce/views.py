@@ -1062,19 +1062,27 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
 
         subtotal, discount, coupon_applied, coupon_error = _process_coupon(coupon_code, subtotal)
 
-        # Shipping logic: Canada always pays minimum $5, other countries can have free shipping
+        # Shipping logic: Canada and Australia require shipping, other countries can have free shipping
         shipping_option, shipping_cost = _get_shipping_option(shipping_option_id)
         if shipping_option_id and not shipping_option:
             messages.error(request, "Invalid shipping option.")
             return redirect("checkout")
         
-        # If no shipping option selected and country is Canada, apply minimum $5 shipping
-        if not shipping_option_id and country == "Canada":
-            shipping_cost = Decimal("5.00")
-        
-        # If no shipping option selected and country is not Canada, shipping is free
-        if not shipping_option_id and country != "Canada":
-            shipping_cost = Decimal("0.00")
+        # If no shipping option selected:
+        # - Canada and Australia: require Standard shipping ($5.99)
+        # - Other countries: free shipping
+        if not shipping_option_id:
+            if country in ["Canada", "Australia"]:
+                # Default to Standard shipping for Canada and Australia
+                standard_shipping = ShippingOption.objects.filter(name="Standard Shipping").first()
+                if standard_shipping:
+                    shipping_option = standard_shipping
+                    shipping_cost = standard_shipping.price
+                else:
+                    shipping_cost = Decimal("5.99")
+            else:
+                # Free shipping for other countries
+                shipping_cost = Decimal("0.00")
 
         total = (subtotal + shipping_cost).quantize(Decimal("0.01"))
 
@@ -1129,15 +1137,27 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Payment system configuration error. Please contact support.")
         return redirect("cart_view")
 
-    # Ensure shipping options exist (Standard $5 and Express $20)
+    # Ensure shipping options exist (Standard $5.99, Express $19.99, Free Delivery $0)
     standard_shipping, _ = ShippingOption.objects.get_or_create(
         name="Standard Shipping",
-        defaults={"price": Decimal("5.00"), "delivery_time": "5-7 business days"}
+        defaults={"price": Decimal("5.99"), "delivery_time": "5-7 business days"}
     )
     express_shipping, _ = ShippingOption.objects.get_or_create(
         name="Express Delivery",
-        defaults={"price": Decimal("20.00"), "delivery_time": "2-3 business days"}
+        defaults={"price": Decimal("19.99"), "delivery_time": "2-3 business days"}
     )
+    free_shipping, _ = ShippingOption.objects.get_or_create(
+        name="Free Delivery",
+        defaults={"price": Decimal("0.00"), "delivery_time": "7-10 business days"}
+    )
+    
+    # Update prices if they exist but have wrong prices
+    if standard_shipping.price != Decimal("5.99"):
+        standard_shipping.price = Decimal("5.99")
+        standard_shipping.save(update_fields=["price"])
+    if express_shipping.price != Decimal("19.99"):
+        express_shipping.price = Decimal("19.99")
+        express_shipping.save(update_fields=["price"])
 
     return render(
         request,
