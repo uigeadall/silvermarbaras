@@ -81,7 +81,7 @@ def send_order_confirmation_email(order, base_url, notify_admin=False) -> bool:
 
 Customer: {customer}
 Email: {recipient}
-Total: ${total}
+Total: €{total}
 Address: {order.address}, {order.city}, {order.postal_code}
 Phone: {order.phone}
 

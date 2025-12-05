@@ -4,15 +4,15 @@ Thank you for your order! Your order #{{ order.id }} has been received and is be
 
 Ordered products:
 {% for item in items %}
-- {{ item.product.name }}{% if item.variant %} (Size: {{ item.variant.size }}){% endif %} × {{ item.quantity }} = ${{ item.product.get_discounted_price|floatformat:2 }}
+- {{ item.product.name }}{% if item.variant %} (Size: {{ item.variant.size }}){% endif %} × {{ item.quantity }} = €{{ item.product.get_discounted_price|floatformat:2 }}
 {% endfor %}
 
 Order details:
-Subtotal: ${{ subtotal|floatformat:2 }}
-{% if discount_amount > 0 %}Discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}: -${{ discount_amount|floatformat:2 }}
-{% endif %}{% if shipping_cost > 0 %}Shipping{% if order.shipping_option %} ({{ order.shipping_option.name }}){% endif %}: ${{ shipping_cost|floatformat:2 }}
+Subtotal: €{{ subtotal|floatformat:2 }}
+{% if discount_amount > 0 %}Discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}: -€{{ discount_amount|floatformat:2 }}
+{% endif %}{% if shipping_cost > 0 %}Shipping{% if order.shipping_option %} ({{ order.shipping_option.name }}){% endif %}: €{{ shipping_cost|floatformat:2 }}
 {% endif %}
-Total: ${{ total|floatformat:2 }}
+Total: €{{ total|floatformat:2 }}
 
 Shipping address:
 {{ order.full_name }}
