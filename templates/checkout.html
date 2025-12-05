@@ -293,7 +293,7 @@
                   <select id="shipping_option" name="shipping_option">
                     <option value="">-- Select --</option>
                     {% for opt in shipping_options %}
-                      <option value="{{ opt.id }}">
+                      <option value="{{ opt.id }}" data-price="{{ opt.price }}">
                         {{ opt.name }}{% if opt.price %} (${{ opt.price }}){% endif %}
                       </option>
                     {% endfor %}
@@ -397,17 +397,15 @@
                 </div>
               {% endif %}
 
-              {% if shipping_cost %}
-                <div class="row">
-                  <span>Shipping</span>
-                  <span data-eur-price="{{ shipping_cost }}">${{ shipping_cost|floatformat:2 }}</span>
-                </div>
-              {% endif %}
+              <div class="row" id="shipping-row" style="display: none;">
+                <span>Shipping</span>
+                <span id="shipping-cost-display" data-eur-price="0">$0.00</span>
+              </div>
 
               <div class="row total">
                 <span>Total</span>
                 <span>
-                  {% if total %}<span data-eur-price="{{ total }}">${{ total|floatformat:2 }}</span>{% else %}<span data-eur-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>{% endif %}
+                  <span id="total-display" data-eur-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
                 </span>
               </div>
             </div>
@@ -501,6 +499,95 @@
     document.addEventListener('scroll',()=>tip?.classList.add('invisible','opacity-0'));
   })();
 
+  // Update total when shipping option is selected
+  (function(){
+    const subtotal = {{ subtotal|default:0 }};
+    const discount = {{ discount|default:0 }};
+    const shippingSelect = document.getElementById('shipping_option');
+    const shippingRow = document.getElementById('shipping-row');
+    const shippingCostDisplay = document.getElementById('shipping-cost-display');
+    const totalDisplay = document.getElementById('total-display');
+    const countrySelect = document.getElementById('country');
+
+    function updateTotal() {
+      let shippingCost = 0;
+      const selectedOption = shippingSelect?.options[shippingSelect?.selectedIndex];
+      
+      if (selectedOption && selectedOption.value) {
+        shippingCost = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+      } else {
+        // Check if Canada is selected - minimum $5 shipping
+        const country = countrySelect?.value;
+        if (country === 'Canada') {
+          shippingCost = 5.00; // Minimum shipping for Canada
+        }
+      }
+
+      const finalSubtotal = subtotal - discount;
+      const total = finalSubtotal + shippingCost;
+
+      if (shippingCost > 0) {
+        shippingRow.style.display = 'flex';
+        shippingCostDisplay.textContent = '$' + shippingCost.toFixed(2);
+        shippingCostDisplay.setAttribute('data-eur-price', shippingCost);
+      } else {
+        shippingRow.style.display = 'none';
+      }
+
+      totalDisplay.textContent = '$' + total.toFixed(2);
+      totalDisplay.setAttribute('data-eur-price', total);
+      
+      // Update Stripe Payment Intent if it exists
+      {% if stripe_public_key %}
+      if (typeof stripe !== 'undefined' && window.paymentRequest) {
+        try {
+          window.paymentRequest.update({
+            total: {
+              label: 'Total',
+              amount: Math.round(total * 100), // Convert to cents
+            }
+          });
+        } catch (e) {
+          console.log('Could not update payment request:', e);
+        }
+      }
+      {% endif %}
+    }
+
+    shippingSelect?.addEventListener('change', updateTotal);
+    countrySelect?.addEventListener('change', function() {
+      // If Canada is selected and no shipping option is chosen, show $5 minimum
+      if (this.value === 'Canada' && (!shippingSelect || !shippingSelect.value)) {
+        updateTotal();
+      } else if (this.value !== 'Canada' && (!shippingSelect || !shippingSelect.value)) {
+        // For other countries, hide shipping if no option selected
+        shippingRow.style.display = 'none';
+        const finalSubtotal = subtotal - discount;
+        totalDisplay.textContent = '$' + finalSubtotal.toFixed(2);
+        totalDisplay.setAttribute('data-eur-price', finalSubtotal);
+        
+        // Update Stripe Payment Intent
+        {% if stripe_public_key %}
+        if (typeof stripe !== 'undefined' && window.paymentRequest) {
+          try {
+            window.paymentRequest.update({
+              total: {
+                label: 'Total',
+                amount: Math.round(finalSubtotal * 100),
+              }
+            });
+          } catch (e) {
+            console.log('Could not update payment request:', e);
+          }
+        }
+        {% endif %}
+      }
+    });
+
+    // Initialize on page load
+    updateTotal();
+  })();
+
   // Stripe
   {% if stripe_public_key %}
   // Load Apple Pay / Google Pay data from sessionStorage (if coming from cart)
@@ -585,7 +672,7 @@
       if (loadingDiv) loadingDiv.style.display = 'none';
     } else {
       // Only create Payment Request if amount is valid
-      const paymentRequest = stripe.paymentRequest({
+      window.paymentRequest = stripe.paymentRequest({
         country: 'BG', // Bulgaria
         currency: 'usd',
         total: {
@@ -600,7 +687,7 @@
       console.log('✅ Payment Request object created');
 
       const paymentRequestButton = elements.create('paymentRequestButton', {
-        paymentRequest: paymentRequest,
+        paymentRequest: window.paymentRequest,
         style: {
           paymentRequestButton: {
             theme: 'dark',
@@ -618,7 +705,7 @@
       console.log('Is HTTPS:', window.location.protocol === 'https:');
 
       // Check if Payment Request is available (Apple Pay / Google Pay)
-      paymentRequest.canMakePayment().then(function(result) {
+      window.paymentRequest.canMakePayment().then(function(result) {
     console.log('=== Payment Request Check ===');
     console.log('Payment Request available:', result);
     console.log('Result details:', JSON.stringify(result, null, 2));
@@ -668,7 +755,7 @@
       }
       
       // Handle payment method
-      paymentRequest.on('paymentmethod', async function(ev) {
+      window.paymentRequest.on('paymentmethod', async function(ev) {
         try {
           // Confirm payment with PaymentIntent using the payment method from Apple Pay/Google Pay
           const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
