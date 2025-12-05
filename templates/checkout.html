@@ -527,9 +527,9 @@
 
       // Show options based on country
       if (country === 'Canada' || country === 'Australia') {
-        // Canada and Australia: Standard and Express only
-        if (standardOption) standardOption.style.display = 'block';
+        // Canada and Australia: Express only (no Standard, no Free)
         if (expressOption) expressOption.style.display = 'block';
+        if (standardOption) standardOption.style.display = 'none';
         if (freeOption) freeOption.style.display = 'none';
       } else {
         // Other countries: Free and Express only
@@ -549,7 +549,7 @@
         // If no option selected, check country
         const country = countrySelect?.value;
         if (country === 'Canada' || country === 'Australia') {
-          shippingCost = 5.99; // Default to Standard for Canada and Australia
+          shippingCost = 19.99; // Default to Express for Canada and Australia (only option)
         } else {
           shippingCost = 0.00; // Free for other countries
         }
