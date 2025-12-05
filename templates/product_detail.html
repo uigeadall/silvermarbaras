@@ -527,7 +527,7 @@
     }
   }
 
-  /* Buy as a Set Container - Transparent container, rectangular product cards like sale timer */
+  /* Buy as a Set Container - Transparent container, transparent product cards */
   .bundle-container {
     background: transparent;
     padding: 0;
@@ -550,32 +550,33 @@
   }
   .bundle-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr);
     gap: 12px;
   }
   @media (min-width: 640px) {
     .bundle-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(1, 1fr);
     }
   }
   @media (min-width: 768px) {
     .bundle-grid {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
     }
   }
   @media (min-width: 1024px) {
     .bundle-grid {
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
     }
   }
   .bundle-item {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    color: white;
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    color: #333;
     padding: 16px 20px;
     border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     text-align: center;
-    transition: transform 0.1s ease, box-shadow 0.2s ease;
+    transition: transform 0.1s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     text-decoration: none;
     display: flex;
     flex-direction: column;
@@ -584,17 +585,17 @@
   }
   .bundle-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
-    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: #d1d5db;
+    color: #333;
   }
   .bundle-item img {
     width: 100%;
     height: 100px;
     object-fit: contain;
-    background: rgba(255, 255, 255, 0.2);
+    background: #f7f7f7;
     border-radius: 6px;
     padding: 8px;
-    backdrop-filter: blur(4px);
   }
   .bundle-item-name {
     font-size: 13px;
@@ -606,13 +607,13 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.95;
+    color: #333;
   }
   .bundle-item-price {
     font-size: 16px;
     font-weight: 700;
     margin: 0;
-    opacity: 1;
+    color: #333;
   }
   @media (max-width: 768px) {
     .bundle-container {
