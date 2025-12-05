@@ -591,6 +591,19 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
     show_bundle = bool(bundle_items)
 
+    # Check if product is in Sale category and has expiration time
+    is_sale = False
+    sale_expires_at = None
+    if hasattr(product, 'sale_expires_at') and product.sale_expires_at:
+        # Check if product is in Sale category
+        sale_categories = product.categories.filter(name__iexact='Sale')
+        if not sale_categories.exists():
+            # Try Bulgarian name
+            sale_categories = product.categories.filter(name__icontains='разпродажба')
+        if sale_categories.exists():
+            is_sale = True
+            sale_expires_at = product.sale_expires_at
+
     context = {
         "product": product,
         "product_images": product_images,
@@ -609,6 +622,8 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "show_bundle": show_bundle,
         "categories": categories,
         "selected_category": product.category,
+        "is_sale": is_sale,
+        "sale_expires_at": sale_expires_at,
     }
     return render(request, "product_detail.html", context)
 
