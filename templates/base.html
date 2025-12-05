@@ -86,26 +86,12 @@
     .mobile-menu.open {
       transform: translateX(0);
     }
-    /* Floating mobile buttons (cart and search) */
-    .mobile-floating-buttons {
+    /* Scroll to top button (mobile only) */
+    .scroll-to-top-btn {
       position: fixed;
       bottom: 20px;
       right: 20px;
       z-index: 40;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-      pointer-events: none;
-    }
-    .mobile-floating-buttons.visible {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: all;
-    }
-    .mobile-floating-btn {
       width: 56px;
       height: 56px;
       border-radius: 50%;
@@ -117,20 +103,28 @@
       justify-content: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       cursor: pointer;
-      transition: background 0.2s ease, transform 0.1s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s ease;
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
     }
-    .mobile-floating-btn:hover {
+    .scroll-to-top-btn.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+    .scroll-to-top-btn:hover {
       background: #111;
     }
-    .mobile-floating-btn:active {
-      transform: scale(0.95);
+    .scroll-to-top-btn:active {
+      transform: translateY(0) scale(0.95);
     }
-    .mobile-floating-btn svg {
+    .scroll-to-top-btn svg {
       width: 24px;
       height: 24px;
     }
     @media (min-width: 1024px) {
-      .mobile-floating-buttons {
+      .scroll-to-top-btn {
         display: none;
       }
     }
@@ -164,31 +158,12 @@
     </div>
   </nav>
 
-  <!-- Floating Mobile Buttons (Cart and Search) -->
-  <div id="mobileFloatingButtons" class="mobile-floating-buttons lg:hidden">
-    <button id="mobileFloatingSearch" aria-label="Search" class="mobile-floating-btn">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-      </svg>
-    </button>
-    <a id="mobileFloatingCart" href="#" aria-label="Cart" aria-describedby="mobileFloatingCartTip" class="mobile-floating-btn relative">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-      </svg>
-      {% if cart_count|default:0 > 0 %}
-      <span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-        {{ cart_count }}
-      </span>
-      {% endif %}
-      <span id="mobileFloatingCartTip"
-            class="cart-tip invisible opacity-0 absolute right-full mr-2 top-1/2 -translate-y-1/2
-                   bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap
-                   transition-opacity duration-200"
-            role="status" aria-live="polite">
-        Your cart is empty
-      </span>
-    </a>
-  </div>
+  <!-- Scroll to Top Button (Mobile Only) -->
+  <button id="scrollToTopBtn" class="scroll-to-top-btn lg:hidden" aria-label="Scroll to top">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+    </svg>
+  </button>
 
   <!-- Mobile Header with Hamburger -->
   <header class="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200">
@@ -632,32 +607,24 @@
       });
     })();
 
-    // Floating buttons - show/hide on scroll
+    // Scroll to top button - show/hide on scroll
     (function() {
-      const floatingButtons = document.getElementById('mobileFloatingButtons');
-      const floatingSearch = document.getElementById('mobileFloatingSearch');
-      const floatingCart = document.getElementById('mobileFloatingCart');
-      const floatingCartTip = document.getElementById('mobileFloatingCartTip');
-      const headerSearchWrap = document.getElementById('mobileHeaderSearchWrap');
-      
-      if (!floatingButtons || !floatingSearch || !floatingCart) return;
+      const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+      if (!scrollToTopBtn) return;
 
-      let lastScrollY = window.scrollY;
       let scrollTimeout = null;
+      const scrollThreshold = 300; // Show button after scrolling 300px
 
       function handleScroll() {
         const currentScrollY = window.scrollY;
-        const scrollThreshold = 200; // Show buttons after scrolling 200px
 
-        if (currentScrollY > scrollThreshold && currentScrollY > lastScrollY) {
-          // Scrolling down - show buttons
-          floatingButtons.classList.add('visible');
-        } else if (currentScrollY < scrollThreshold || currentScrollY < lastScrollY) {
-          // Scrolling up or near top - hide buttons
-          floatingButtons.classList.remove('visible');
+        if (currentScrollY > scrollThreshold) {
+          // Scrolled down - show button
+          scrollToTopBtn.classList.add('visible');
+        } else {
+          // Near top - hide button
+          scrollToTopBtn.classList.remove('visible');
         }
-
-        lastScrollY = currentScrollY;
       }
 
       // Throttle scroll events
@@ -669,34 +636,12 @@
         }, 100);
       });
 
-      // Floating search button
-      floatingSearch.addEventListener('click', () => {
-        if (headerSearchWrap) {
-          headerSearchWrap.classList.remove('hidden');
-          headerSearchWrap.setAttribute('aria-hidden', 'false');
-          headerSearchWrap.querySelector('input')?.focus();
-          // Scroll to top to show search form
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      });
+      // Initial check
+      handleScroll();
 
-      // Floating cart button
-      let cartTimer = null;
-      floatingCart.addEventListener('click', (e) => {
-        e.preventDefault();
-        const count = Number('{{ cart_count|default:"0" }}') || 0;
-        if (count > 0) {
-          window.location.href = "{% url 'cart_view' %}";
-        } else {
-          if (floatingCartTip) {
-            floatingCartTip.classList.remove('invisible', 'opacity-0');
-            clearTimeout(cartTimer);
-            cartTimer = setTimeout(() => {
-              floatingCartTip.classList.add('opacity-0');
-              setTimeout(() => floatingCartTip.classList.add('invisible'), 200);
-            }, 2000);
-          }
-        }
+      // Scroll to top on click
+      scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     })();
 
