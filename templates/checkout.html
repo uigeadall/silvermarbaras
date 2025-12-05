@@ -509,39 +509,66 @@
     const totalDisplay = document.getElementById('total-display');
     const countrySelect = document.getElementById('country');
 
+    // Store original options for restoration
+    let originalOptions = null;
+    
     // Filter shipping options based on country
     function filterShippingOptions() {
       const country = countrySelect?.value;
-      if (!country || !shippingSelect) return;
-
-      const allOptions = Array.from(shippingSelect.options);
+      if (!shippingSelect) return;
       
-      // Find options by checking their text content and data attributes
-      allOptions.forEach((opt, index) => {
-        if (index === 0) return; // Keep -- Select -- option
+      // Store original options on first call
+      if (!originalOptions) {
+        originalOptions = Array.from(shippingSelect.options).map(opt => ({
+          value: opt.value,
+          text: opt.textContent,
+          dataName: opt.getAttribute('data-name'),
+          dataPrice: opt.getAttribute('data-price')
+        }));
+      }
+      
+      // Clear all options except the first one
+      while (shippingSelect.options.length > 1) {
+        shippingSelect.remove(1);
+      }
+      
+      if (!country) return;
+      
+      // Add filtered options based on country
+      originalOptions.forEach((optData, index) => {
+        if (index === 0) return; // Skip -- Select -- option
         
-        const optionName = opt.getAttribute('data-name') || opt.textContent.trim();
-        const optionPrice = parseFloat(opt.getAttribute('data-price')) || 0;
-        
-        // Hide all options first
-        opt.style.display = 'none';
-        opt.disabled = true;
+        const optionName = optData.dataName || optData.text;
+        const optionPrice = parseFloat(optData.dataPrice) || 0;
+        let shouldShow = false;
         
         if (country === 'Canada' || country === 'Australia') {
           // Canada and Australia: Express Delivery ($19.99) only
-          if (optionName.includes('Express Delivery') || (optionPrice === 19.99 && optionName.includes('Express'))) {
-            opt.style.display = 'block';
-            opt.disabled = false;
+          if (optionName && optionName.includes('Express Delivery')) {
+            shouldShow = true;
+          } else if (optionPrice === 19.99 && optionName && optionName.includes('Express')) {
+            shouldShow = true;
           }
         } else {
           // Other countries: Free Delivery ($0) and Express Delivery ($19.99)
-          if (optionName.includes('Free Delivery') || (optionPrice === 0 && !optionName.includes('Standard'))) {
-            opt.style.display = 'block';
-            opt.disabled = false;
-          } else if (optionName.includes('Express Delivery') || (optionPrice === 19.99 && optionName.includes('Express'))) {
-            opt.style.display = 'block';
-            opt.disabled = false;
+          if (optionName && optionName.includes('Free Delivery')) {
+            shouldShow = true;
+          } else if (optionPrice === 0 && optionName && !optionName.includes('Standard')) {
+            shouldShow = true;
+          } else if (optionName && optionName.includes('Express Delivery')) {
+            shouldShow = true;
+          } else if (optionPrice === 19.99 && optionName && optionName.includes('Express')) {
+            shouldShow = true;
           }
+        }
+        
+        if (shouldShow) {
+          const option = document.createElement('option');
+          option.value = optData.value;
+          option.textContent = optData.text;
+          option.setAttribute('data-name', optData.dataName || '');
+          option.setAttribute('data-price', optData.dataPrice || '0');
+          shippingSelect.appendChild(option);
         }
       });
     }
