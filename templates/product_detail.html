@@ -865,13 +865,12 @@
                       <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
                     {% endif %}
                     <p class="line-clamp-2">{{ item.name }}</p>
-                    {% with price=item.discount_price|default_if_none:item.price %}
-                      {% if item.has_discount %}
-                        <strong data-eur-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
-                      {% else %}
-                        <strong data-eur-price="{{ item.price }}">${{ price|floatformat:2 }}</strong>
-                      {% endif %}
-                    {% endwith %}
+                    {% if item.has_discount %}
+                      <strong style="color: red; font-weight: bold;" data-eur-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
+                      <span style="text-decoration: line-through; color: #777; margin-left: 4px; font-size: 0.9em;" data-eur-price="{{ item.price }}">${{ item.price|floatformat:2 }}</span>
+                    {% else %}
+                      <strong data-eur-price="{{ item.price }}">${{ item.price|floatformat:2 }}</strong>
+                    {% endif %}
                   </div>
                 </a>
               {% endfor %}
@@ -893,7 +892,8 @@
                     {% endif %}
                     <p class="line-clamp-2">{{ item.name }}</p>
                     {% if item.has_discount %}
-                      <strong data-eur-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
+                      <strong style="color: red; font-weight: bold;" data-eur-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
+                      <span style="text-decoration: line-through; color: #777; margin-left: 4px; font-size: 0.9em;" data-eur-price="{{ item.price }}">${{ item.price|floatformat:2 }}</span>
                     {% else %}
                       <strong data-eur-price="{{ item.price }}">${{ item.price|floatformat:2 }}</strong>
                     {% endif %}
