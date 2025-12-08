@@ -1595,10 +1595,10 @@ def handler500(request: HttpRequest) -> HttpResponse:
 # Email Testing Endpoint (Temporary - Remove after testing)
 # =============================================================================
 
-@login_required
 def test_emails_view(request: HttpRequest) -> HttpResponse:
     """Test email sending functionality - accessible from browser."""
-    if not request.user.is_staff:
+    # Check if user is staff (allow unauthenticated for testing, but check staff if logged in)
+    if request.user.is_authenticated and not request.user.is_staff:
         messages.error(request, "Трябва да си администратор за да тестваш имейли.")
         return redirect('home')
     
