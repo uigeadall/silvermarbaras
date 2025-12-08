@@ -659,26 +659,20 @@ def register_view(request: HttpRequest) -> HttpResponse:
             else:
                 try:
                     user = User.objects.create_user(username=username, email=email, password=password)
-                    # Send welcome email signal asynchronously - don't wait for it
-                    # Use transaction.on_commit to ensure user is saved first, but don't block on email
-                    try:
-                        # Store request in a way that won't cause issues
-                        def send_signal():
-                            try:
-                                user_registered.send(sender=User, user=user, request=request)
-                            except Exception as e:
-                                logger.exception("Failed to send welcome email signal for user %s: %s", username, e)
-                        
-                        transaction.on_commit(send_signal)
-                    except Exception as e:
-                        logger.exception("Failed to setup welcome email signal for user %s: %s", username, e)
-                        # Continue registration even if email signal setup fails
+                    # Temporarily disable email sending to prevent blocking
+                    # Email will be sent later via signal if configured
+                    # try:
+                    #     transaction.on_commit(lambda: user_registered.send(sender=User, user=user, request=request))
+                    # except Exception as e:
+                    #     logger.exception("Failed to send welcome email signal: %s", e)
                     
                     messages.success(request, "Registration successful. You can now log in.")
                     return redirect("login")
                 except Exception as e:
                     logger.exception("Error creating user: %s", e)
-                    messages.error(request, "An error occurred during registration. Please try again.")
+                    messages.error(request, f"An error occurred during registration: {str(e)}")
+                    # Return to form instead of crashing
+                    return render(request, "register.html")
 
     return render(request, "register.html")
 
