@@ -656,10 +656,19 @@ def register_view(request: HttpRequest) -> HttpResponse:
             except ValidationError:
                 messages.error(request, "Invalid email address.")
             else:
-                user = User.objects.create_user(username=username, email=email, password=password)
-                transaction.on_commit(lambda: user_registered.send(sender=User, user=user, request=request))
-                messages.success(request, "Registration successful. You can now log in.")
-                return redirect("login")
+                try:
+                    user = User.objects.create_user(username=username, email=email, password=password)
+                    # Send welcome email signal - wrapped in try/except to prevent registration failure
+                    try:
+                        transaction.on_commit(lambda: user_registered.send(sender=User, user=user, request=request))
+                    except Exception as e:
+                        logger.exception("Failed to send welcome email signal for user %s: %s", username, e)
+                        # Continue registration even if email fails
+                    messages.success(request, "Registration successful. You can now log in.")
+                    return redirect("login")
+                except Exception as e:
+                    logger.exception("Error creating user: %s", e)
+                    messages.error(request, "An error occurred during registration. Please try again.")
 
     return render(request, "register.html")
 

@@ -19,15 +19,49 @@ order_submitted = Signal()
 @receiver(user_signed_up, dispatch_uid="ecommerce_welcome_allauth_v1")
 def send_welcome_allauth(sender, request, user, **kwargs):
     """Welcome email for allauth signups."""
-    base_url = request.build_absolute_uri('/').rstrip('/')
-    transaction.on_commit(lambda: send_welcome_email(user, base_url))
+    try:
+        base_url = request.build_absolute_uri('/').rstrip('/') if request else 'https://www.marbaras.com'
+        
+        # Send email in background, don't fail registration if email fails
+        def send_email_safely():
+            try:
+                send_welcome_email(user, base_url)
+            except Exception as e:
+                import logging
+                log = logging.getLogger(__name__)
+                log.exception("Failed to send welcome email to %s: %s", getattr(user, 'email', 'unknown'), e)
+        
+        transaction.on_commit(send_email_safely)
+    except Exception as e:
+        import logging
+        log = logging.getLogger(__name__)
+        log.exception("Error setting up welcome email for user %s: %s", getattr(user, 'email', 'unknown'), e)
 
 
 @receiver(user_registered, dispatch_uid="ecommerce_welcome_custom_v1")
 def send_welcome_custom(sender, user, request=None, **kwargs):
     """Welcome email for your custom register_view."""
-    base_url = request.build_absolute_uri('/').rstrip('/') if request else ""
-    transaction.on_commit(lambda: send_welcome_email(user, base_url))
+    try:
+        if request:
+            base_url = request.build_absolute_uri('/').rstrip('/')
+        else:
+            from django.conf import settings
+            base_url = getattr(settings, 'SITE_URL', 'https://www.marbaras.com')
+        
+        # Send email in background, don't fail registration if email fails
+        def send_email_safely():
+            try:
+                send_welcome_email(user, base_url)
+            except Exception as e:
+                import logging
+                log = logging.getLogger(__name__)
+                log.exception("Failed to send welcome email to %s: %s", getattr(user, 'email', 'unknown'), e)
+        
+        transaction.on_commit(send_email_safely)
+    except Exception as e:
+        import logging
+        log = logging.getLogger(__name__)
+        log.exception("Error setting up welcome email for user %s: %s", getattr(user, 'email', 'unknown'), e)
 
 
 @receiver(order_submitted, dispatch_uid="ecommerce_order_confirmation_v1")
