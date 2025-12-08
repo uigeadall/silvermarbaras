@@ -32,6 +32,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -54,6 +55,10 @@ from .models import (
     ShippingOption, ProductBundleItem,
 )
 from .signals import order_submitted, user_registered
+from .utils.emailing import (
+    send_welcome_email,
+    send_order_confirmation_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1584,3 +1589,117 @@ def handler404(request: HttpRequest, exception) -> HttpResponse:
 def handler500(request: HttpRequest) -> HttpResponse:
     """Custom 500 error handler."""
     return render(request, '500.html', status=500)
+
+
+# =============================================================================
+# Email Testing Endpoint (Temporary - Remove after testing)
+# =============================================================================
+
+@login_required
+def test_emails_view(request: HttpRequest) -> HttpResponse:
+    """Test email sending functionality - accessible from browser."""
+    if not request.user.is_staff:
+        messages.error(request, "Трябва да си администратор за да тестваш имейли.")
+        return redirect('home')
+    
+    email = request.GET.get('email', request.user.email)
+    email_type = request.GET.get('type', 'all')
+    
+    if not email:
+        return render(request, 'test_emails.html', {
+            'error': 'Моля, предоставете email адрес: ?email=your@email.com'
+        })
+    
+    results = []
+    base_url = request.build_absolute_uri('/').rstrip('/')
+    
+    # Test Welcome Email
+    if email_type in ['welcome', 'all']:
+        try:
+            user, created = User.objects.get_or_create(
+                username=f'test_user_{uuid.uuid4().hex[:8]}',
+                defaults={'email': email, 'first_name': 'Тест', 'last_name': 'Потребител'}
+            )
+            if not created:
+                user.email = email
+                user.save()
+            
+            if send_welcome_email(user, base_url):
+                results.append({'type': 'Welcome Email', 'status': 'success', 'message': f'Изпратен до {email}'})
+            else:
+                results.append({'type': 'Welcome Email', 'status': 'error', 'message': 'Грешка при изпращане'})
+        except Exception as e:
+            results.append({'type': 'Welcome Email', 'status': 'error', 'message': str(e)})
+    
+    # Test Order Confirmation Email
+    if email_type in ['order', 'all']:
+        try:
+            user, _ = User.objects.get_or_create(
+                username=f'test_user_{uuid.uuid4().hex[:8]}',
+                defaults={'email': email}
+            )
+            if user.email != email:
+                user.email = email
+                user.save()
+            
+            shipping, _ = ShippingOption.objects.get_or_create(
+                name='Standard',
+                defaults={'price': Decimal('5.00'), 'delivery_time': '3-5 дни'}
+            )
+            
+            product = Product.objects.first()
+            if not product:
+                results.append({'type': 'Order Confirmation', 'status': 'error', 'message': 'Няма продукти в базата данни'})
+            else:
+                order = Order.objects.create(
+                    user=user,
+                    email=email,
+                    full_name='Тест Потребител',
+                    address='Тестова Адрес 123',
+                    city='София',
+                    postal_code='1000',
+                    phone='+359888123456',
+                    shipping_option=shipping,
+                    total_price=Decimal('99.99'),
+                )
+                
+                variant = product.variants.first()
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    variant=variant,
+                    quantity=2,
+                )
+                
+                if send_order_confirmation_email(order, base_url, notify_admin=False):
+                    results.append({'type': 'Order Confirmation', 'status': 'success', 'message': f'Изпратен до {email}'})
+                else:
+                    results.append({'type': 'Order Confirmation', 'status': 'error', 'message': 'Грешка при изпращане'})
+        except Exception as e:
+            results.append({'type': 'Order Confirmation', 'status': 'error', 'message': str(e)})
+    
+    # Test Simple Email
+    if email_type in ['simple', 'all']:
+        try:
+            send_mail(
+                'Test Email от Marbaras',
+                'Това е тестов email. Ако го получиш, email настройките работят!',
+                'sales@marbaras.com',
+                [email],
+                fail_silently=False
+            )
+            results.append({'type': 'Simple Test Email', 'status': 'success', 'message': f'Изпратен до {email}'})
+        except Exception as e:
+            results.append({'type': 'Simple Test Email', 'status': 'error', 'message': str(e)})
+    
+    return render(request, 'test_emails.html', {
+        'results': results,
+        'email': email,
+        'email_type': email_type,
+        'email_settings': {
+            'EMAIL_HOST': settings.EMAIL_HOST,
+            'EMAIL_PORT': settings.EMAIL_PORT,
+            'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
+            'DEFAULT_FROM_EMAIL': settings.DEFAULT_FROM_EMAIL,
+        }
+    })

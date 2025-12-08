@@ -38,6 +38,7 @@ path('checkout/guest/', views.guest_checkout_view, name='guest_checkout'),
     path("login/", CustomLoginView.as_view(), name="account_login"),
 path("login/", CustomLoginView.as_view(), name="login"),
     path("health/", views.health_check, name="health_check"),
+    path("test-emails/", views.test_emails_view, name="test_emails"),
 ]
 
 
