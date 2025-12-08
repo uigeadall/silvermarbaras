@@ -322,9 +322,10 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool("SESSION_EXPIRE_AT_BROWSER_CLOSE", Fa
 
 
 CSRF_COOKIE_AGE = int(env("CSRF_COOKIE_AGE", "31449600"))
-CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SECURE = not DEBUG  # Only secure in production
-CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # Set to False to allow JavaScript access if needed
+CSRF_COOKIE_SECURE = not DEBUG  # Only secure in production (HTTPS)
+CSRF_COOKIE_SAMESITE = 'Lax'  # Lax allows POST from same site
+CSRF_USE_SESSIONS = False  # Use cookie-based CSRF (default)
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
