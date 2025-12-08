@@ -61,7 +61,22 @@ default_csrf = {
     "https://*.trycloudflare.com",
     "https://marbaras.com",
     "https://www.marbaras.com",
+    "http://marbaras.com",
+    "http://www.marbaras.com",
 }
+
+# Add Railway domain if available
+railway_domain = env("RAILWAY_PUBLIC_DOMAIN", "").strip()
+if railway_domain:
+    default_csrf.add(f"https://{railway_domain}")
+    default_csrf.add(f"http://{railway_domain}")
+
+# Also check for Railway custom domain
+railway_custom_domain = env("RAILWAY_CUSTOM_DOMAIN", "").strip()
+if railway_custom_domain:
+    default_csrf.add(f"https://{railway_custom_domain}")
+    default_csrf.add(f"http://{railway_custom_domain}")
+
 CSRF_TRUSTED_ORIGINS = sorted(default_csrf.union(set(env_list("CSRF_TRUSTED_ORIGINS", []))))
 
 
@@ -308,6 +323,8 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool("SESSION_EXPIRE_AT_BROWSER_CLOSE", Fa
 
 CSRF_COOKIE_AGE = int(env("CSRF_COOKIE_AGE", "31449600"))
 CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = not DEBUG  # Only secure in production
+CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
