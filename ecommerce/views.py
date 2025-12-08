@@ -635,46 +635,49 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 @ensure_csrf_cookie
 def register_view(request: HttpRequest) -> HttpResponse:
-    if request.method == "POST":
-        username = (request.POST.get("username") or "").strip()
-        email = (request.POST.get("email") or "").strip()
-        password = request.POST.get("password") or ""
-        confirm_password = request.POST.get("confirm_password") or ""
+    try:
+        if request.method == "POST":
+            username = (request.POST.get("username") or "").strip()
+            email = (request.POST.get("email") or "").strip()
+            password = request.POST.get("password") or ""
+            confirm_password = request.POST.get("confirm_password") or ""
 
-        if not all([username, email, password, confirm_password]):
-            messages.error(request, "All fields are required.")
-        elif password != confirm_password:
-            messages.error(request, "Passwords do not match.")
-        elif len(password) < 8:
-            messages.error(request, "Password must be at least 8 characters long.")
-        elif User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists.")
-        elif User.objects.filter(email=email).exists():
-            messages.error(request, "Email already exists.")
-        else:
-            try:
-                validate_email(email)
-            except ValidationError:
-                messages.error(request, "Invalid email address.")
+            if not all([username, email, password, confirm_password]):
+                messages.error(request, "All fields are required.")
+            elif password != confirm_password:
+                messages.error(request, "Passwords do not match.")
+            elif len(password) < 8:
+                messages.error(request, "Password must be at least 8 characters long.")
+            elif User.objects.filter(username=username).exists():
+                messages.error(request, "Username already exists.")
+            elif User.objects.filter(email=email).exists():
+                messages.error(request, "Email already exists.")
             else:
                 try:
-                    user = User.objects.create_user(username=username, email=email, password=password)
-                    # Temporarily disable email sending to prevent blocking
-                    # Email will be sent later via signal if configured
-                    # try:
-                    #     transaction.on_commit(lambda: user_registered.send(sender=User, user=user, request=request))
-                    # except Exception as e:
-                    #     logger.exception("Failed to send welcome email signal: %s", e)
-                    
-                    messages.success(request, "Registration successful. You can now log in.")
-                    return redirect("login")
-                except Exception as e:
-                    logger.exception("Error creating user: %s", e)
-                    messages.error(request, f"An error occurred during registration: {str(e)}")
-                    # Return to form instead of crashing
-                    return render(request, "register.html")
+                    validate_email(email)
+                except ValidationError:
+                    messages.error(request, "Invalid email address.")
+                else:
+                    try:
+                        user = User.objects.create_user(username=username, email=email, password=password)
+                        logger.info("User created successfully: %s", username)
+                        
+                        # Temporarily disable email sending to prevent blocking
+                        # Email will be sent later via signal if configured
+                        
+                        messages.success(request, "Registration successful. You can now log in.")
+                        logger.info("Redirecting to login for user: %s", username)
+                        return redirect("login")
+                    except Exception as e:
+                        logger.exception("Error creating user: %s", e)
+                        messages.error(request, f"An error occurred during registration. Please try again.")
+                        return render(request, "register.html")
 
-    return render(request, "register.html")
+        return render(request, "register.html")
+    except Exception as e:
+        logger.exception("Unexpected error in register_view: %s", e)
+        messages.error(request, "An unexpected error occurred. Please try again.")
+        return render(request, "register.html")
 
 
 def login_view(request: HttpRequest) -> HttpResponse:
