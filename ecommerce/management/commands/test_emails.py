@@ -33,7 +33,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         email = options['email']
         email_type = options['type']
-        base_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
+        # Try to get base URL from settings, or use production domain
+        base_url = getattr(settings, 'SITE_URL', None) or \
+                   getattr(settings, 'BASE_URL', None) or \
+                   'https://www.marbaras.com'
 
         self.stdout.write(self.style.SUCCESS(f'\n📧 Тестване на имейли до: {email}'))
         self.stdout.write(self.style.SUCCESS(f'🌐 Base URL: {base_url}\n'))
