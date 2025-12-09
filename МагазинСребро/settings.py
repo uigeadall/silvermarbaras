@@ -78,13 +78,7 @@ if railway_custom_domain:
     default_csrf.add(f"http://{railway_custom_domain}")
 
 # Build CSRF_TRUSTED_ORIGINS from defaults and env
-CSRF_TRUSTED_ORIGINS = sorted(default_csrf.union(set(env_list("CSRF_TRUSTED_ORIGINS", []))))
-
-# Ensure www.marbaras.com and marbaras.com are always included (critical for production)
-if "https://www.marbaras.com" not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append("https://www.marbaras.com")
-if "https://marbaras.com" not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append("https://marbaras.com")
+# Note: This will be finalized after CSRF_COOKIE_SAMESITE is set
 
 
 if NGROK_HOST:
@@ -331,7 +325,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool("SESSION_EXPIRE_AT_BROWSER_CLOSE", Fa
 CSRF_COOKIE_AGE = int(env("CSRF_COOKIE_AGE", "31449600"))
 CSRF_COOKIE_HTTPONLY = False  # Set to False to allow JavaScript access if needed
 CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)  # Only secure in production (HTTPS)
-CSRF_COOKIE_SAMESITE = 'Lax'  # Lax allows POST from same site
+# Use 'None' for SameSite in production to allow cross-site requests if needed
+# But 'Lax' should work for same-site requests
+CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", "Lax")
 CSRF_USE_SESSIONS = False  # Use cookie-based CSRF (default)
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 # Ensure CSRF cookie is set for all views
