@@ -1,7 +1,6 @@
-
 import logging
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, mail_admins, send_mail
+from django.core.mail import EmailMultiAlternatives, mail_admins
 from django.template.loader import render_to_string
 from decimal import Decimal
 
