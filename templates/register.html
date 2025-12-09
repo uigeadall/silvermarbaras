@@ -155,9 +155,42 @@
   </form>
   
   <script>
+    // Ensure CSRF token is available
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+    if (csrftoken) {
+      // Add CSRF token to form if missing
+      const form = document.getElementById('register-form');
+      if (form) {
+        const existingToken = form.querySelector('[name="csrfmiddlewaretoken"]');
+        if (!existingToken) {
+          const hiddenInput = document.createElement('input');
+          hiddenInput.type = 'hidden';
+          hiddenInput.name = 'csrfmiddlewaretoken';
+          hiddenInput.value = csrftoken;
+          form.appendChild(hiddenInput);
+        }
+      }
+    }
+    
     // Debug: Log form submission
     document.getElementById('register-form')?.addEventListener('submit', function(e) {
       console.log('Form submitting...');
+      console.log('CSRF Token:', getCookie('csrftoken'));
       const formData = new FormData(this);
       console.log('Form data:', Object.fromEntries(formData));
     });

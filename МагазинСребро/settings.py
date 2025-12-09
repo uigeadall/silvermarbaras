@@ -77,7 +77,14 @@ if railway_custom_domain:
     default_csrf.add(f"https://{railway_custom_domain}")
     default_csrf.add(f"http://{railway_custom_domain}")
 
+# Build CSRF_TRUSTED_ORIGINS from defaults and env
 CSRF_TRUSTED_ORIGINS = sorted(default_csrf.union(set(env_list("CSRF_TRUSTED_ORIGINS", []))))
+
+# Ensure www.marbaras.com and marbaras.com are always included (critical for production)
+if "https://www.marbaras.com" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://www.marbaras.com")
+if "https://marbaras.com" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://marbaras.com")
 
 
 if NGROK_HOST:

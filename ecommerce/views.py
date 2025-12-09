@@ -656,6 +656,11 @@ def register_view(request: HttpRequest) -> HttpResponse:
     try:
         if request.method == "POST":
             logger.info("POST request received for registration")
+            logger.info("CSRF Token in POST: %s", request.POST.get('csrfmiddlewaretoken', 'NOT FOUND'))
+            logger.info("CSRF Token in headers: %s", request.META.get('HTTP_X_CSRFTOKEN', 'NOT FOUND'))
+            logger.info("Origin: %s", request.META.get('HTTP_ORIGIN', 'NOT FOUND'))
+            logger.info("Referer: %s", request.META.get('HTTP_REFERER', 'NOT FOUND'))
+            logger.info("CSRF_TRUSTED_ORIGINS: %s", settings.CSRF_TRUSTED_ORIGINS)
             username = (request.POST.get("username") or "").strip()
             email = (request.POST.get("email") or "").strip()
             password = request.POST.get("password") or ""
