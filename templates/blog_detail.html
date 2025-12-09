@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load blog_filters %}
 
 {% block title %}{{ post.title }} - Marbaras{% endblock %}
 
@@ -90,7 +91,7 @@
           </header>
 
           <div class="blog-content">
-            {{ post.content|safe }}
+            {{ post.content|format_paragraphs|safe }}
           </div>
         </div>
 
@@ -373,5 +374,62 @@
     background-color: rgba(0, 0, 0, 0.8);
   }
 </style>
+
+<script>
+  // Additional formatting for blog content - ensures all text is properly wrapped in paragraphs
+  (function() {
+    const blogContent = document.querySelector('.blog-content');
+    if (!blogContent) return;
+    
+    // Find all text nodes that are direct children (not inside other elements)
+    function formatTextNodes(element) {
+      const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: function(node) {
+            // Skip if parent is already a block element
+            const parent = node.parentElement;
+            if (!parent) return NodeFilter.FILTER_REJECT;
+            
+            const blockTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'DIV', 'BLOCKQUOTE', 'LI', 'PRE'];
+            if (blockTags.includes(parent.tagName)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            
+            // Only process text nodes with actual content
+            if (node.textContent.trim().length > 0) {
+              return NodeFilter.FILTER_ACCEPT;
+            }
+            return NodeFilter.FILTER_REJECT;
+          }
+        }
+      );
+      
+      const textNodes = [];
+      let node;
+      while (node = walker.nextNode()) {
+        textNodes.push(node);
+      }
+      
+      // Wrap orphaned text nodes in paragraphs
+      textNodes.forEach(textNode => {
+        const text = textNode.textContent.trim();
+        if (text.length > 0) {
+          const p = document.createElement('p');
+          p.textContent = text;
+          textNode.parentNode.replaceChild(p, textNode);
+        }
+      });
+    }
+    
+    // Run formatting after page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => formatTextNodes(blogContent));
+    } else {
+      formatTextNodes(blogContent);
+    }
+  })();
+</script>
 {% endblock %}
 
