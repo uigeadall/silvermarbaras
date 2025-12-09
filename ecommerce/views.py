@@ -1672,6 +1672,18 @@ def handler500(request: HttpRequest) -> HttpResponse:
 # Email Testing Endpoint (Temporary - Remove after testing)
 # =============================================================================
 
+def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
+    """Blog post detail page."""
+    post = get_object_or_404(BlogPost, slug=slug, is_published=True)
+    categories = _get_categories()
+    
+    context = {
+        "post": post,
+        "categories": categories,
+    }
+    return render(request, "blog_detail.html", context)
+
+
 def test_emails_view(request: HttpRequest) -> HttpResponse:
     """Test email sending functionality - accessible from browser."""
     # Check if user is staff (allow unauthenticated for testing, but check staff if logged in)
