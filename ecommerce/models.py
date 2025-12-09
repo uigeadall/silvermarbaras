@@ -444,3 +444,22 @@ class OrderItem(models.Model):
             return f"{label} (size {self.variant.size}) in order #{self.order_id}"
         return f"{label} in order #{self.order_id}"
 
+
+class UserProfile(models.Model):
+    """User profile to store shipping and contact information."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True, help_text="Shipping email (can differ from account email)")
+    address = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    postal_code = models.CharField(max_length=20, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Profile"
+        verbose_name_plural = "User Profiles"
+
+    def __str__(self) -> str:
+        return f"Profile for {self.user.username}"
+

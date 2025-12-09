@@ -53,6 +53,7 @@ from .models import (
     ProductVariant,
     Rating,
     ShippingOption, ProductBundleItem,
+    UserProfile,
 )
 from .signals import order_submitted, user_registered
 from .utils.emailing import (
@@ -1166,6 +1167,38 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Payment system configuration error. Please contact support.")
         return redirect("cart_view")
 
+    # Get user profile data for pre-filling checkout form
+    profile_data = {}
+    if request.user.is_authenticated:
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+            profile_data = {
+                "phone": profile.phone or "",
+                "email": profile.email or request.user.email or "",
+                "address": profile.address or "",
+                "city": profile.city or "",
+                "postal_code": profile.postal_code or "",
+                "country": profile.country or "",
+            }
+        except UserProfile.DoesNotExist:
+            profile_data = {
+                "phone": "",
+                "email": request.user.email or "",
+                "address": "",
+                "city": "",
+                "postal_code": "",
+                "country": "",
+            }
+    else:
+        profile_data = {
+            "phone": "",
+            "email": "",
+            "address": "",
+            "city": "",
+            "postal_code": "",
+            "country": "",
+        }
+
     # Ensure shipping options exist (Standard $5.99, Express $19.99, Free Delivery $0)
     standard_shipping, _ = ShippingOption.objects.get_or_create(
         name="Standard Shipping",
@@ -1207,6 +1240,7 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
             "client_secret": intent.client_secret,
             "stripe_public_key": stripe_public_key,
             "is_guest": not request.user.is_authenticated,
+            "profile_data": profile_data,
         },
     )
 
@@ -1528,10 +1562,27 @@ def profile_orders(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@login_required
 def profile_details(request: HttpRequest) -> HttpResponse:
+    """Account details page - allows users to save phone, email, and address."""
     user = request.user
-    return render(request, "details.html", {
+    profile, created = UserProfile.objects.get_or_create(user=user)
+    
+    if request.method == "POST":
+        # Update profile with form data
+        profile.phone = request.POST.get("phone", "").strip() or None
+        profile.email = request.POST.get("email", "").strip() or None
+        profile.address = request.POST.get("address", "").strip() or None
+        profile.city = request.POST.get("city", "").strip() or None
+        profile.postal_code = request.POST.get("postal_code", "").strip() or None
+        profile.country = request.POST.get("country", "").strip() or None
+        profile.save()
+        messages.success(request, "Account details updated successfully!")
+        return redirect("profile_details")
+    
+    return render(request, "account_details.html", {
         "user": user,
+        "profile": profile,
         "active_tab": "details",
     })
 

@@ -209,14 +209,14 @@
               <div class="form-row form-row--2">
                 <div class="form-group">
                   <label for="full_name">Full Name</label>
-                  <input id="full_name" name="full_name" type="text" required>
+                  <input id="full_name" name="full_name" type="text" value="{{ request.user.get_full_name|default:request.user.username|default:'' }}" required>
                 </div>
                 <div class="form-group">
                   <label for="email">Email</label>
                   {% if user.is_authenticated %}
-                    <input id="email" name="email" type="email" value="{{ request.user.email }}" readonly>
+                    <input id="email" name="email" type="email" value="{{ profile_data.email|default:request.user.email }}" {% if not profile_data.email %}readonly{% endif %}>
                   {% else %}
-                    <input id="email" name="email" type="email" required>
+                    <input id="email" name="email" type="email" value="{{ profile_data.email|default:'' }}" required>
                   {% endif %}
                 </div>
               </div>
@@ -225,45 +225,45 @@
               <div class="form-row form-row--2">
                 <div class="form-group">
                   <label for="phone">Phone Number</label>
-                  <input id="phone" name="phone" type="tel" required>
+                  <input id="phone" name="phone" type="tel" value="{{ profile_data.phone|default:'' }}" required>
                 </div>
                 <div class="form-group">
                   <label for="country">Country</label>
                   <select id="country" name="country" required>
                     <option value="">-- Select Country --</option>
                     <optgroup label="Europe">
-                      <option value="Albania">Albania</option>
-                      <option value="Andorra">Andorra</option>
-                      <option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
-                      <option value="Vatican">Vatican</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                      <option value="Iceland">Iceland</option>
-                      <option value="Liechtenstein">Liechtenstein</option>
-                      <option value="Monaco">Monaco</option>
-                      <option value="Montenegro">Montenegro</option>
-                      <option value="Norway">Norway</option>
-                      <option value="San Marino">San Marino</option>
-                      <option value="Serbia">Serbia</option>
-                      <option value="Switzerland">Switzerland</option>
+                      <option value="Albania" {% if profile_data.country == "Albania" %}selected{% endif %}>Albania</option>
+                      <option value="Andorra" {% if profile_data.country == "Andorra" %}selected{% endif %}>Andorra</option>
+                      <option value="Bosnia and Herzegovina" {% if profile_data.country == "Bosnia and Herzegovina" %}selected{% endif %}>Bosnia and Herzegovina</option>
+                      <option value="Vatican" {% if profile_data.country == "Vatican" %}selected{% endif %}>Vatican</option>
+                      <option value="United Kingdom" {% if profile_data.country == "United Kingdom" %}selected{% endif %}>United Kingdom</option>
+                      <option value="Iceland" {% if profile_data.country == "Iceland" %}selected{% endif %}>Iceland</option>
+                      <option value="Liechtenstein" {% if profile_data.country == "Liechtenstein" %}selected{% endif %}>Liechtenstein</option>
+                      <option value="Monaco" {% if profile_data.country == "Monaco" %}selected{% endif %}>Monaco</option>
+                      <option value="Montenegro" {% if profile_data.country == "Montenegro" %}selected{% endif %}>Montenegro</option>
+                      <option value="Norway" {% if profile_data.country == "Norway" %}selected{% endif %}>Norway</option>
+                      <option value="San Marino" {% if profile_data.country == "San Marino" %}selected{% endif %}>San Marino</option>
+                      <option value="Serbia" {% if profile_data.country == "Serbia" %}selected{% endif %}>Serbia</option>
+                      <option value="Switzerland" {% if profile_data.country == "Switzerland" %}selected{% endif %}>Switzerland</option>
                     </optgroup>
                     <optgroup label="Asia">
-                      <option value="Bahrain">Bahrain</option>
-                      <option value="Japan">Japan</option>
-                      <option value="Qatar">Qatar</option>
-                      <option value="Saudi Arabia">Saudi Arabia</option>
-                      <option value="United Arab Emirates">United Arab Emirates</option>
+                      <option value="Bahrain" {% if profile_data.country == "Bahrain" %}selected{% endif %}>Bahrain</option>
+                      <option value="Japan" {% if profile_data.country == "Japan" %}selected{% endif %}>Japan</option>
+                      <option value="Qatar" {% if profile_data.country == "Qatar" %}selected{% endif %}>Qatar</option>
+                      <option value="Saudi Arabia" {% if profile_data.country == "Saudi Arabia" %}selected{% endif %}>Saudi Arabia</option>
+                      <option value="United Arab Emirates" {% if profile_data.country == "United Arab Emirates" %}selected{% endif %}>United Arab Emirates</option>
                     </optgroup>
                     <optgroup label="Africa">
-                      <option value="South Africa">South Africa</option>
+                      <option value="South Africa" {% if profile_data.country == "South Africa" %}selected{% endif %}>South Africa</option>
                     </optgroup>
                     <optgroup label="North America">
-                      <option value="Canada">Canada</option>
-                      <option value="Costa Rica">Costa Rica</option>
-                      <option value="United States">United States</option>
+                      <option value="Canada" {% if profile_data.country == "Canada" %}selected{% endif %}>Canada</option>
+                      <option value="Costa Rica" {% if profile_data.country == "Costa Rica" %}selected{% endif %}>Costa Rica</option>
+                      <option value="United States" {% if profile_data.country == "United States" %}selected{% endif %}>United States</option>
                     </optgroup>
                     <optgroup label="Oceania">
-                      <option value="Australia">Australia</option>
-                      <option value="New Zealand">New Zealand</option>
+                      <option value="Australia" {% if profile_data.country == "Australia" %}selected{% endif %}>Australia</option>
+                      <option value="New Zealand" {% if profile_data.country == "New Zealand" %}selected{% endif %}>New Zealand</option>
                     </optgroup>
                   </select>
                 </div>
@@ -272,18 +272,18 @@
               {# Address #}
               <div class="form-group">
                 <label for="address">Address</label>
-                <input id="address" name="address" type="text" required>
+                <input id="address" name="address" type="text" value="{{ profile_data.address|default:'' }}" required>
               </div>
 
               {# Row 3: City | Postal Code #}
               <div class="form-row form-row--2">
                 <div class="form-group">
                   <label for="city">City</label>
-                  <input id="city" name="city" type="text" required>
+                  <input id="city" name="city" type="text" value="{{ profile_data.city|default:'' }}" required>
                 </div>
                 <div class="form-group">
                   <label for="postal_code">Postal Code</label>
-                  <input id="postal_code" name="postal_code" type="text" required>
+                  <input id="postal_code" name="postal_code" type="text" value="{{ profile_data.postal_code|default:'' }}" required>
                 </div>
               </div>
 
