@@ -6,6 +6,7 @@ from django.contrib import messages
 import csv
 
 from .models import (
+    BlogPost,
     Category, Product, ProductImage, ProductVariant,
     CartItem, Order, OrderItem, Favorite, Discount, ShippingOption, Coupon, ProductBundleItem
 )
@@ -113,6 +114,14 @@ class ProductAdmin(admin.ModelAdmin):
         return qs, use_distinct
 
 
+
+@admin.register(BlogPost)
+class BlogPostAdmin(admin.ModelAdmin):
+    list_display = ('title', 'order', 'is_published', 'created_at')
+    list_filter = ('is_published', 'created_at')
+    search_fields = ('title', 'content')
+    prepopulated_fields = {'slug': ('title',)}
+    ordering = ('order', '-created_at')
 
 admin.site.register(Category)
 admin.site.register(ProductImage)

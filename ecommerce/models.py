@@ -463,3 +463,28 @@ class UserProfile(models.Model):
     def __str__(self) -> str:
         return f"Profile for {self.user.username}"
 
+
+class BlogPost(models.Model):
+    """Blog post model for articles."""
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True, blank=True)
+    content = models.TextField()
+    excerpt = models.TextField(max_length=500, blank=True, help_text="Short summary for preview")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_published = models.BooleanField(default=True)
+    order = models.IntegerField(default=0, help_text="Order for display (lower numbers first)")
+
+    class Meta:
+        ordering = ["order", "-created_at"]
+        verbose_name = "Blog Post"
+        verbose_name_plural = "Blog Posts"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.title
+

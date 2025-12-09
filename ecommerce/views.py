@@ -41,6 +41,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import RatingForm
 from .models import (
+    BlogPost,
     CartItem,
     Category,
     Comment,
@@ -364,6 +365,7 @@ def home(request: HttpRequest) -> HttpResponse:
         ),
         "popular_products": popular_products,
         "editors_choice": editors_choice,
+        "blog_posts": BlogPost.objects.filter(is_published=True)[:3],
         "sort": sort,
         "query": query,
         "selected_category": selected_category,

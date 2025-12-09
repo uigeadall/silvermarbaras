@@ -375,6 +375,29 @@
         </div>
         {% endif %}
 
+        {# ======= Blog Posts Section ======= #}
+        {% if blog_posts %}
+        <div class="mt-12">
+          <h3 class="section-title"><span>Our Monthly Pics for You</span></h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for post in blog_posts %}
+            <article class="rounded-2xl bg-white shadow-sm overflow-hidden hover:shadow-card transition">
+              <div class="p-6">
+                <h4 class="text-lg font-extrabold mb-3 text-slate-900">{{ post.title }}</h4>
+                {% if post.excerpt %}
+                  <p class="text-sm text-slate-600 mb-4 leading-relaxed">{{ post.excerpt|truncatewords:30 }}</p>
+                {% else %}
+                  <p class="text-sm text-slate-600 mb-4 leading-relaxed">{{ post.content|truncatewords:30|striptags }}</p>
+                {% endif %}
+                <div class="text-xs text-slate-500">{{ post.created_at|date:"F j, Y" }}</div>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
       {% endif %}
 
       {# ===== Sort bar: ONLY when user is filtering/searching, not on clean home ===== #}
