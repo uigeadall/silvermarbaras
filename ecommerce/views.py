@@ -667,7 +667,13 @@ def register_view(request: HttpRequest) -> HttpResponse:
                         
                         messages.success(request, "Registration successful. You can now log in.")
                         logger.info("Redirecting to login for user: %s", username)
-                        return redirect("login")
+                        # Use account_login to avoid conflicts
+                        try:
+                            return redirect("account_login")
+                        except Exception as redirect_error:
+                            logger.exception("Redirect error: %s", redirect_error)
+                            # Fallback to direct URL
+                            return redirect("/accounts/login/")
                     except Exception as e:
                         logger.exception("Error creating user: %s", e)
                         messages.error(request, f"An error occurred during registration. Please try again.")
