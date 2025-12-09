@@ -657,7 +657,8 @@ def register_view(request: HttpRequest) -> HttpResponse:
     
     # Ensure CSRF token is available in context
     if request.method == "GET":
-        get_token(request)  # Force CSRF token generation
+        csrf_token = get_token(request)  # Force CSRF token generation
+        logger.info("CSRF token generated for GET request: %s", csrf_token[:20] + "..." if csrf_token else "NONE")
     
     try:
         if request.method == "POST":

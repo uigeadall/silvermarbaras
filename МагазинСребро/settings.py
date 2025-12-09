@@ -86,6 +86,7 @@ if "https://www.marbaras.com" not in CSRF_TRUSTED_ORIGINS:
 if "https://marbaras.com" not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append("https://marbaras.com")
 
+
 if NGROK_HOST:
     if ALLOWED_HOSTS != ["*"] and NGROK_HOST not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(NGROK_HOST)
@@ -329,17 +330,16 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool("SESSION_EXPIRE_AT_BROWSER_CLOSE", Fa
 
 CSRF_COOKIE_AGE = int(env("CSRF_COOKIE_AGE", "31449600"))
 CSRF_COOKIE_HTTPONLY = False  # Set to False to allow JavaScript access if needed
+# In production, CSRF_COOKIE_SECURE should be True for HTTPS, but let's be flexible
 CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)  # Only secure in production (HTTPS)
-# Use 'Lax' for SameSite - allows cookies to be sent on same-site requests
-# This works for both www.marbaras.com and marbaras.com (same site)
-CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", "Lax")
-# Set cookie domain to .marbaras.com so it works for both www and non-www
-CSRF_COOKIE_DOMAIN = env("CSRF_COOKIE_DOMAIN", ".marbaras.com" if not DEBUG else None)
+CSRF_COOKIE_SAMESITE = 'Lax'  # Lax allows POST from same site
 CSRF_USE_SESSIONS = False  # Use cookie-based CSRF (default)
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 # Ensure CSRF cookie is set for all views
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+# Disable CSRF referer check if needed (less secure but works in some edge cases)
+CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
@@ -506,7 +506,8 @@ else:
 if not DEBUG:
     SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
     SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # CSRF_COOKIE_SECURE is set above based on env, allow override
+    # CSRF_COOKIE_SECURE = True  # Commented to use env-based setting above
     SECURE_HSTS_SECONDS = int(env("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
