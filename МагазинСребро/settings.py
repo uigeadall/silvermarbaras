@@ -401,9 +401,9 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = int(env("DATA_UPLOAD_MAX_NUMBER_FIELDS", "1000")
 
 
 
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "marbaras@sales.com")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "support@marbaras.com")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-ADMINS = [("Site Admin", env("ADMIN_EMAIL", "marbaras@sales.com"))]
+ADMINS = [("Site Admin", env("ADMIN_EMAIL", "support@marbaras.com"))]
 
 # Email Configuration
 # Django uses its built-in email functions - no 3rd party library needed!
@@ -433,7 +433,7 @@ EMAIL_HOST = env("EMAIL_HOST", "mail.jump.bg")
 EMAIL_PORT = int(env("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", "marbaras@sales.com")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", "support@marbaras.com")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
 
