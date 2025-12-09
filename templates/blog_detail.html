@@ -56,7 +56,20 @@
           </div>
         {% endif %}
         
-        {% if video_embed_url %}
+        {% if post.video_file %}
+          <div class="w-full aspect-video bg-slate-900">
+            <video 
+              controls 
+              class="w-full h-full"
+              preload="metadata"
+              style="outline: none;">
+              <source src="{{ post.video_file.url }}" type="video/mp4">
+              <source src="{{ post.video_file.url }}" type="video/webm">
+              <source src="{{ post.video_file.url }}" type="video/ogg">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        {% elif video_embed_url %}
           <div class="w-full aspect-video bg-slate-900">
             <iframe 
               src="{{ video_embed_url }}" 
@@ -142,6 +155,15 @@
     max-width: 100%;
     border-radius: 8px;
     margin: 1.5rem 0;
+  }
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+  video::-webkit-media-controls-panel {
+    background-color: rgba(0, 0, 0, 0.8);
   }
 </style>
 {% endblock %}

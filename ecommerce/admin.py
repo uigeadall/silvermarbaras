@@ -117,7 +117,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'order', 'is_published', 'created_at', 'has_image', 'has_video')
+    list_display = ('title', 'order', 'is_published', 'created_at', 'has_image', 'has_video_file', 'has_video_url')
     list_filter = ('is_published', 'created_at')
     search_fields = ('title', 'content')
     prepopulated_fields = {'slug': ('title',)}
@@ -130,8 +130,8 @@ class BlogPostAdmin(admin.ModelAdmin):
             'fields': ('content',)
         }),
         ('Media', {
-            'fields': ('image', 'video_url'),
-            'description': 'Add an image and/or video URL to enhance your blog post. Video URLs from YouTube, Vimeo, etc. are supported.'
+            'fields': ('image', 'video_file', 'video_url'),
+            'description': 'Add an image and/or video to enhance your blog post. You can upload a video file (MP4, WebM, OGG) or provide a YouTube/Vimeo URL. If both are provided, uploaded video takes priority.'
         }),
     )
     
@@ -140,10 +140,15 @@ class BlogPostAdmin(admin.ModelAdmin):
     has_image.boolean = True
     has_image.short_description = 'Has Image'
     
-    def has_video(self, obj):
+    def has_video_file(self, obj):
+        return bool(obj.video_file)
+    has_video_file.boolean = True
+    has_video_file.short_description = 'Has Video File'
+    
+    def has_video_url(self, obj):
         return bool(obj.video_url)
-    has_video.boolean = True
-    has_video.short_description = 'Has Video'
+    has_video_url.boolean = True
+    has_video_url.short_description = 'Has Video URL'
 
 admin.site.register(Category)
 admin.site.register(ProductImage)

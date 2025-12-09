@@ -1690,9 +1690,9 @@ def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
     post = get_object_or_404(BlogPost, slug=slug, is_published=True)
     categories = _get_categories()
     
-    # Convert video URL to embed format if needed
+    # Convert video URL to embed format if needed (only if no video_file is uploaded)
     video_embed_url = None
-    if post.video_url:
+    if not post.video_file and post.video_url:
         video_url = post.video_url.strip()
         # YouTube watch URL: https://www.youtube.com/watch?v=VIDEO_ID
         if 'youtube.com/watch' in video_url:

@@ -471,7 +471,13 @@ class BlogPost(models.Model):
     content = models.TextField()
     excerpt = models.TextField(max_length=500, blank=True, help_text="Short summary for preview")
     image = models.ImageField(upload_to="blog/", blank=True, null=True, help_text="Featured image for blog post")
-    video_url = models.URLField(blank=True, null=True, help_text="Optional video URL (YouTube, Vimeo, etc.)")
+    video_file = models.FileField(
+        upload_to="blog/videos/", 
+        blank=True, 
+        null=True, 
+        help_text="Upload a video file (MP4, WebM, OGG). Max size: 100MB"
+    )
+    video_url = models.URLField(blank=True, null=True, help_text="Optional video URL (YouTube, Vimeo, etc.) or upload a file above")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_published = models.BooleanField(default=True)
