@@ -25,10 +25,11 @@ from django.views.static import serve
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('ecommerce.urls')),
-    # Redirect allauth signup/login to custom views
+    # Redirect allauth signup/login/logout to custom views
     path('accounts/signup/', lambda request: redirect('/register/'), name='account_signup'),
     path('accounts/login/', lambda request: redirect('/login/'), name='account_login'),
-    # Keep other allauth URLs (logout, password reset, etc.)
+    path('accounts/logout/', lambda request: redirect('/logout/'), name='account_logout'),
+    # Keep other allauth URLs (password reset, etc.)
     path('accounts/', include('allauth.urls')),
     path('login/', lambda request: redirect('/login/')),
 ]
