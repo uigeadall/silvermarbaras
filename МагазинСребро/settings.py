@@ -327,6 +327,9 @@ CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)  # Only secure in
 CSRF_COOKIE_SAMESITE = 'Lax'  # Lax allows POST from same site
 CSRF_USE_SESSIONS = False  # Use cookie-based CSRF (default)
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
+# Ensure CSRF cookie is set for all views
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
 ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]

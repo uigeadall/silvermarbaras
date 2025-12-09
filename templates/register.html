@@ -135,7 +135,6 @@
   
   <form method="POST" action="{% url 'register' %}" id="register-form">
     {% csrf_token %}
-    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
     <div class="form-group">
       <label>Username</label>
       <input type="text" name="username" required autocomplete="username">
