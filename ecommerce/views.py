@@ -1690,8 +1690,29 @@ def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
     post = get_object_or_404(BlogPost, slug=slug, is_published=True)
     categories = _get_categories()
     
+    # Convert video URL to embed format if needed
+    video_embed_url = None
+    if post.video_url:
+        video_url = post.video_url.strip()
+        # YouTube watch URL: https://www.youtube.com/watch?v=VIDEO_ID
+        if 'youtube.com/watch' in video_url:
+            video_id = video_url.split('v=')[1].split('&')[0]
+            video_embed_url = f'https://www.youtube.com/embed/{video_id}'
+        # YouTube short URL: https://youtu.be/VIDEO_ID
+        elif 'youtu.be/' in video_url:
+            video_id = video_url.split('youtu.be/')[1].split('?')[0]
+            video_embed_url = f'https://www.youtube.com/embed/{video_id}'
+        # Vimeo URL: https://vimeo.com/VIDEO_ID
+        elif 'vimeo.com/' in video_url:
+            video_id = video_url.split('vimeo.com/')[1].split('?')[0]
+            video_embed_url = f'https://player.vimeo.com/video/{video_id}'
+        # Already embed format or other platform
+        else:
+            video_embed_url = video_url
+    
     context = {
         "post": post,
+        "video_embed_url": video_embed_url,
         "categories": categories,
     }
     return render(request, "blog_detail.html", context)
