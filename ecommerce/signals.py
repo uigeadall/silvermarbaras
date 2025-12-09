@@ -100,7 +100,7 @@ def send_order_confirmation(sender, order, request=None, base_url=None, **kwargs
     if not base_url:
         if request is not None:
             try:
-        base_url = request.build_absolute_uri('/').rstrip('/')
+                base_url = request.build_absolute_uri('/').rstrip('/')
             except Exception:
                 base_url = 'https://www.marbaras.com'
         else:
