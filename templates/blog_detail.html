@@ -48,16 +48,37 @@
         </a>
       </div>
 
-      <article class="bg-white rounded-2xl shadow-sm p-8 md:p-12">
-        <header class="mb-8">
-          <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">{{ post.title }}</h1>
-          <div class="text-sm text-slate-500">
-            Published on {{ post.created_at|date:"F j, Y" }}
+      <article class="bg-white rounded-2xl shadow-sm overflow-hidden">
+        {% if post.image %}
+          <div class="w-full aspect-video overflow-hidden bg-slate-100">
+            <img src="{{ post.image.url }}" alt="{{ post.title }}" 
+                 class="w-full h-full object-cover">
           </div>
-        </header>
+        {% endif %}
+        
+        {% if video_embed_url %}
+          <div class="w-full aspect-video bg-slate-900">
+            <iframe 
+              src="{{ video_embed_url }}" 
+              class="w-full h-full"
+              frameborder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen>
+            </iframe>
+          </div>
+        {% endif %}
+        
+        <div class="p-8 md:p-12">
+          <header class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">{{ post.title }}</h1>
+            <div class="text-sm text-slate-500">
+              Published on {{ post.created_at|date:"F j, Y" }}
+            </div>
+          </header>
 
-        <div class="prose prose-slate max-w-none">
-          {{ post.content|safe }}
+          <div class="prose prose-slate max-w-none">
+            {{ post.content|safe }}
+          </div>
         </div>
 
         <div class="mt-12 pt-8 border-t border-slate-200">
@@ -110,6 +131,17 @@
   .prose strong {
     font-weight: 600;
     color: #1e293b;
+  }
+  .prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+  }
+  .prose iframe {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 1.5rem 0;
   }
 </style>
 {% endblock %}

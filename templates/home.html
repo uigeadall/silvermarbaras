@@ -384,6 +384,20 @@
             {% for post in blog_posts %}
             <a href="{% url 'blog_detail' post.slug %}" class="block">
               <article class="rounded-2xl bg-white shadow-sm overflow-hidden hover:shadow-card transition cursor-pointer">
+                {% if post.image %}
+                  <div class="w-full aspect-video overflow-hidden bg-slate-100">
+                    <img src="{{ post.image.url }}" alt="{{ post.title }}" 
+                         class="w-full h-full object-cover">
+                  </div>
+                {% elif post.video_url %}
+                  <div class="w-full aspect-video overflow-hidden bg-slate-100 relative">
+                    <div class="absolute inset-0 flex items-center justify-center bg-slate-200">
+                      <svg class="w-16 h-16 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </div>
+                {% endif %}
                 <div class="p-6">
                   <h4 class="text-lg font-extrabold mb-3 text-slate-900 hover:text-slate-700 transition">{{ post.title }}</h4>
                   {% if post.excerpt %}

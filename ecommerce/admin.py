@@ -117,11 +117,33 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'order', 'is_published', 'created_at')
+    list_display = ('title', 'order', 'is_published', 'created_at', 'has_image', 'has_video')
     list_filter = ('is_published', 'created_at')
     search_fields = ('title', 'content')
     prepopulated_fields = {'slug': ('title',)}
     ordering = ('order', '-created_at')
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'slug', 'excerpt', 'order', 'is_published')
+        }),
+        ('Content', {
+            'fields': ('content',)
+        }),
+        ('Media', {
+            'fields': ('image', 'video_url'),
+            'description': 'Add an image and/or video URL to enhance your blog post. Video URLs from YouTube, Vimeo, etc. are supported.'
+        }),
+    )
+    
+    def has_image(self, obj):
+        return bool(obj.image)
+    has_image.boolean = True
+    has_image.short_description = 'Has Image'
+    
+    def has_video(self, obj):
+        return bool(obj.video_url)
+    has_video.boolean = True
+    has_video.short_description = 'Has Video'
 
 admin.site.register(Category)
 admin.site.register(ProductImage)
