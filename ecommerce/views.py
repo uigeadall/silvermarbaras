@@ -633,8 +633,8 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "product_detail.html", context)
 
 
-@ensure_csrf_cookie
 def register_view(request: HttpRequest) -> HttpResponse:
+    """Simple registration view without email sending to prevent blocking."""
     try:
         if request.method == "POST":
             username = (request.POST.get("username") or "").strip()
