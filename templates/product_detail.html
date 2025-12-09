@@ -793,7 +793,7 @@
               <h1>{{ product.name }}</h1>
               
               {% if is_sale and sale_expires_at %}
-              <div id="sale-timer" class="sale-timer-container" data-expires-at="{{ sale_expires_at|date:'c' }}">
+              <div id="sale-timer" class="sale-timer-container" data-expires-at="{{ sale_expires_at|date:'c' }}" data-product-id="{{ product.id }}">
                 <div class="sale-timer-label">⏰ Sale ends in:</div>
                 <div class="sale-timer-display">
                   <span class="timer-unit">
@@ -1438,7 +1438,8 @@
         // Automatically remove from Sale category via AJAX
         if (!expiredCalled) {
           expiredCalled = true;
-          const productId = {{ product.id }};
+          const productId = timerContainer.getAttribute('data-product-id');
+          
           // Get CSRF token from form or cookie
           function getCookie(name) {
             let cookieValue = null;
@@ -1456,7 +1457,7 @@
           }
           const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
           
-          if (csrftoken) {
+          if (productId && csrftoken) {
             fetch(`/product/${productId}/remove-from-sale/`, {
               method: 'POST',
               headers: {
