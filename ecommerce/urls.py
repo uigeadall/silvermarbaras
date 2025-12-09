@@ -35,6 +35,7 @@ path('checkout/guest/', views.guest_checkout_view, name='guest_checkout'),
 
 
     path("login/", views.login_view, name="login"),
+    path("blog/<slug:slug>/", views.blog_detail, name="blog_detail"),
     path("health/", views.health_check, name="health_check"),
     path("test-emails/", views.test_emails_view, name="test_emails"),
 ]
