@@ -635,8 +635,10 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 def register_view(request: HttpRequest) -> HttpResponse:
     """Simple registration view without email sending to prevent blocking."""
+    logger.info("Register view accessed: method=%s, path=%s", request.method, request.path)
     try:
         if request.method == "POST":
+            logger.info("POST request received for registration")
             username = (request.POST.get("username") or "").strip()
             email = (request.POST.get("email") or "").strip()
             password = request.POST.get("password") or ""
