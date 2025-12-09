@@ -11,10 +11,11 @@ def format_paragraphs(value):
     Convert plain text or HTML content into properly formatted paragraphs.
     Handles both plain text and HTML content intelligently.
     """
-    if not value:
-        return ""
-    
-    value_str = str(value)
+    try:
+        if not value:
+            return ""
+        
+        value_str = str(value)
     
     # Check if content has HTML tags
     has_html_tags = bool(re.search(r'<[^>]+>', value_str))
@@ -107,7 +108,10 @@ def format_paragraphs(value):
             
             formatted_paragraphs.append(f'<p>{para_content}</p>')
     
-    return mark_safe('\n\n'.join(formatted_paragraphs))
+        return mark_safe('\n\n'.join(formatted_paragraphs))
+    except Exception as e:
+        # If anything goes wrong, return the original value as safe HTML
+        return mark_safe(str(value) if value else "")
 
 
 @register.filter
