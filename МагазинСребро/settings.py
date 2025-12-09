@@ -420,25 +420,20 @@ ADMINS = [("Site Admin", env("ADMIN_EMAIL", "marbaras@sales.com"))]
 
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 
-# SMTP Configuration (works with Gmail, Outlook, or any SMTP server)
-# Option 1: Gmail (free, easy setup)
-#   EMAIL_HOST = "smtp.gmail.com"
-#   EMAIL_PORT = 587
-#   EMAIL_USE_TLS = True
-#   EMAIL_HOST_USER = "your-email@gmail.com"
-#   EMAIL_HOST_PASSWORD = "your-app-password"  # Use App Password, not regular password!
+# SMTP Configuration
+# Jump.bg Email Hosting Configuration
+# Jump.bg typically uses these SMTP settings:
+#   EMAIL_HOST = "mail.jump.bg" or "smtp.jump.bg"
+#   EMAIL_PORT = 587 (for TLS) or 465 (for SSL)
+#   EMAIL_USE_TLS = True (for port 587)
+#   EMAIL_USE_SSL = True (for port 465)
 
-# Option 2: Outlook/Office365
-#   EMAIL_HOST = "smtp.office365.com"
-#   EMAIL_PORT = 587
-#   EMAIL_USE_TLS = True
-
-# Option 3: Any other SMTP server
-EMAIL_HOST = env("EMAIL_HOST", "smtp.gmail.com")
+# Default to jump.bg SMTP settings
+EMAIL_HOST = env("EMAIL_HOST", "mail.jump.bg")
 EMAIL_PORT = int(env("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", "marbaras@sales.com")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
 
