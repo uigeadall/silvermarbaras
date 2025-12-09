@@ -88,9 +88,6 @@ def format_paragraphs(value):
             # Fallback: treat as single paragraph
             paragraphs = [value_str]
     
-    # Split by double newlines (paragraph breaks)
-    paragraphs = re.split(r'\n\s*\n+', value_str)
-    
     formatted_paragraphs = []
     for para in paragraphs:
         para = para.strip()
