@@ -17,26 +17,26 @@ def send_welcome_email(user, base_url) -> bool:
     """Send welcome email to user. Returns True on success, False on failure.
     Never raises exceptions - all errors are logged and swallowed."""
     try:
-        if not getattr(user, "email", None):
-            log.warning("Welcome email skipped, user has no email: %s", user)
-            return False
+    if not getattr(user, "email", None):
+        log.warning("Welcome email skipped, user has no email: %s", user)
+        return False
 
-        from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or "no-reply@example.com"
-        ctx = {"user": user, "base_url": base_url}
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or "no-reply@example.com"
+    ctx = {"user": user, "base_url": base_url}
 
-        try:
-            subject = "Welcome to Marbaras ✨"
-            text = render_to_string("emails/welcome.txt", ctx)
-            html = render_to_string("emails/welcome.html", ctx)
-            msg = EmailMultiAlternatives(subject, text, from_email, [user.email])
-            msg.attach_alternative(html, "text/html")
+    try:
+        subject = "Welcome to Marbaras ✨"
+        text = render_to_string("emails/welcome.txt", ctx)
+        html = render_to_string("emails/welcome.html", ctx)
+        msg = EmailMultiAlternatives(subject, text, from_email, [user.email])
+        msg.attach_alternative(html, "text/html")
             # Use fail_silently=True and timeout to prevent blocking
             # Set timeout to prevent hanging (default is 30 seconds from settings)
             msg.send(fail_silently=True)
             log.info("Welcome email sent successfully to %s", user.email)
-            return True
-        except Exception as e:
-            log.exception("Failed to send welcome email to %s: %s", getattr(user, "email", None), e)
+        return True
+    except Exception as e:
+        log.exception("Failed to send welcome email to %s: %s", getattr(user, "email", None), e)
             return False
     except Exception as e:
         # Catch any unexpected errors (e.g., template rendering, settings access)

@@ -932,21 +932,21 @@
                   {% for row in bundle_items_data %}
                     {% with b=row.product qa=row.qa %}
                     <a href="{% url 'product_detail' b.pk %}" class="bundle-item">
-                      {% if b.image %}
+                        {% if b.image %}
                         <img src="{{ b.image.url }}" alt="{{ b.name }}">
-                      {% else %}
+                        {% else %}
                         <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
-                      {% endif %}
+                        {% endif %}
                       <p class="bundle-item-name">{{ b.name }}</p>
-                      {% if b.has_discount %}
+                          {% if b.has_discount %}
                         <div class="bundle-item-price" data-eur-price="{{ b.discount_price }}">
-                          ${{ b.discount_price|floatformat:2 }}
-                        </div>
-                      {% else %}
+                              ${{ b.discount_price|floatformat:2 }}
+                            </div>
+                          {% else %}
                         <div class="bundle-item-price" data-eur-price="{{ b.price }}">
                           ${{ b.price|floatformat:2 }}
-                        </div>
-                      {% endif %}
+                            </div>
+                          {% endif %}
                     </a>
                     {% endwith %}
                   {% endfor %}
@@ -970,12 +970,12 @@
                       <img src="{% static 'images/placeholder.jpg' %}" alt="No image">
                     {% endif %}
                     <p class="line-clamp-2">{{ item.name }}</p>
-                    {% if item.has_discount %}
+                      {% if item.has_discount %}
                       <strong style="color: red; font-weight: bold;" data-eur-price="{{ item.discount_price }}">${{ item.discount_price|floatformat:2 }}</strong>
                       <span style="text-decoration: line-through; color: #777; margin-left: 4px; font-size: 0.9em;" data-eur-price="{{ item.price }}">${{ item.price|floatformat:2 }}</span>
-                    {% else %}
+                      {% else %}
                       <strong data-eur-price="{{ item.price }}">${{ item.price|floatformat:2 }}</strong>
-                    {% endif %}
+                      {% endif %}
                   </div>
                 </a>
               {% endfor %}
