@@ -405,19 +405,45 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "sales@marbaras.com")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 ADMINS = [("Site Admin", env("ADMIN_EMAIL", "admin@example.com"))]
 
-# Brevo (formerly Sendinblue) Email Configuration
+# Email Configuration
+# Django uses its built-in email functions - no 3rd party library needed!
+# You just need to configure an SMTP server (Gmail, Outlook, or any SMTP server)
+
+# Email Backend Options:
+# 1. SMTP Backend (for production) - requires SMTP server credentials
+#    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# 2. Console Backend (for development) - prints emails to console
+#    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# 3. File Backend (for testing) - saves emails to files
+#    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+#    EMAIL_FILE_PATH = BASE_DIR / "emails"
+
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-# Brevo SMTP settings
-EMAIL_HOST = env("EMAIL_HOST", "smtp-relay.brevo.com")
-EMAIL_PORT = int(env("EMAIL_PORT", "587"))  # 587 for TLS, 465 for SSL
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)  # Brevo uses TLS
+
+# SMTP Configuration (works with Gmail, Outlook, or any SMTP server)
+# Option 1: Gmail (free, easy setup)
+#   EMAIL_HOST = "smtp.gmail.com"
+#   EMAIL_PORT = 587
+#   EMAIL_USE_TLS = True
+#   EMAIL_HOST_USER = "your-email@gmail.com"
+#   EMAIL_HOST_PASSWORD = "your-app-password"  # Use App Password, not regular password!
+
+# Option 2: Outlook/Office365
+#   EMAIL_HOST = "smtp.office365.com"
+#   EMAIL_PORT = 587
+#   EMAIL_USE_TLS = True
+
+# Option 3: Any other SMTP server
+EMAIL_HOST = env("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(env("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-# Brevo SMTP credentials
-# EMAIL_HOST_USER: Your Brevo account email address (found in Brevo dashboard under SMTP & API > SMTP)
-# EMAIL_HOST_PASSWORD: Your Brevo SMTP password (NOT the API key - generate SMTP password in Brevo dashboard)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
+
+# For development/testing, you can use console backend:
+# Set EMAIL_BACKEND=console in your .env file to see emails in console instead of sending them
 
 
 
