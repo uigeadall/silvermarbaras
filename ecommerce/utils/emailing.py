@@ -83,7 +83,7 @@ def send_order_confirmation_email(order, base_url, notify_admin=False) -> bool:
 
         msg = EmailMultiAlternatives(subject, text, from_email, [recipient])
         msg.attach_alternative(html, "text/html")
-        msg.send(fail_silently=False)
+        msg.send(fail_silently=True)  # Changed to True to prevent blocking if email fails
 
         if notify_admin:
             customer = getattr(order, "full_name", None) or getattr(order, "user", None)
@@ -91,7 +91,7 @@ def send_order_confirmation_email(order, base_url, notify_admin=False) -> bool:
 
 Customer: {customer}
 Email: {recipient}
-Total: €{total}
+Total: ${total}
 Address: {order.address}, {order.city}, {order.postal_code}
 Phone: {order.phone}
 
@@ -132,7 +132,7 @@ def send_order_shipped_email(order, base_url, tracking_number=None) -> bool:
 
         msg = EmailMultiAlternatives(subject, text, from_email, [recipient])
         msg.attach_alternative(html, "text/html")
-        msg.send(fail_silently=False)
+        msg.send(fail_silently=True)  # Changed to True to prevent blocking if email fails
         return True
     except Exception as e:
         log.exception("Failed to send order shipped email for #%s: %s", order.id, e)
@@ -155,7 +155,7 @@ def send_password_reset_email(user, reset_url, base_url) -> bool:
 
         msg = EmailMultiAlternatives(subject, text, from_email, [user.email])
         msg.attach_alternative(html, "text/html")
-        msg.send(fail_silently=False)
+        msg.send(fail_silently=True)  # Changed to True to prevent blocking if email fails
         return True
     except Exception as e:
         log.exception("Failed to send password reset email to %s: %s", getattr(user, "email", None), e)

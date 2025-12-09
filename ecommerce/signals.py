@@ -96,9 +96,26 @@ def send_welcome_custom(sender, user, request=None, **kwargs):
 @receiver(order_submitted, dispatch_uid="ecommerce_order_confirmation_v1")
 def send_order_confirmation(sender, order, request=None, base_url=None, **kwargs):
     """Order confirmation once Order + items are fully saved."""
-    if not base_url and request is not None:
-        base_url = request.build_absolute_uri('/').rstrip('/')
-    transaction.on_commit(lambda: send_order_confirmation_email(order, base_url, notify_admin=True))
+    # Determine base_url
+    if not base_url:
+        if request is not None:
+            try:
+                base_url = request.build_absolute_uri('/').rstrip('/')
+            except Exception:
+                base_url = 'https://www.marbaras.com'
+        else:
+            base_url = 'https://www.marbaras.com'
+    
+    # Use proper function instead of lambda to avoid closure issues
+    def send_email_safely():
+        try:
+            send_order_confirmation_email(order, base_url, notify_admin=True)
+        except Exception as e:
+            import logging
+            log = logging.getLogger(__name__)
+            log.exception("Failed to send order confirmation email for order #%s: %s", getattr(order, 'id', 'unknown'), e)
+    
+    transaction.on_commit(send_email_safely)
 
 
 # Cache invalidation signals
