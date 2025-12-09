@@ -712,7 +712,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 
 
 class CustomLoginView(LoginView):
-    template_name = "account/login.html"
+    template_name = "login.html"
 
 
 
