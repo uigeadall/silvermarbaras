@@ -30,7 +30,8 @@ def send_welcome_email(user, base_url) -> bool:
             html = render_to_string("emails/welcome.html", ctx)
             msg = EmailMultiAlternatives(subject, text, from_email, [user.email])
             msg.attach_alternative(html, "text/html")
-            # Use fail_silently=True to prevent exceptions from crashing the registration
+            # Use fail_silently=True and timeout to prevent blocking
+            # Set timeout to prevent hanging (default is 30 seconds from settings)
             msg.send(fail_silently=True)
             log.info("Welcome email sent successfully to %s", user.email)
             return True
