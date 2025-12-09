@@ -46,11 +46,11 @@
         Logout
       </a>
     {% else %}
-      <a href="{% url 'account_login' %}"
+      <a href="{% url 'login' %}"
          class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
         Login
       </a>
-      <a href="{% url 'account_signup' %}"
+      <a href="{% url 'register' %}"
          class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
         Register
       </a>
@@ -193,7 +193,7 @@
       <div class="divider">or</div>
     {% endif %}
 
-    <form method="POST" action="{% url 'account_login' %}">
+    <form method="POST" action="{% url 'login' %}">
       {% csrf_token %}
       {{ form.as_p }}
       <button type="submit">Login</button>

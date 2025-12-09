@@ -194,7 +194,7 @@
           </svg>
         </button>
         <!-- Mobile Favorites Button -->
-        <a href="{% if user.is_authenticated %}{% url 'profile_favorites' %}{% else %}{% url 'account_login' %}{% endif %}" 
+        <a href="{% if user.is_authenticated %}{% url 'profile_favorites' %}{% else %}{% url 'login' %}{% endif %}" 
            aria-label="Favorites"
            class="p-2 hover:bg-slate-100 rounded-lg">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

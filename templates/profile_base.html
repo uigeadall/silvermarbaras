@@ -40,11 +40,11 @@
         Logout
       </a>
     {% else %}
-      <a href="{% url 'account_login' %}"
+      <a href="{% url 'login' %}"
          class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
         Login
       </a>
-      <a href="{% url 'account_signup' %}"
+      <a href="{% url 'register' %}"
          class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
         Register
       </a>
@@ -163,11 +163,11 @@
         <h1 class="text-2xl font-extrabold mb-2 text-slate-900">Your Account</h1>
         <p class="text-slate-600 mb-6">Please log in or create an account to view your dashboard.</p>
         <div class="flex items-center justify-center gap-3">
-          <a href="{% url 'account_login' %}" 
+          <a href="{% url 'login' %}" 
              class="px-6 py-3 rounded-lg bg-slate-900 text-white font-extrabold text-sm hover:bg-slate-800 transition">
             Login
           </a>
-          <a href="{% url 'account_signup' %}" 
+          <a href="{% url 'register' %}" 
              class="px-6 py-3 rounded-lg border-2 border-slate-200 bg-white font-extrabold text-sm hover:bg-slate-50 transition">
             Register
           </a>

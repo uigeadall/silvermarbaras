@@ -143,11 +143,11 @@
         Logout
       </a>
     {% else %}
-      <a href="{% url 'account_login' %}"
+      <a href="{% url 'login' %}"
          class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
         Login
       </a>
-      <a href="{% url 'account_signup' %}"
+      <a href="{% url 'register' %}"
          class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
         Register
       </a>
@@ -416,11 +416,11 @@
             ❤️ Favorites
           </a>
         {% else %}
-          <a href="{% url 'account_login' %}"
+          <a href="{% url 'login' %}"
              class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
             Login
           </a>
-          <a href="{% url 'account_signup' %}"
+          <a href="{% url 'register' %}"
              class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right hover:brightness-95 transition">
             Register
           </a>
@@ -446,11 +446,11 @@
         Logout
       </a>
     {% else %}
-      <a href="{% url 'account_login' %}"
+      <a href="{% url 'login' %}"
          class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center">
         Login
       </a>
-      <a href="{% url 'account_signup' %}"
+      <a href="{% url 'register' %}"
          class="block px-3 py-2 rounded-xl border border-slate-200 bg-white font-extrabold text-sm text-center">
         Register
       </a>
