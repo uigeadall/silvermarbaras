@@ -133,8 +133,9 @@
     </div>
   {% endif %}
   
-  <form method="POST" action="{% url 'register' %}">
+  <form method="POST" action="{% url 'register' %}" id="register-form">
     {% csrf_token %}
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
     <div class="form-group">
       <label>Username</label>
       <input type="text" name="username" required autocomplete="username">
@@ -151,8 +152,17 @@
       <label>Confirm Password</label>
       <input type="password" name="confirm_password" required autocomplete="new-password">
     </div>
-    <button type="submit" class="submit-btn">Register</button>
+    <button type="submit" class="submit-btn" id="register-submit">Register</button>
   </form>
+  
+  <script>
+    // Debug: Log form submission
+    document.getElementById('register-form')?.addEventListener('submit', function(e) {
+      console.log('Form submitting...');
+      const formData = new FormData(this);
+      console.log('Form data:', Object.fromEntries(formData));
+    });
+  </script>
   
   <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
     <p style="color: #666; font-size: 0.9rem;">
