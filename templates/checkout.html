@@ -293,8 +293,8 @@
                   <select id="shipping_option" name="shipping_option">
                     <option value="">-- Select --</option>
                     {% for opt in shipping_options %}
-                      <option value="{{ opt.id }}" data-price="{{ opt.price }}" data-name="{{ opt.name }}">
-                        {{ opt.name }}{% if opt.price > 0 %} (${{ opt.price }}){% else %} (Free){% endif %}
+                      <option value="{{ opt.id }}" data-price="{{ opt.price }}" data-eur-price="{{ opt.price }}" data-name="{{ opt.name }}">
+                        {{ opt.name }}{% if opt.price > 0 %} (€{{ opt.price|floatformat:2 }}){% else %} (Free){% endif %}
                       </option>
                     {% endfor %}
                   </select>
@@ -565,9 +565,22 @@
         if (shouldShow) {
           const option = document.createElement('option');
           option.value = optData.value;
-          option.textContent = optData.text;
+          // Update option text with current currency
+          const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+          const formatPrice = window.formatPrice || function(price, curr) {
+            const symbols = { USD: '$', EUR: '€', GBP: '£' };
+            return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+          };
+          const price = parseFloat(optData.dataPrice) || 0;
+          const optionName = optData.dataName || '';
+          if (price > 0) {
+            option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+          } else {
+            option.textContent = optionName + ' (Free)';
+          }
           option.setAttribute('data-name', optData.dataName || '');
           option.setAttribute('data-price', optData.dataPrice || '0');
+          option.setAttribute('data-eur-price', optData.dataPrice || '0');
           shippingSelect.appendChild(option);
         }
       });
@@ -592,16 +605,33 @@
       const finalSubtotal = subtotal - discount;
       const total = finalSubtotal + shippingCost;
 
+      // Use currency converter functions from base.html
+      const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+      const formatPrice = window.formatPrice || function(price, curr) {
+        const symbols = { USD: '$', EUR: '€', GBP: '£' };
+        return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+      };
+
       if (shippingCost > 0) {
         shippingRow.style.display = 'flex';
-        shippingCostDisplay.textContent = '$' + shippingCost.toFixed(2);
         shippingCostDisplay.setAttribute('data-eur-price', shippingCost);
+        // Let the currency converter update the display
+        if (window.updateAllPrices) {
+          window.updateAllPrices();
+        } else {
+          shippingCostDisplay.textContent = formatPrice(shippingCost, currency);
+        }
       } else {
         shippingRow.style.display = 'none';
       }
 
-      totalDisplay.textContent = '$' + total.toFixed(2);
       totalDisplay.setAttribute('data-eur-price', total);
+      // Let the currency converter update the display
+      if (window.updateAllPrices) {
+        window.updateAllPrices();
+      } else {
+        totalDisplay.textContent = formatPrice(total, currency);
+      }
       
       // Update Stripe Payment Intent if it exists
       {% if stripe_public_key %}
