@@ -1687,8 +1687,85 @@ def handler500(request: HttpRequest) -> HttpResponse:
 
 def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
     """Blog post detail page."""
+    import re
+    from django.utils.safestring import mark_safe
+    
     post = get_object_or_404(BlogPost, slug=slug, is_published=True)
     categories = _get_categories()
+    
+    # Format content into paragraphs
+    formatted_content = post.content
+    if formatted_content:
+        value_str = str(formatted_content)
+        
+        # Check if content has HTML tags
+        has_html_tags = bool(re.search(r'<[^>]+>', value_str))
+        
+        if not has_html_tags:
+            # Plain text - convert to HTML paragraphs
+            value_str = re.sub(r'\r\n', '\n', value_str)
+            value_str = re.sub(r'\r', '\n', value_str)
+            value_str = value_str.strip()
+            
+            # Split by double newlines or by sentences
+            if '\n\n' in value_str or value_str.count('\n') >= 3:
+                paragraphs = re.split(r'\n\s*\n+', value_str)
+            else:
+                # Split by sentences
+                parts = re.split(r'([.!?])\s+([A-ZА-ЯЁ])', value_str)
+                
+                if len(parts) > 3:
+                    sentences = []
+                    i = 0
+                    while i < len(parts):
+                        if i + 2 < len(parts):
+                            sentence = parts[i] + parts[i+1] + ' ' + parts[i+2]
+                            sentences.append(sentence.strip())
+                            i += 3
+                        else:
+                            if parts[i].strip():
+                                sentences.append(parts[i].strip())
+                            i += 1
+                    
+                    # Group sentences into paragraphs (2-3 sentences per paragraph)
+                    paragraphs = []
+                    current_para = []
+                    
+                    for sentence in sentences:
+                        sentence = sentence.strip()
+                        if not sentence:
+                            continue
+                        
+                        current_para.append(sentence)
+                        sentence_length = len(sentence)
+                        if len(current_para) >= 3 or (len(current_para) >= 2 and sentence_length > 150):
+                            paragraphs.append(' '.join(current_para))
+                            current_para = []
+                    
+                    if current_para:
+                        paragraphs.append(' '.join(current_para))
+                else:
+                    paragraphs = [value_str]
+            
+            # Format paragraphs
+            formatted_paragraphs = []
+            for para in paragraphs:
+                para = para.strip()
+                if not para:
+                    continue
+                
+                lines = [line.strip() for line in para.split('\n') if line.strip()]
+                if len(lines) > 1:
+                    para_content = '<br>'.join(lines)
+                else:
+                    para_content = lines[0] if lines else para
+                
+                formatted_paragraphs.append(f'<p>{para_content}</p>')
+            
+            formatted_content = mark_safe('\n\n'.join(formatted_paragraphs))
+        else:
+            # Already HTML, just mark as safe
+            formatted_content = mark_safe(formatted_content)
     
     # Convert video URL to embed format if needed (only if no video_file is uploaded)
     video_embed_url = None
@@ -1712,6 +1789,7 @@ def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
     
     context = {
         "post": post,
+        "formatted_content": formatted_content,
         "video_embed_url": video_embed_url,
         "categories": categories,
     }

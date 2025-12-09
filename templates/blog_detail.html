@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load static %}
-{% load blog_filters %}
 
 {% block title %}{{ post.title }} - Marbaras{% endblock %}
 
@@ -91,7 +90,7 @@
           </header>
 
           <div class="blog-content">
-            {{ post.content|format_paragraphs|safe }}
+            {{ formatted_content|safe }}
           </div>
         </div>
 
