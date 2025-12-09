@@ -401,9 +401,9 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = int(env("DATA_UPLOAD_MAX_NUMBER_FIELDS", "1000")
 
 
 
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "sales@marbaras.com")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "marbaras@sales.com")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-ADMINS = [("Site Admin", env("ADMIN_EMAIL", "admin@example.com"))]
+ADMINS = [("Site Admin", env("ADMIN_EMAIL", "marbaras@sales.com"))]
 
 # Email Configuration
 # Django uses its built-in email functions - no 3rd party library needed!

@@ -1905,7 +1905,7 @@ def test_emails_view(request: HttpRequest) -> HttpResponse:
             send_mail(
                 'Test Email от Marbaras',
                 'Това е тестов email. Ако го получиш, email настройките работят!',
-                'sales@marbaras.com',
+                settings.DEFAULT_FROM_EMAIL,
                 [email],
                 fail_silently=False
             )
