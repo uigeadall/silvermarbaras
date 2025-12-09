@@ -36,7 +36,8 @@ from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie, csrf_protect
+from django.middleware.csrf import get_token
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import RatingForm
@@ -653,15 +654,19 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
 def register_view(request: HttpRequest) -> HttpResponse:
     """Simple registration view without email sending to prevent blocking."""
     logger.info("Register view accessed: method=%s, path=%s", request.method, request.path)
+    
+    # Ensure CSRF token is available in context
+    if request.method == "GET":
+        get_token(request)  # Force CSRF token generation
+    
     try:
         if request.method == "POST":
             logger.info("POST request received for registration")
-            logger.info("CSRF Token in POST: %s", request.POST.get('csrfmiddlewaretoken', 'NOT FOUND')[:20] if request.POST.get('csrfmiddlewaretoken') else 'NOT FOUND')
+            logger.info("CSRF Token in POST: %s", request.POST.get('csrfmiddlewaretoken', 'NOT FOUND'))
             logger.info("CSRF Token in headers: %s", request.META.get('HTTP_X_CSRFTOKEN', 'NOT FOUND'))
             logger.info("Origin: %s", request.META.get('HTTP_ORIGIN', 'NOT FOUND'))
             logger.info("Referer: %s", request.META.get('HTTP_REFERER', 'NOT FOUND'))
             logger.info("Host: %s", request.get_host())
-            logger.info("Is secure: %s", request.is_secure())
             logger.info("CSRF_TRUSTED_ORIGINS: %s", settings.CSRF_TRUSTED_ORIGINS)
             logger.info("CSRF_COOKIE_SECURE: %s", settings.CSRF_COOKIE_SECURE)
             logger.info("CSRF_COOKIE_SAMESITE: %s", settings.CSRF_COOKIE_SAMESITE)
