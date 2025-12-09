@@ -35,40 +35,58 @@ def format_paragraphs(value):
     # First, normalize whitespace
     value_str = re.sub(r'\r\n', '\n', value_str)  # Windows line endings
     value_str = re.sub(r'\r', '\n', value_str)  # Mac line endings
+    value_str = value_str.strip()
     
-    # Split by double newlines (paragraph breaks) or by sentences followed by newline
-    # Try to detect if text is one big block without paragraph breaks
-    if '\n\n' not in value_str and value_str.count('\n') < 3:
-        # Likely one big paragraph - split by sentences
-        # Split by sentence endings followed by space and capital letter
-        sentences = re.split(r'([.!?])\s+([A-ZА-Я])', value_str)
+    # Split by double newlines (paragraph breaks) first
+    if '\n\n' in value_str or value_str.count('\n') >= 3:
+        # Has paragraph breaks - split by them
+        paragraphs = re.split(r'\n\s*\n+', value_str)
+    else:
+        # One big block - split by sentences intelligently
+        # Split by sentence endings (. ! ?) followed by space and capital letter
+        # This regex captures: sentence + punctuation + space + next sentence start
+        parts = re.split(r'([.!?])\s+([A-ZА-ЯЁ])', value_str)
         
-        if len(sentences) > 3:
+        if len(parts) > 3:
             # Reconstruct sentences
+            sentences = []
+            i = 0
+            while i < len(parts):
+                if i + 2 < len(parts):
+                    # We have: text + punctuation + space + capital letter
+                    sentence = parts[i] + parts[i+1] + ' ' + parts[i+2]
+                    sentences.append(sentence.strip())
+                    i += 3
+                else:
+                    # Last part
+                    if parts[i].strip():
+                        sentences.append(parts[i].strip())
+                    i += 1
+            
+            # Group sentences into paragraphs (2-3 sentences per paragraph)
             paragraphs = []
             current_para = []
             
-            for i in range(0, len(sentences), 3):
-                if i + 1 < len(sentences):
-                    sentence = sentences[i] + sentences[i+1] + ' ' + sentences[i+2]
-                else:
-                    sentence = sentences[i]
-                
+            for sentence in sentences:
                 sentence = sentence.strip()
-                if sentence:
-                    current_para.append(sentence)
-                    
-                    # Every 3-4 sentences, start a new paragraph
-                    if len(current_para) >= 3:
-                        paragraphs.append(' '.join(current_para))
-                        current_para = []
+                if not sentence:
+                    continue
+                
+                current_para.append(sentence)
+                
+                # Every 2-3 sentences, start a new paragraph
+                # Also break on longer sentences (more than 150 chars)
+                sentence_length = len(sentence)
+                if len(current_para) >= 3 or (len(current_para) >= 2 and sentence_length > 150):
+                    paragraphs.append(' '.join(current_para))
+                    current_para = []
             
+            # Add remaining sentences as last paragraph
             if current_para:
                 paragraphs.append(' '.join(current_para))
-            
-            # Format as HTML paragraphs
-            formatted = '\n\n'.join([f'<p>{p}</p>' for p in paragraphs if p.strip()])
-            return mark_safe(formatted)
+        else:
+            # Fallback: treat as single paragraph
+            paragraphs = [value_str]
     
     # Split by double newlines (paragraph breaks)
     paragraphs = re.split(r'\n\s*\n+', value_str)
