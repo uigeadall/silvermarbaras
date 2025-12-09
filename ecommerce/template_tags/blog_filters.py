@@ -16,9 +16,9 @@ def format_paragraphs(value):
             return ""
         
         value_str = str(value)
-    
-    # Check if content has HTML tags
-    has_html_tags = bool(re.search(r'<[^>]+>', value_str))
+        
+        # Check if content has HTML tags
+        has_html_tags = bool(re.search(r'<[^>]+>', value_str))
     
     if has_html_tags:
         # Content has HTML - clean it up and ensure proper formatting
