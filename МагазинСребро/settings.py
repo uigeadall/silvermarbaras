@@ -404,19 +404,17 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "sales@marbaras.com")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 ADMINS = [("Site Admin", env("ADMIN_EMAIL", "admin@example.com"))]
 
-# Mailgun Email Configuration
+# Brevo (formerly Sendinblue) Email Configuration
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-# Mailgun SMTP settings
-# For EU region, use: smtp.eu.mailgun.org
-# For US region (default), use: smtp.mailgun.org
-EMAIL_HOST = env("EMAIL_HOST", "smtp.mailgun.org")
+# Brevo SMTP settings
+EMAIL_HOST = env("EMAIL_HOST", "smtp-relay.brevo.com")
 EMAIL_PORT = int(env("EMAIL_PORT", "587"))  # 587 for TLS, 465 for SSL
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)  # Mailgun uses TLS
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)  # Brevo uses TLS
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
-# Mailgun SMTP credentials
-# Format: postmaster@your-domain.mailgun.org or your custom SMTP username
+# Brevo SMTP credentials
+# EMAIL_HOST_USER: Your Brevo account email address (found in Brevo dashboard under SMTP & API > SMTP)
+# EMAIL_HOST_PASSWORD: Your Brevo SMTP password (NOT the API key - generate SMTP password in Brevo dashboard)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
-# Your Mailgun SMTP password (found in Mailgun dashboard under Sending > Domain Settings > SMTP credentials)
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
 
