@@ -600,17 +600,30 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
     show_bundle = bool(bundle_items)
 
     # Check if product is in Sale category and has expiration time
+    # Also automatically remove from Sale if expired
     is_sale = False
     sale_expires_at = None
     if hasattr(product, 'sale_expires_at') and product.sale_expires_at:
-        # Check if product is in Sale category
-        sale_categories = product.categories.filter(name__iexact='Sale')
-        if not sale_categories.exists():
-            # Try Bulgarian name
-            sale_categories = product.categories.filter(name__icontains='разпродажба')
-        if sale_categories.exists():
-            is_sale = True
-            sale_expires_at = product.sale_expires_at
+        # Check if sale has expired
+        from django.utils import timezone
+        now = timezone.now()
+        if product.sale_expires_at < now:
+            # Sale has expired - remove from Sale category
+            sale_category = Category.objects.filter(name__iexact='Sale').first()
+            if not sale_category:
+                sale_category = Category.objects.filter(name__icontains='разпродажба').first()
+            if sale_category and sale_category in product.categories.all():
+                product.categories.remove(sale_category)
+                logger.info(f"Automatically removed expired product {product.id} from Sale category")
+        else:
+            # Sale is still active - check if product is in Sale category
+            sale_categories = product.categories.filter(name__iexact='Sale')
+            if not sale_categories.exists():
+                # Try Bulgarian name
+                sale_categories = product.categories.filter(name__icontains='разпродажба')
+            if sale_categories.exists():
+                is_sale = True
+                sale_expires_at = product.sale_expires_at
 
     context = {
         "product": product,
@@ -1682,6 +1695,26 @@ def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
         "categories": categories,
     }
     return render(request, "blog_detail.html", context)
+
+
+@require_POST
+def remove_from_sale(request: HttpRequest, pk: int) -> JsonResponse:
+    """Remove product from Sale category when promotion expires."""
+    try:
+        product = get_object_or_404(Product, pk=pk)
+        sale_category = Category.objects.filter(name__iexact='Sale').first()
+        if not sale_category:
+            sale_category = Category.objects.filter(name__icontains='разпродажба').first()
+        
+        if sale_category and sale_category in product.categories.all():
+            product.categories.remove(sale_category)
+            logger.info(f"Removed product {product.id} from Sale category via AJAX")
+            return JsonResponse({'success': True, 'message': 'Product removed from sale'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Product not in sale category'})
+    except Exception as e:
+        logger.exception(f"Error removing product from sale: {e}")
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 
 def test_emails_view(request: HttpRequest) -> HttpResponse:
