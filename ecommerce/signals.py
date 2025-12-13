@@ -4,6 +4,9 @@ from django.db import transaction
 from django.db.models.signals import post_save, post_delete
 from django.core.cache import cache
 from allauth.account.signals import user_signed_up
+import logging
+
+log = logging.getLogger(__name__)
 
 from .models import Product, Category
 from .utils.emailing import (
@@ -19,33 +22,42 @@ order_submitted = Signal()
 @receiver(user_signed_up, dispatch_uid="ecommerce_welcome_allauth_v1")
 def send_welcome_allauth(sender, request, user, **kwargs):
     """Welcome email for allauth signups."""
+    log.info("🔔 SIGNAL TRIGGERED: user_signed_up (allauth) for user: %s (email: %s)", 
+             getattr(user, 'username', 'unknown'), getattr(user, 'email', 'no email'))
     try:
         base_url = request.build_absolute_uri('/').rstrip('/') if request else 'https://www.marbaras.com'
+        log.info("  Base URL determined: %s", base_url)
         
         # Send email in background, don't fail registration if email fails
         def send_email_safely():
+            log.info("  Executing send_welcome_email in transaction.on_commit callback...")
             try:
                 send_welcome_email(user, base_url)
             except Exception as e:
-                import logging
-                log = logging.getLogger(__name__)
-                log.exception("Failed to send welcome email to %s: %s", getattr(user, 'email', 'unknown'), e)
+                log.error("  ❌ Exception in send_email_safely callback: %s", e)
+                log.exception("Exception details:")
         
         transaction.on_commit(send_email_safely)
+        log.info("  ✅ Welcome email scheduled to be sent after transaction commit")
     except Exception as e:
-        import logging
-        log = logging.getLogger(__name__)
-        log.exception("Error setting up welcome email for user %s: %s", getattr(user, 'email', 'unknown'), e)
+        log.error("❌ Error setting up welcome email for user %s: %s", getattr(user, 'email', 'unknown'), e)
+        log.exception("Exception details:")
 
 
 @receiver(user_registered, dispatch_uid="ecommerce_welcome_custom_v1")
 def send_welcome_custom(sender, user, request=None, **kwargs):
     """Welcome email for your custom register_view."""
+    log.info("🔔 SIGNAL TRIGGERED: user_registered (custom) for user: %s (email: %s)", 
+             getattr(user, 'username', 'unknown'), getattr(user, 'email', 'no email'))
+    
     # Skip email sending if email settings are not configured to prevent blocking
     import os
     email_host = os.environ.get('EMAIL_HOST', '')
+    log.info("  EMAIL_HOST environment variable: %s", email_host if email_host else '(not set)')
+    
     if not email_host or email_host == 'sandbox.smtp.mailtrap.io':
         # Email not configured, skip silently
+        log.info("  ⚠️  Email sending skipped - EMAIL_HOST not configured or is sandbox")
         return
     
     try:
@@ -60,6 +72,7 @@ def send_welcome_custom(sender, user, request=None, **kwargs):
         
         # Send email in background with timeout protection
         def send_email_safely():
+            log.info("  Executing send_welcome_email in transaction.on_commit callback...")
             try:
                 import signal
                 # Set a timeout for email sending (5 seconds max)
@@ -70,8 +83,10 @@ def send_welcome_custom(sender, user, request=None, **kwargs):
                 try:
                     signal.signal(signal.SIGALRM, timeout_handler)
                     signal.alarm(5)  # 5 second timeout
+                    log.info("  Timeout protection enabled (5 seconds)")
                 except (AttributeError, OSError):
                     # Windows or signal not available, skip timeout
+                    log.info("  Timeout protection not available (Windows or signal module unavailable)")
                     pass
                 
                 try:
@@ -82,20 +97,21 @@ def send_welcome_custom(sender, user, request=None, **kwargs):
                     except (AttributeError, OSError):
                         pass
             except (TimeoutError, Exception) as e:
-                import logging
-                log = logging.getLogger(__name__)
-                log.exception("Failed to send welcome email to %s: %s", getattr(user, 'email', 'unknown'), e)
+                log.error("  ❌ Exception in send_email_safely callback: %s", e)
+                log.exception("Exception details:")
         
         transaction.on_commit(send_email_safely)
+        log.info("  ✅ Welcome email scheduled to be sent after transaction commit")
     except Exception as e:
-        import logging
-        log = logging.getLogger(__name__)
-        log.exception("Error setting up welcome email for user %s: %s", getattr(user, 'email', 'unknown'), e)
+        log.error("❌ Error setting up welcome email for user %s: %s", getattr(user, 'email', 'unknown'), e)
+        log.exception("Exception details:")
 
 
 @receiver(order_submitted, dispatch_uid="ecommerce_order_confirmation_v1")
 def send_order_confirmation(sender, order, request=None, base_url=None, **kwargs):
     """Order confirmation once Order + items are fully saved."""
+    log.info("🔔 SIGNAL TRIGGERED: order_submitted for order #%s", getattr(order, 'id', 'unknown'))
+    
     # Determine base_url
     if not base_url:
         if request is not None:
@@ -106,16 +122,20 @@ def send_order_confirmation(sender, order, request=None, base_url=None, **kwargs
         else:
             base_url = 'https://www.marbaras.com'
     
+    log.info("  Base URL determined: %s", base_url)
+    log.info("  Order details: ID=%s, Total=$%s", getattr(order, 'id', 'unknown'), getattr(order, 'total_price', 'unknown'))
+    
     # Use proper function instead of lambda to avoid closure issues
     def send_email_safely():
+        log.info("  Executing send_order_confirmation_email in transaction.on_commit callback...")
         try:
             send_order_confirmation_email(order, base_url, notify_admin=True)
         except Exception as e:
-            import logging
-            log = logging.getLogger(__name__)
-            log.exception("Failed to send order confirmation email for order #%s: %s", getattr(order, 'id', 'unknown'), e)
+            log.error("  ❌ Exception in send_email_safely callback: %s", e)
+            log.exception("Exception details:")
     
     transaction.on_commit(send_email_safely)
+    log.info("  ✅ Order confirmation email scheduled to be sent after transaction commit")
 
 
 # Cache invalidation signals
