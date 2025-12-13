@@ -285,7 +285,6 @@ def home(request: HttpRequest) -> HttpResponse:
     query = request.GET.get("q")
     sort = request.GET.get("sort")
     category_slug = request.GET.get("category")
-
     products = (
         Product.objects
         .all()
