@@ -180,32 +180,68 @@ class SMTPSBackend(EmailBackend):
             log.info("  TLS: %s", self.use_tls)
             log.info("  Timeout: %s seconds", email_timeout)
             
-            # Test basic socket connection first
-            try:
-                log.info("  Testing basic socket connection...")
-                test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                test_socket.settimeout(10)  # Use shorter timeout for test
-                log.info("  Attempting socket.connect_ex(%s, %s)...", email_host, email_port)
-                test_result = test_socket.connect_ex((email_host, email_port))
-                test_socket.close()
-                
-                if test_result == 0:
-                    log.info("  ✅ Socket connection test successful - port %s is reachable", email_port)
-                else:
-                    error_msg = self._get_socket_error_message(test_result)
-                    log.error("  ❌ Socket connection test failed (error code: %s)", test_result)
-                    log.error("  Error meaning: %s", error_msg)
-                    log.error("  This indicates:")
-                    log.error("    - Railway is blocking outbound connections to port %s", email_port)
-                    log.error("    - OR firewall is blocking port %s", email_port)
-                    log.error("    - OR SMTP server is not reachable from Railway")
-            except socket.timeout:
-                log.error("  ❌ Socket connection test timed out after 10 seconds")
-                log.error("  This indicates Railway cannot reach %s:%s", email_host, email_port)
-            except Exception as socket_test_error:
-                log.error("  ❌ Socket connection test failed: %s", socket_test_error)
-                log.error("  Error type: %s", type(socket_test_error).__name__)
-                log.exception("  Exception details:")
+            # Test basic socket connection first (with retry for transient errors)
+            socket_test_passed = False
+            test_result = None
+            max_retries = 3
+            for attempt in range(1, max_retries + 1):
+                try:
+                    log.info("  Testing basic socket connection (attempt %d/%d)...", attempt, max_retries)
+                    test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    test_socket.settimeout(10)  # Use shorter timeout for test
+                    log.info("  Attempting socket.connect_ex(%s, %s)...", email_host, email_port)
+                    test_result = test_socket.connect_ex((email_host, email_port))
+                    test_socket.close()
+                    
+                    if test_result == 0:
+                        log.info("  ✅ Socket connection test successful - port %s is reachable", email_port)
+                        socket_test_passed = True
+                        break
+                    else:
+                        error_msg = self._get_socket_error_message(test_result)
+                        if test_result == 11:  # EAGAIN - Try again
+                            if attempt < max_retries:
+                                log.warning("  ⚠️  Socket test returned 'Try again' (error 11) - retrying...")
+                                import time
+                                time.sleep(1)  # Wait 1 second before retry
+                                continue
+                            else:
+                                log.warning("  ⚠️  Socket test returned 'Try again' after %d attempts", max_retries)
+                                log.warning("  This might be a temporary network issue - continuing anyway")
+                                socket_test_passed = True  # Continue despite error 11
+                                break
+                        else:
+                            log.error("  ❌ Socket connection test failed (error code: %s)", test_result)
+                            log.error("  Error meaning: %s", error_msg)
+                            if test_result == 111:  # Connection refused
+                                log.error("  This indicates:")
+                                log.error("    - Railway is blocking outbound connections to port %s", email_port)
+                                log.error("    - OR firewall is blocking port %s", email_port)
+                                log.error("    - OR SMTP server is not reachable from Railway")
+                                log.error("  💡 Suggestion: Try port 587 with STARTTLS instead of port 465")
+                            break
+                except socket.timeout:
+                    if attempt < max_retries:
+                        log.warning("  ⚠️  Socket connection test timed out - retrying...")
+                        continue
+                    else:
+                        log.error("  ❌ Socket connection test timed out after %d attempts", max_retries)
+                        log.error("  This indicates Railway cannot reach %s:%s", email_host, email_port)
+                        break
+                except Exception as socket_test_error:
+                    log.error("  ❌ Socket connection test failed: %s", socket_test_error)
+                    log.error("  Error type: %s", type(socket_test_error).__name__)
+                    if attempt < max_retries:
+                        log.info("  Retrying...")
+                        import time
+                        time.sleep(1)
+                        continue
+                    else:
+                        log.exception("  Exception details:")
+                        break
+            
+            if not socket_test_passed and test_result != 11:
+                log.warning("  ⚠️  Socket test failed, but continuing with SMTP connection attempt anyway...")
             
             # Create default SSL context for proper certificate validation
             if self.use_ssl:
