@@ -27,3 +27,8 @@ redis==5.0.1
 
 # Rate limiting (optional)
 django-ratelimit==4.1.0
+
+# Email API services (for Railway Hobby plan - no SMTP support)
+# Resend is Railway's recommended email service
+# requests is already installed, but listed here for clarity
+# requests==2.32.5  # Already installed above

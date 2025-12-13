@@ -9,11 +9,15 @@ log = logging.getLogger(__name__)
 def _log_email_config():
     """Log current email configuration for debugging."""
     email_backend = getattr(settings, "EMAIL_BACKEND", "not set")
-    # Check if custom backend is being used
-    if "smtp_backend" in email_backend or "SMTPSBackend" in email_backend:
-        log.info("  ✅ Using custom SMTPS backend")
+    # Check which backend is being used
+    if "resend_backend" in email_backend or "ResendBackend" in email_backend:
+        log.info("  ✅ Using Resend API backend (works on Railway Hobby plan)")
+    elif "sendgrid_backend" in email_backend or "SendGridBackend" in email_backend:
+        log.info("  ✅ Using SendGrid API backend (works on Railway Hobby plan)")
+    elif "smtp_backend" in email_backend or "SMTPSBackend" in email_backend:
+        log.info("  ✅ Using custom SMTPS backend (requires Railway Pro plan)")
     else:
-        log.warning("  ⚠️  Using standard Django SMTP backend (custom backend not active)")
+        log.warning("  ⚠️  Using standard Django SMTP backend")
     email_host = getattr(settings, "EMAIL_HOST", "not set")
     email_port = getattr(settings, "EMAIL_PORT", "not set")
     email_user = getattr(settings, "EMAIL_HOST_USER", "not set")

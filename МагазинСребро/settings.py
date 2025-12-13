@@ -431,9 +431,35 @@ ADMINS = [("Site Admin", env("ADMIN_EMAIL", "support@marbaras.com"))]
 #    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
 #    EMAIL_FILE_PATH = BASE_DIR / "emails"
 
-# Use custom SMTPS backend for better SSL handling, or standard SMTP backend
-# Custom backend provides better SSL context handling for SMTPS (port 465)
-EMAIL_BACKEND = env("EMAIL_BACKEND", "ecommerce.utils.smtp_backend.SMTPSBackend")
+# Email Backend Configuration
+# Railway Hobby plan does NOT support SMTP connections
+# Use API-based email services instead:
+#
+# Option 1: Resend (Railway's recommended service)
+#   EMAIL_BACKEND = "ecommerce.utils.resend_backend.ResendBackend"
+#   RESEND_API_KEY = "your-resend-api-key"
+#
+# Option 2: SendGrid
+#   EMAIL_BACKEND = "ecommerce.utils.sendgrid_backend.SendGridBackend"
+#   SENDGRID_API_KEY = "your-sendgrid-api-key"
+#
+# Option 3: SMTP (only works on Railway Pro plan or other hosting)
+#   EMAIL_BACKEND = "ecommerce.utils.smtp_backend.SMTPSBackend"
+#   EMAIL_HOST = "mail.marbaras.com"
+#   EMAIL_PORT = 465
+#   EMAIL_USE_SSL = True
+#
+# Default: Try Resend first (works on Railway Hobby), fallback to SMTP if API key not set
+resend_api_key = env("RESEND_API_KEY", "")
+sendgrid_api_key = env("SENDGRID_API_KEY", "")
+
+if resend_api_key:
+    EMAIL_BACKEND = "ecommerce.utils.resend_backend.ResendBackend"
+elif sendgrid_api_key:
+    EMAIL_BACKEND = "ecommerce.utils.sendgrid_backend.SendGridBackend"
+else:
+    # Fallback to SMTP (will fail on Railway Hobby plan)
+    EMAIL_BACKEND = env("EMAIL_BACKEND", "ecommerce.utils.smtp_backend.SMTPSBackend")
 
 # SMTP Configuration
 # Jump.bg Email Hosting Configuration
