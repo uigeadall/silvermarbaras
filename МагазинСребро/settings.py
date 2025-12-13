@@ -448,7 +448,8 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", "support@marbaras.com")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
-EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30"))
+# Increased timeout for SMTP connections (especially SSL connections can take longer)
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "60"))
 
 # For development/testing, you can use console backend:
 # Set EMAIL_BACKEND=console in your .env file to see emails in console instead of sending them

@@ -70,33 +70,14 @@ def send_welcome_custom(sender, user, request=None, **kwargs):
             from django.conf import settings
             base_url = getattr(settings, 'SITE_URL', 'https://www.marbaras.com')
         
-        # Send email in background with timeout protection
+        # Send email in background
+        # Note: Removed signal-based timeout as it interferes with SMTP connection
+        # Django's EMAIL_TIMEOUT setting handles timeouts properly
         def send_email_safely():
             log.info("  Executing send_welcome_email in transaction.on_commit callback...")
             try:
-                import signal
-                # Set a timeout for email sending (5 seconds max)
-                def timeout_handler(signum, frame):
-                    raise TimeoutError("Email sending timed out")
-                
-                # Only set timeout if signal module is available (Unix systems)
-                try:
-                    signal.signal(signal.SIGALRM, timeout_handler)
-                    signal.alarm(5)  # 5 second timeout
-                    log.info("  Timeout protection enabled (5 seconds)")
-                except (AttributeError, OSError):
-                    # Windows or signal not available, skip timeout
-                    log.info("  Timeout protection not available (Windows or signal module unavailable)")
-                    pass
-                
-                try:
-                    send_welcome_email(user, base_url)
-                finally:
-                    try:
-                        signal.alarm(0)  # Cancel timeout
-                    except (AttributeError, OSError):
-                        pass
-            except (TimeoutError, Exception) as e:
+                send_welcome_email(user, base_url)
+            except Exception as e:
                 log.error("  ❌ Exception in send_email_safely callback: %s", e)
                 log.exception("Exception details:")
         
