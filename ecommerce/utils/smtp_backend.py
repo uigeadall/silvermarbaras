@@ -17,6 +17,11 @@ class SMTPSBackend(EmailBackend):
     Uses ssl.create_default_context() for proper SSL certificate validation.
     """
     
+    def __init__(self, *args, **kwargs):
+        """Initialize custom SMTPS backend."""
+        log.info("🚀 Custom SMTPSBackend initialized")
+        super().__init__(*args, **kwargs)
+    
     def open(self):
         """
         Open an SMTP connection with proper SSL context.

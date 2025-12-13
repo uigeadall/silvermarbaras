@@ -9,6 +9,11 @@ log = logging.getLogger(__name__)
 def _log_email_config():
     """Log current email configuration for debugging."""
     email_backend = getattr(settings, "EMAIL_BACKEND", "not set")
+    # Check if custom backend is being used
+    if "smtp_backend" in email_backend or "SMTPSBackend" in email_backend:
+        log.info("  ✅ Using custom SMTPS backend")
+    else:
+        log.warning("  ⚠️  Using standard Django SMTP backend (custom backend not active)")
     email_host = getattr(settings, "EMAIL_HOST", "not set")
     email_port = getattr(settings, "EMAIL_PORT", "not set")
     email_user = getattr(settings, "EMAIL_HOST_USER", "not set")
