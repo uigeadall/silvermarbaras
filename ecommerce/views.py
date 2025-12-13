@@ -696,8 +696,10 @@ def register_view(request: HttpRequest) -> HttpResponse:
                         user = User.objects.create_user(username=username, email=email, password=password)
                         logger.info("User created successfully: %s", username)
                         
-                        # Temporarily disable email sending to prevent blocking
-                        # Email will be sent later via signal if configured
+                        # Send user_registered signal to trigger welcome email
+                        logger.info("Sending user_registered signal for user: %s", username)
+                        user_registered.send(sender=User, user=user, request=request)
+                        logger.info("user_registered signal sent successfully")
                         
                         messages.success(request, "Registration successful. You can now log in.")
                         logger.info("Redirecting to login for user: %s", username)
