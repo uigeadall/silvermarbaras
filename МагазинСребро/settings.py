@@ -442,14 +442,28 @@ EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBacken
 #   EMAIL_USE_SSL = True (for port 465)
 
 # Default to jump.bg SMTP settings
-EMAIL_HOST = env("EMAIL_HOST", "mail.jump.bg")
-EMAIL_PORT = int(env("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+# For SMTPS (SMTP over SSL) on port 465:
+#   EMAIL_PORT = 465
+#   EMAIL_USE_SSL = True
+#   EMAIL_USE_TLS = False
+# For SMTP with STARTTLS on port 587:
+#   EMAIL_PORT = 587
+#   EMAIL_USE_TLS = True
+#   EMAIL_USE_SSL = False
+EMAIL_HOST = env("EMAIL_HOST", "mail.marbaras.com")
+EMAIL_PORT = int(env("EMAIL_PORT", "465"))  # Default to 465 for SMTPS
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)  # False for SMTPS on port 465
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", True)  # True for SMTPS on port 465
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", "support@marbaras.com")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 # Increased timeout for SMTP connections (especially SSL connections can take longer)
 EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "60"))
+
+# SSL Context settings for SMTPS (optional, Django handles this automatically)
+# If you have certificate issues, you can uncomment and configure:
+# import ssl
+# EMAIL_SSL_CERTFILE = None  # Path to certificate file if needed
+# EMAIL_SSL_KEYFILE = None   # Path to key file if needed
 
 # For development/testing, you can use console backend:
 # Set EMAIL_BACKEND=console in your .env file to see emails in console instead of sending them

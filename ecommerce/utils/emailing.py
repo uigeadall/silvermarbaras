@@ -16,9 +16,18 @@ def _log_email_config():
     email_use_ssl = getattr(settings, "EMAIL_USE_SSL", False)
     default_from = getattr(settings, "DEFAULT_FROM_EMAIL", "not set")
     
+    # Determine protocol
+    if email_use_ssl and email_port == 465:
+        protocol = "SMTPS (SMTP over SSL)"
+    elif email_use_tls and email_port == 587:
+        protocol = "SMTP with STARTTLS"
+    else:
+        protocol = "SMTP (plain)"
+    
     log.info("=" * 60)
     log.info("EMAIL CONFIGURATION:")
     log.info("  EMAIL_BACKEND: %s", email_backend)
+    log.info("  Protocol: %s", protocol)
     log.info("  EMAIL_HOST: %s", email_host)
     log.info("  EMAIL_PORT: %s", email_port)
     log.info("  EMAIL_HOST_USER: %s", email_user)
@@ -59,11 +68,21 @@ def send_welcome_email(user, base_url) -> bool:
             msg = EmailMultiAlternatives(subject, text, from_email, [user.email])
             msg.attach_alternative(html, "text/html")
             
-            log.info("  Message created, attempting to send via SMTP...")
-            log.info("  SMTP Connection details:")
-            log.info("    Host: %s:%s", getattr(settings, "EMAIL_HOST", "not set"), getattr(settings, "EMAIL_PORT", "not set"))
+            email_port = getattr(settings, "EMAIL_PORT", "not set")
+            email_use_ssl = getattr(settings, "EMAIL_USE_SSL", False)
+            if email_use_ssl and email_port == 465:
+                protocol = "SMTPS (smtps://)"
+            elif getattr(settings, "EMAIL_USE_TLS", False) and email_port == 587:
+                protocol = "SMTP with STARTTLS"
+            else:
+                protocol = "SMTP"
+            
+            log.info("  Message created, attempting to send via %s...", protocol)
+            log.info("  Connection details:")
+            log.info("    Protocol: %s", protocol)
+            log.info("    Host: %s:%s", getattr(settings, "EMAIL_HOST", "not set"), email_port)
             log.info("    User: %s", getattr(settings, "EMAIL_HOST_USER", "not set"))
-            log.info("    TLS: %s, SSL: %s", getattr(settings, "EMAIL_USE_TLS", False), getattr(settings, "EMAIL_USE_SSL", False))
+            log.info("    TLS: %s, SSL: %s", getattr(settings, "EMAIL_USE_TLS", False), email_use_ssl)
             
             # Try sending with fail_silently=False first to see the actual error
             try:
