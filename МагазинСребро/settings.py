@@ -431,7 +431,9 @@ ADMINS = [("Site Admin", env("ADMIN_EMAIL", "support@marbaras.com"))]
 #    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
 #    EMAIL_FILE_PATH = BASE_DIR / "emails"
 
-EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+# Use custom SMTPS backend for better SSL handling, or standard SMTP backend
+# Custom backend provides better SSL context handling for SMTPS (port 465)
+EMAIL_BACKEND = env("EMAIL_BACKEND", "ecommerce.utils.smtp_backend.SMTPSBackend")
 
 # SMTP Configuration
 # Jump.bg Email Hosting Configuration
