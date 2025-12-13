@@ -5,6 +5,7 @@ from django.db.models.signals import post_save, post_delete
 from django.core.cache import cache
 from allauth.account.signals import user_signed_up
 import logging
+import threading
 
 log = logging.getLogger(__name__)
 
@@ -28,17 +29,19 @@ def send_welcome_allauth(sender, request, user, **kwargs):
         base_url = request.build_absolute_uri('/').rstrip('/') if request else 'https://www.marbaras.com'
         log.info("  Base URL determined: %s", base_url)
         
-        # Send email in background, don't fail registration if email fails
-        def send_email_safely():
-            log.info("  Executing send_welcome_email in transaction.on_commit callback...")
+        # Send email in background thread to avoid blocking the request
+        def send_email_async():
+            log.info("  Executing send_welcome_email in background thread...")
             try:
                 send_welcome_email(user, base_url)
             except Exception as e:
-                log.error("  ❌ Exception in send_email_safely callback: %s", e)
+                log.error("  ❌ Exception in send_email_async thread: %s", e)
                 log.exception("Exception details:")
         
-        transaction.on_commit(send_email_safely)
-        log.info("  ✅ Welcome email scheduled to be sent after transaction commit")
+        # Use threading to send email asynchronously
+        thread = threading.Thread(target=send_email_async, daemon=True)
+        thread.start()
+        log.info("  ✅ Welcome email thread started (non-blocking)")
     except Exception as e:
         log.error("❌ Error setting up welcome email for user %s: %s", getattr(user, 'email', 'unknown'), e)
         log.exception("Exception details:")
@@ -70,19 +73,20 @@ def send_welcome_custom(sender, user, request=None, **kwargs):
             from django.conf import settings
             base_url = getattr(settings, 'SITE_URL', 'https://www.marbaras.com')
         
-        # Send email in background
-        # Note: Removed signal-based timeout as it interferes with SMTP connection
-        # Django's EMAIL_TIMEOUT setting handles timeouts properly
-        def send_email_safely():
-            log.info("  Executing send_welcome_email in transaction.on_commit callback...")
+        # Send email in background thread to avoid blocking the request
+        # Note: Using threading instead of transaction.on_commit to prevent blocking
+        def send_email_async():
+            log.info("  Executing send_welcome_email in background thread...")
             try:
                 send_welcome_email(user, base_url)
             except Exception as e:
-                log.error("  ❌ Exception in send_email_safely callback: %s", e)
+                log.error("  ❌ Exception in send_email_async thread: %s", e)
                 log.exception("Exception details:")
         
-        transaction.on_commit(send_email_safely)
-        log.info("  ✅ Welcome email scheduled to be sent after transaction commit")
+        # Use threading to send email asynchronously
+        thread = threading.Thread(target=send_email_async, daemon=True)
+        thread.start()
+        log.info("  ✅ Welcome email thread started (non-blocking)")
     except Exception as e:
         log.error("❌ Error setting up welcome email for user %s: %s", getattr(user, 'email', 'unknown'), e)
         log.exception("Exception details:")
@@ -106,17 +110,19 @@ def send_order_confirmation(sender, order, request=None, base_url=None, **kwargs
     log.info("  Base URL determined: %s", base_url)
     log.info("  Order details: ID=%s, Total=$%s", getattr(order, 'id', 'unknown'), getattr(order, 'total_price', 'unknown'))
     
-    # Use proper function instead of lambda to avoid closure issues
-    def send_email_safely():
-        log.info("  Executing send_order_confirmation_email in transaction.on_commit callback...")
+    # Send email in background thread to avoid blocking the request
+    def send_email_async():
+        log.info("  Executing send_order_confirmation_email in background thread...")
         try:
             send_order_confirmation_email(order, base_url, notify_admin=True)
         except Exception as e:
-            log.error("  ❌ Exception in send_email_safely callback: %s", e)
+            log.error("  ❌ Exception in send_email_async thread: %s", e)
             log.exception("Exception details:")
     
-    transaction.on_commit(send_email_safely)
-    log.info("  ✅ Order confirmation email scheduled to be sent after transaction commit")
+    # Use threading to send email asynchronously
+    thread = threading.Thread(target=send_email_async, daemon=True)
+    thread.start()
+    log.info("  ✅ Order confirmation email thread started (non-blocking)")
 
 
 # Cache invalidation signals
