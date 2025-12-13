@@ -60,11 +60,31 @@ def send_welcome_email(user, base_url) -> bool:
             msg.attach_alternative(html, "text/html")
             
             log.info("  Message created, attempting to send via SMTP...")
-            # Use fail_silently=True and timeout to prevent blocking
-            # Set timeout to prevent hanging (default is 30 seconds from settings)    
-            result = msg.send(fail_silently=True)
-            log.info("✅ Welcome email sent successfully to %s (result: %s)", user.email, result)
-            return True
+            log.info("  SMTP Connection details:")
+            log.info("    Host: %s:%s", getattr(settings, "EMAIL_HOST", "not set"), getattr(settings, "EMAIL_PORT", "not set"))
+            log.info("    User: %s", getattr(settings, "EMAIL_HOST_USER", "not set"))
+            log.info("    TLS: %s, SSL: %s", getattr(settings, "EMAIL_USE_TLS", False), getattr(settings, "EMAIL_USE_SSL", False))
+            
+            # Try sending with fail_silently=False first to see the actual error
+            try:
+                result = msg.send(fail_silently=False)
+                log.info("✅ Welcome email sent successfully to %s (result: %s)", user.email, result)
+                return True
+            except Exception as smtp_error:
+                log.error("❌ SMTP Error when sending welcome email to %s:", user.email)
+                log.error("  Error type: %s", type(smtp_error).__name__)
+                log.error("  Error message: %s", str(smtp_error))
+                log.exception("  Full exception traceback:")
+                
+                # Try again with fail_silently=True to prevent blocking
+                try:
+                    log.info("  Retrying with fail_silently=True...")
+                    result = msg.send(fail_silently=True)
+                    log.info("  Retry result: %s (0 = failed, 1 = success)", result)
+                except Exception as retry_error:
+                    log.error("  Retry also failed: %s", retry_error)
+                
+                return False
         except Exception as e:
             log.error("❌ Failed to send welcome email to %s: %s", getattr(user, "email", None), e)
             log.exception("Exception details:")
