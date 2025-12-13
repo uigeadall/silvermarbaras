@@ -76,11 +76,16 @@ def send_welcome_custom(sender, user, request=None, **kwargs):
         # Send email in background thread to avoid blocking the request
         # Note: Using threading instead of transaction.on_commit to prevent blocking
         def send_email_async():
-            log.info("  Executing send_welcome_email in background thread...")
+            thread_id = threading.get_ident()
+            log.info("  [Thread %s] Executing send_welcome_email in background thread...", thread_id)
             try:
-                send_welcome_email(user, base_url)
+                result = send_welcome_email(user, base_url)
+                if result:
+                    log.info("  [Thread %s] ✅ Email sending completed successfully", thread_id)
+                else:
+                    log.warning("  [Thread %s] ⚠️  Email sending returned False (may have failed)", thread_id)
             except Exception as e:
-                log.error("  ❌ Exception in send_email_async thread: %s", e)
+                log.error("  [Thread %s] ❌ Exception in send_email_async thread: %s", thread_id, e)
                 log.exception("Exception details:")
         
         # Use threading to send email asynchronously
