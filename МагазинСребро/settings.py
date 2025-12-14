@@ -450,12 +450,12 @@ ADMINS = [("Site Admin", env("ADMIN_EMAIL", "support@marbaras.com"))]
 #   EMAIL_USE_SSL = True
 #
 # Default: Try Resend first (works on Railway Hobby), fallback to SMTP if API key not set
-resend_api_key = env("RESEND_API_KEY", "")
-sendgrid_api_key = env("SENDGRID_API_KEY", "")
+RESEND_API_KEY = env("RESEND_API_KEY", "")
+SENDGRID_API_KEY = env("SENDGRID_API_KEY", "")
 
-if resend_api_key:
+if RESEND_API_KEY:
     EMAIL_BACKEND = "ecommerce.utils.resend_backend.ResendBackend"
-elif sendgrid_api_key:
+elif SENDGRID_API_KEY:
     EMAIL_BACKEND = "ecommerce.utils.sendgrid_backend.SendGridBackend"
 else:
     # Fallback to SMTP (will fail on Railway Hobby plan)
