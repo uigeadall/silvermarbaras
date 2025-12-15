@@ -171,6 +171,7 @@ TEMPLATES = [
                 "ecommerce.context_processors.breadcrumbs",
                 "ecommerce.context_processors.cart_count",
                 "ecommerce.context_processors.categories",
+                "ecommerce.context_processors.meta_pixel_id",
             ],
         },
     },
@@ -511,6 +512,10 @@ def _clean_stripe_key(key: str) -> str:
     return cleaned
 
 STRIPE_SECRET_KEY = _clean_stripe_key(env("STRIPE_SECRET_KEY", ""))
+
+# Meta Pixel (Facebook Pixel) Configuration
+# Get your Pixel ID from Facebook Events Manager: https://business.facebook.com/events_manager
+META_PIXEL_ID = env("META_PIXEL_ID", "")
 STRIPE_PUBLISHABLE_KEY = _clean_stripe_key(env("STRIPE_PUBLISHABLE_KEY", ""))
 STRIPE_WEBHOOK_SECRET = _clean_stripe_key(env("STRIPE_WEBHOOK_SECRET", ""))
 

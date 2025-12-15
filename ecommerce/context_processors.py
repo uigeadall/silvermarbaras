@@ -179,3 +179,11 @@ def categories(request):
     except Exception:
 
         return {"categories": []}
+
+
+def meta_pixel_id(request):
+    """
+    Return Meta Pixel ID from settings for use in templates.
+    """
+    from django.conf import settings
+    return {"META_PIXEL_ID": getattr(settings, "META_PIXEL_ID", "")}
