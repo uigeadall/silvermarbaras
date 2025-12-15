@@ -700,15 +700,14 @@ def register_view(request: HttpRequest) -> HttpResponse:
                         user_registered.send(sender=User, user=user, request=request)
                         logger.info("user_registered signal sent successfully")
                         
-                        messages.success(request, "Registration successful. You can now log in.")
-                        logger.info("Redirecting to login for user: %s", username)
-                        # Use account_login to avoid conflicts
-                        try:
-                            return redirect("account_login")
-                        except Exception as redirect_error:
-                            logger.exception("Redirect error: %s", redirect_error)
-                            # Fallback to direct URL
-                            return redirect("/accounts/login/")
+                        # Automatically log in the user after registration
+                        from django.contrib.auth import login
+                        login(request, user)
+                        logger.info("User %s automatically logged in after registration", username)
+                        
+                        messages.success(request, "Registration successful! Welcome to Marbaras!")
+                        logger.info("Redirecting to home page for user: %s", username)
+                        return redirect("home")
                     except Exception as e:
                         logger.exception("Error creating user: %s", e)
                         messages.error(request, f"An error occurred during registration. Please try again.")
