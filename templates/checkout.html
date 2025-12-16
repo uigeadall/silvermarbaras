@@ -830,6 +830,10 @@
       }
       if (loadingDiv) loadingDiv.style.display = 'none';
     } else {
+      // Detect if mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      console.log('📱 Device type:', isMobile ? 'Mobile' : 'Desktop');
+      
       // Only create Payment Request if amount is valid
       window.paymentRequest = stripe.paymentRequest({
         country: 'BG', // Bulgaria
@@ -841,7 +845,11 @@
         requestPayerName: true,
         requestPayerEmail: true,
         requestPayerPhone: true,
-        requestShipping: true, // Changed from requestPayerAddress to requestShipping
+        requestShipping: true, // Request shipping address
+        // For mobile devices, explicitly request shipping address
+        ...(isMobile && {
+          shippingAddressRequired: true,
+        }),
       });
       console.log('✅ Payment Request object created');
 
@@ -1012,29 +1020,52 @@
           }
           
           // Fill address fields from Apple Pay / Google Pay
-          if (ev.shippingAddress) {
-            const addr = ev.shippingAddress;
+          // Check both shippingAddress and payerAddress (for compatibility)
+          const shippingAddr = ev.shippingAddress || ev.payerAddress;
+          
+          if (shippingAddr) {
+            const addr = shippingAddr;
             console.log('📦 Shipping Address received:', addr);
+            console.log('📦 Address details:', {
+              addressLine: addr.addressLine,
+              city: addr.city,
+              postalCode: addr.postalCode,
+              country: addr.country,
+              region: addr.region,
+            });
             
             if (addr.addressLine && addr.addressLine.length > 0 && addressField) {
               const addressLine = addr.addressLine.join(', ');
               addressField.value = addressLine;
               console.log('✅ Filled address:', addressLine);
+              // Trigger input event to ensure form validation
+              addressField.dispatchEvent(new Event('input', { bubbles: true }));
             }
             if (addr.city && cityField) {
               cityField.value = addr.city;
               console.log('✅ Filled city:', addr.city);
+              cityField.dispatchEvent(new Event('input', { bubbles: true }));
             }
             if (addr.postalCode && postalCodeField) {
               postalCodeField.value = addr.postalCode;
               console.log('✅ Filled postal_code:', addr.postalCode);
+              postalCodeField.dispatchEvent(new Event('input', { bubbles: true }));
             }
             if (addr.country && countryField) {
               countryField.value = addr.country;
               console.log('✅ Filled country:', addr.country);
+              countryField.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (addr.region && cityField && !cityField.value) {
+              // Some Apple Pay implementations use 'region' instead of 'city'
+              cityField.value = addr.region;
+              console.log('✅ Filled city from region:', addr.region);
             }
           } else {
             console.warn('⚠️ No shipping address received from Apple Pay');
+            console.warn('⚠️ ev.shippingAddress:', ev.shippingAddress);
+            console.warn('⚠️ ev.payerAddress:', ev.payerAddress);
+            console.warn('⚠️ Full event object:', ev);
           }
           
           // Set payment intent ID
