@@ -841,7 +841,7 @@
         requestPayerName: true,
         requestPayerEmail: true,
         requestPayerPhone: true,
-        requestPayerAddress: true,
+        requestShipping: true, // Changed from requestPayerAddress to requestShipping
       });
       console.log('✅ Payment Request object created');
 
@@ -989,40 +989,112 @@
           console.log('✅ Payment succeeded, filling form...');
           
           // Fill form with payment method details (for order creation)
-          if (ev.payerName) {
-            document.getElementById('full_name').value = ev.payerName;
+          // IMPORTANT: Fill fields BEFORE submitting
+          const fullNameField = document.getElementById('full_name');
+          const emailField = document.getElementById('email');
+          const phoneField = document.getElementById('phone');
+          const addressField = document.getElementById('address');
+          const cityField = document.getElementById('city');
+          const postalCodeField = document.getElementById('postal_code');
+          const countryField = document.getElementById('country');
+          
+          if (ev.payerName && fullNameField) {
+            fullNameField.value = ev.payerName;
+            console.log('✅ Filled full_name:', ev.payerName);
           }
-          if (ev.payerEmail) {
-            document.getElementById('email').value = ev.payerEmail;
+          if (ev.payerEmail && emailField) {
+            emailField.value = ev.payerEmail;
+            console.log('✅ Filled email:', ev.payerEmail);
           }
-          if (ev.payerPhone) {
-            document.getElementById('phone').value = ev.payerPhone;
+          if (ev.payerPhone && phoneField) {
+            phoneField.value = ev.payerPhone;
+            console.log('✅ Filled phone:', ev.payerPhone);
           }
           
           // Fill address fields from Apple Pay / Google Pay
           if (ev.shippingAddress) {
             const addr = ev.shippingAddress;
-            if (addr.addressLine && addr.addressLine.length > 0) {
-              document.getElementById('address').value = addr.addressLine.join(', ');
+            console.log('📦 Shipping Address received:', addr);
+            
+            if (addr.addressLine && addr.addressLine.length > 0 && addressField) {
+              const addressLine = addr.addressLine.join(', ');
+              addressField.value = addressLine;
+              console.log('✅ Filled address:', addressLine);
             }
-            if (addr.city) {
-              document.getElementById('city').value = addr.city;
+            if (addr.city && cityField) {
+              cityField.value = addr.city;
+              console.log('✅ Filled city:', addr.city);
             }
-            if (addr.postalCode) {
-              document.getElementById('postal_code').value = addr.postalCode;
+            if (addr.postalCode && postalCodeField) {
+              postalCodeField.value = addr.postalCode;
+              console.log('✅ Filled postal_code:', addr.postalCode);
             }
-            if (addr.country) {
-              document.getElementById('country').value = addr.country;
+            if (addr.country && countryField) {
+              countryField.value = addr.country;
+              console.log('✅ Filled country:', addr.country);
             }
+          } else {
+            console.warn('⚠️ No shipping address received from Apple Pay');
           }
           
           // Set payment intent ID
-          document.getElementById('payment_intent_id').value = paymentIntent.id;
+          const paymentIntentIdField = document.getElementById('payment_intent_id');
+          if (paymentIntentIdField) {
+            paymentIntentIdField.value = paymentIntent.id;
+            console.log('✅ Set payment_intent_id:', paymentIntent.id);
+          }
           
-          console.log('✅ Form filled, submitting...');
+          // Ensure shipping option is selected if not already
+          const shippingSelect = document.getElementById('shipping_option');
+          if (shippingSelect && !shippingSelect.value && countryField && countryField.value) {
+            // Auto-select shipping based on country
+            const country = countryField.value;
+            const options = shippingSelect.options;
+            for (let i = 0; i < options.length; i++) {
+              const option = options[i];
+              const price = parseFloat(option.getAttribute('data-price')) || 0;
+              if (country === 'Canada' || country === 'Australia') {
+                if (price === 19.99) {
+                  shippingSelect.value = option.value;
+                  console.log('✅ Auto-selected Express Shipping for', country);
+                  break;
+                }
+              } else {
+                if (price === 0) {
+                  shippingSelect.value = option.value;
+                  console.log('✅ Auto-selected Free Shipping for', country);
+                  break;
+                }
+              }
+            }
+          }
           
-          // Submit form
-          document.getElementById('payment-form').submit();
+          // Wait a bit to ensure all fields are filled and visible
+          console.log('✅ Form filled, waiting before submit...');
+          setTimeout(function() {
+            console.log('📤 Submitting form...');
+            const form = document.getElementById('payment-form');
+            if (form) {
+              // Verify all required fields are filled
+              const requiredFields = ['full_name', 'address', 'city', 'postal_code', 'phone', 'country'];
+              let allFilled = true;
+              requiredFields.forEach(function(fieldId) {
+                const field = document.getElementById(fieldId);
+                if (field && !field.value.trim()) {
+                  console.warn('⚠️ Field not filled:', fieldId);
+                  allFilled = false;
+                }
+              });
+              
+              if (allFilled) {
+                console.log('✅ All fields filled, submitting form');
+                form.submit();
+              } else {
+                console.error('❌ Some required fields are missing, cannot submit');
+                document.getElementById('card-errors').textContent = 'Please fill all required fields.';
+              }
+            }
+          }, 300); // Wait 300ms to ensure fields are filled
         } catch (error) {
           console.error('❌ Error in payment method handler:', error);
           ev.complete('fail');
