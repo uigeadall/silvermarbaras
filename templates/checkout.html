@@ -921,14 +921,56 @@
         }
       }
       
+      // Handle shipping address change (REQUIRED for mobile devices)
+      // This event is triggered when user selects/changes shipping address in Apple Pay
+      window.paymentRequest.on('shippingaddresschange', function(ev) {
+        console.log('📦 Shipping address changed event (mobile):', ev.shippingAddress);
+        
+        if (ev.shippingAddress) {
+          const addr = ev.shippingAddress;
+          const country = addr.country;
+          
+          // Update shipping cost based on country
+          let shippingCost = 0;
+          if (country === 'CA' || country === 'AU' || country === 'Canada' || country === 'Australia') {
+            shippingCost = 1999; // $19.99 in cents
+          } else {
+            shippingCost = 0; // Free shipping
+          }
+          
+          const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+          
+          // Update the total shown in Apple Pay
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: finalTotal,
+            },
+            shippingOptions: [{
+              id: shippingCost === 0 ? 'free' : 'express',
+              label: shippingCost === 0 ? 'Free Shipping' : 'Express Shipping',
+              amount: shippingCost,
+            }],
+          });
+          
+          console.log('✅ Updated shipping cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+        } else {
+          ev.updateWith({ status: 'success' });
+        }
+      });
+      
       // Handle payment method
       window.paymentRequest.on('paymentmethod', async function(ev) {
         try {
           console.log('=== Apple Pay / Google Pay Payment Method Received ===');
+          console.log('Device:', /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
           console.log('Payer Name:', ev.payerName);
           console.log('Payer Email:', ev.payerEmail);
           console.log('Payer Phone:', ev.payerPhone);
           console.log('Shipping Address:', ev.shippingAddress);
+          console.log('Payer Address:', ev.payerAddress);
+          console.log('Full event object keys:', Object.keys(ev));
           
           // Prepare shipping data for Stripe
           let shippingData = null;
