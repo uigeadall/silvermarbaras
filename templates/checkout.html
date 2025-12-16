@@ -916,25 +916,68 @@
       // Handle payment method
       window.paymentRequest.on('paymentmethod', async function(ev) {
         try {
+          console.log('=== Apple Pay / Google Pay Payment Method Received ===');
+          console.log('Payer Name:', ev.payerName);
+          console.log('Payer Email:', ev.payerEmail);
+          console.log('Payer Phone:', ev.payerPhone);
+          console.log('Shipping Address:', ev.shippingAddress);
+          
+          // Prepare shipping data for Stripe
+          let shippingData = null;
+          if (ev.shippingAddress) {
+            const addr = ev.shippingAddress;
+            shippingData = {
+              name: ev.payerName || '',
+              phone: ev.payerPhone || '',
+              address: {
+                line1: addr.addressLine && addr.addressLine.length > 0 ? addr.addressLine[0] : '',
+                line2: addr.addressLine && addr.addressLine.length > 1 ? addr.addressLine.slice(1).join(', ') : '',
+                city: addr.city || '',
+                postal_code: addr.postalCode || '',
+                country: addr.country || '',
+              }
+            };
+            console.log('Shipping data prepared:', shippingData);
+          }
+          
           // Confirm payment with PaymentIntent using the payment method from Apple Pay/Google Pay
+          // IMPORTANT: Include customer data (email, shipping) in the confirmation
+          const confirmParams = {
+            payment_method: ev.paymentMethod.id,
+          };
+          
+          // Add receipt_email if available
+          if (ev.payerEmail) {
+            confirmParams.receipt_email = ev.payerEmail;
+          }
+          
+          // Add shipping if available
+          if (shippingData) {
+            confirmParams.shipping = shippingData;
+          }
+          
+          console.log('Confirming payment with params:', confirmParams);
+          
           const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
             '{{ client_secret }}',
-            {
-              payment_method: ev.paymentMethod.id,
-            },
+            confirmParams,
             { handleActions: false }
           );
 
           if (confirmError) {
+            console.error('Payment confirmation error:', confirmError);
             ev.complete('fail');
             document.getElementById('card-errors').textContent = confirmError.message || 'Payment failed.';
             return;
           }
 
+          console.log('Payment Intent status:', paymentIntent.status);
+
           // If payment requires action (3D Secure, etc.), handle it
           if (paymentIntent.status === 'requires_action') {
             const { error: actionError } = await stripe.confirmCardPayment('{{ client_secret }}');
             if (actionError) {
+              console.error('Payment action error:', actionError);
               ev.complete('fail');
               document.getElementById('card-errors').textContent = actionError.message || 'Payment failed.';
               return;
@@ -943,8 +986,9 @@
 
           // Payment succeeded
           ev.complete('success');
+          console.log('✅ Payment succeeded, filling form...');
           
-          // Fill form with payment method details
+          // Fill form with payment method details (for order creation)
           if (ev.payerName) {
             document.getElementById('full_name').value = ev.payerName;
           }
@@ -975,9 +1019,12 @@
           // Set payment intent ID
           document.getElementById('payment_intent_id').value = paymentIntent.id;
           
+          console.log('✅ Form filled, submitting...');
+          
           // Submit form
           document.getElementById('payment-form').submit();
         } catch (error) {
+          console.error('❌ Error in payment method handler:', error);
           ev.complete('fail');
           document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
         }
