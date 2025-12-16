@@ -310,6 +310,14 @@
                 {% if coupon_applied %}<div style="color:#0a0; margin-top:6px;">Coupon {{ coupon_applied }} applied.</div>{% endif %}
               </div>
 
+              {% if not user.is_authenticated %}
+              <div class="form-group" style="margin-top: 20px; padding: 16px; background: #f0f7ff; border: 1px solid #b3d9ff; border-radius: 8px;">
+                <p style="margin: 0 0 12px 0; font-weight: 600; color: #0066cc;">Would you like to register?</p>
+                <p style="margin: 0 0 12px 0; font-size: 0.9rem; color: #333;">Create an account to track your orders and save your information for faster checkout.</p>
+                <a href="{% url 'register' %}" style="display: inline-block; padding: 8px 16px; background: #0066cc; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem; transition: background 0.2s;">Register Now</a>
+              </div>
+              {% endif %}
+
               <div class="form-group" style="flex:1;"></div> {# spacer to push payment to bottom for symmetry #}
 
               {# Apple Pay / Google Pay Button #}

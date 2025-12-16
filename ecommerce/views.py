@@ -1591,30 +1591,41 @@ def profile_favorites(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def profile_orders(request: HttpRequest) -> HttpResponse:
-    orders = (
-        Order.objects
-        .filter(user=request.user)
-        .select_related("shipping_option", "coupon")
-        .order_by("-created_at")
-    )
-    paginator = Paginator(orders, 10)
-    page = request.GET.get("page")
-    orders_page = paginator.get_page(page)
+    try:
+        orders = (
+            Order.objects
+            .filter(user=request.user)
+            .select_related("shipping_option", "coupon")
+            .order_by("-created_at")
+        )
+        paginator = Paginator(orders, 10)
+        page = request.GET.get("page")
+        orders_page = paginator.get_page(page)
 
+        # Get item counts for orders on current page
+        counts_map = {}
+        if orders_page.object_list:
+            item_counts = (
+                OrderItem.objects
+                .filter(order__in=orders_page.object_list)
+                .values("order_id")
+                .annotate(c=Sum("quantity"))
+            )
+            counts_map = {row["order_id"]: row["c"] for row in item_counts}
 
-    item_counts = (
-        OrderItem.objects
-        .filter(order__in=orders_page.object_list)
-        .values("order_id")
-        .annotate(c=Sum("quantity"))
-    )
-    counts_map = {row["order_id"]: row["c"] for row in item_counts}
-
-    return render(request, "orders.html", {
-        "orders_page": orders_page,
-        "counts_map": counts_map,
-        "active_tab": "orders",
-    })
+        return render(request, "orders.html", {
+            "orders_page": orders_page,
+            "counts_map": counts_map,
+            "active_tab": "orders",
+        })
+    except Exception as e:
+        logger.exception("Error in profile_orders: %s", e)
+        return render(request, "orders.html", {
+            "orders_page": None,
+            "counts_map": {},
+            "active_tab": "orders",
+            "error": "An error occurred while loading your orders.",
+        })
 
 
 @login_required

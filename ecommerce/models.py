@@ -87,11 +87,26 @@ class Product(models.Model):
     )
 
     def get_discounted_price(self) -> Decimal:
-        """Return discount_price if valid, else base price."""
-        return self.discount_price if self.discount_price else self.price
+        """Return discount_price if valid and sale hasn't expired, else base price."""
+        from django.utils import timezone
+        if self.discount_price and self.discount_price < self.price:
+            # Check if sale has expired
+            if self.sale_expires_at:
+                if timezone.now() > self.sale_expires_at:
+                    return self.price
+            return self.discount_price
+        return self.price
 
     def has_discount(self) -> bool:
-        return bool(self.discount_price and self.discount_price < self.price)
+        """Check if product has valid discount (not expired)."""
+        from django.utils import timezone
+        if not (self.discount_price and self.discount_price < self.price):
+            return False
+        # Check if sale has expired
+        if self.sale_expires_at:
+            if timezone.now() > self.sale_expires_at:
+                return False
+        return True
 
     def save(self, *args, **kwargs):
         """Ensure primary category is also in categories."""
