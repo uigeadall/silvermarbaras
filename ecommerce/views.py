@@ -706,8 +706,22 @@ def register_view(request: HttpRequest) -> HttpResponse:
                         
                         # Automatically log in the user after registration
                         try:
-                            login(request, user)
-                            logger.info("User %s automatically logged in after registration", username)
+                            # Set backend explicitly before login
+                            backend = 'django.contrib.auth.backends.ModelBackend'
+                            user.backend = backend
+                            logger.info("Attempting to log in user %s with backend %s", username, backend)
+                            
+                            # Log in the user
+                            login(request, user, backend=backend)
+                            
+                            # Verify login was successful
+                            if request.user.is_authenticated:
+                                logger.info("✅ User %s successfully logged in after registration", username)
+                                logger.info("   Authenticated user: %s", request.user.username)
+                            else:
+                                logger.error("❌ Login failed - user is not authenticated after login() call")
+                                raise Exception("Login failed - user not authenticated")
+                                
                         except Exception as login_error:
                             logger.exception("Error logging in user after registration: %s", login_error)
                             # If login fails, redirect to login page instead
