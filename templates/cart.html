@@ -639,6 +639,81 @@
         }),
       });
 
+      // Handle shipping address change (REQUIRED for mobile devices)
+      // This event is triggered when user selects/changes shipping address in Apple Pay
+      paymentRequest.on('shippingaddresschange', function(ev) {
+        console.log('📦 Cart - Shipping address changed event (mobile):', ev.shippingAddress);
+        
+        if (ev.shippingAddress) {
+          const addr = ev.shippingAddress;
+          const country = addr.country;
+          
+          console.log('🌍 Cart - Selected country:', country);
+          
+          // Check if country is allowed
+          if (!isCountryAllowed(country)) {
+            console.error('❌ Cart - Country not allowed:', country);
+            ev.updateWith({
+              status: 'fail',
+              errors: {
+                shippingAddress: 'We don\'t ship to your country. Please select a country from the allowed list.'
+              }
+            });
+            return;
+          }
+          
+          // Update shipping cost based on country (convert to selected currency)
+          let shippingCostEUR = 0;
+          if (country === 'CA' || country === 'AU' || country === 'Canada' || country === 'Australia') {
+            shippingCostEUR = 19.99; // €19.99 in EUR
+          } else {
+            shippingCostEUR = 0; // Free shipping
+          }
+          
+          // Get current currency and exchange rate
+          const getCurrentCurrency = window.getCurrentCurrency || function() {
+            return localStorage.getItem('selectedCurrency') || 'EUR';
+          };
+          const getExchangeRate = function() {
+            try {
+              const cached = localStorage.getItem('exchangeRatesCache');
+              if (cached) {
+                const rates = JSON.parse(cached);
+                return rates;
+              }
+            } catch (e) {
+              console.warn('Could not load exchange rates from cache');
+            }
+            return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+          };
+          const currentCurrency = getCurrentCurrency().toLowerCase();
+          const exchangeRates = getExchangeRate();
+          const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+          
+          // Convert shipping cost to selected currency
+          const shippingCost = Math.round(shippingCostEUR * rate * 100);
+          const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+          
+          // Update the total shown in Apple Pay
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: finalTotal,
+            },
+            shippingOptions: [{
+              id: shippingCost === 0 ? 'free' : 'express',
+              label: shippingCost === 0 ? 'Free Shipping' : 'Express Shipping',
+              amount: shippingCost,
+            }],
+          });
+          
+          console.log('✅ Cart - Updated shipping cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+        } else {
+          ev.updateWith({ status: 'success' });
+        }
+      });
+      
       const paymentRequestButton = elements.create('paymentRequestButton', {
         paymentRequest: paymentRequest,
         style: {
