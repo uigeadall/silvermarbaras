@@ -560,6 +560,10 @@
       
       if (loadingDiv) loadingDiv.style.display = 'block';
       
+      // Detect if mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      console.log('📱 Cart - Device type:', isMobile ? 'Mobile' : 'Desktop');
+      
       const paymentRequest = stripe.paymentRequest({
         country: 'BG',
         currency: 'usd',
@@ -570,7 +574,11 @@
         requestPayerName: true,
         requestPayerEmail: true,
         requestPayerPhone: true,
-        requestPayerAddress: true,
+        requestShipping: true, // Changed from requestPayerAddress to requestShipping
+        // For mobile devices, explicitly request shipping address
+        ...(isMobile && {
+          shippingAddressRequired: true,
+        }),
       });
 
       const paymentRequestButton = elements.create('paymentRequestButton', {
@@ -626,16 +634,30 @@
 
       // Handle payment method
       paymentRequest.on('paymentmethod', async function(ev) {
+        console.log('=== Cart - Apple Pay / Google Pay Payment Method Received ===');
+        console.log('Device:', /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+        console.log('Payer Name:', ev.payerName);
+        console.log('Payer Email:', ev.payerEmail);
+        console.log('Payer Phone:', ev.payerPhone);
+        console.log('Shipping Address:', ev.shippingAddress);
+        console.log('Payer Address:', ev.payerAddress);
+        console.log('Full event object keys:', Object.keys(ev));
+        
         // Store payment method data in sessionStorage to pass to checkout
-        if (ev.payerName || ev.payerEmail || ev.payerPhone || ev.shippingAddress) {
+        // Check both shippingAddress and payerAddress (for compatibility)
+        const shippingAddr = ev.shippingAddress || ev.payerAddress;
+        
+        if (ev.payerName || ev.payerEmail || ev.payerPhone || shippingAddr) {
           const paymentData = {
             payerName: ev.payerName,
             payerEmail: ev.payerEmail,
             payerPhone: ev.payerPhone,
-            shippingAddress: ev.shippingAddress ? {
-              addressLine: ev.shippingAddress.addressLine,
-              city: ev.shippingAddress.city,
-              postalCode: ev.shippingAddress.postalCode,
+            shippingAddress: shippingAddr ? {
+              addressLine: shippingAddr.addressLine,
+              city: shippingAddr.city,
+              postalCode: shippingAddr.postalCode,
+              country: shippingAddr.country,
+              region: shippingAddr.region,
               country: ev.shippingAddress.country,
             } : null
           };
