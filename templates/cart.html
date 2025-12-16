@@ -529,7 +529,7 @@
   // Apple Pay / Google Pay in Cart
   (function() {
     const stripePublicKey = '{{ stripe_public_key|default:"" }}';
-    const totalAmount = {{ subtotal|default:0 }};
+    const totalAmountEUR = {{ subtotal|default:0 }};
     const container = document.getElementById('cart-payment-request-button-container');
     const loadingDiv = document.getElementById('cart-payment-request-loading');
     const unavailableDiv = document.getElementById('cart-payment-request-unavailable');
@@ -540,7 +540,7 @@
     // Get placeholder button - it's visible by default in HTML
     const placeholderBtn = document.getElementById('cart-apple-pay-placeholder');
     
-    if (!stripePublicKey || !stripePublicKey.startsWith('pk_') || !totalAmount || totalAmount <= 0) {
+    if (!stripePublicKey || !stripePublicKey.startsWith('pk_') || !totalAmountEUR || totalAmountEUR <= 0) {
       // Keep placeholder button visible if Stripe is not configured
       if (loadingDiv) loadingDiv.style.display = 'none';
       console.log('📱 Stripe not configured, showing placeholder button');
@@ -563,6 +563,36 @@
       // Detect if mobile device
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       console.log('📱 Cart - Device type:', isMobile ? 'Mobile' : 'Desktop');
+      
+      // Get current currency from localStorage (EUR, USD, or GBP)
+      const getCurrentCurrency = window.getCurrentCurrency || function() {
+        return localStorage.getItem('selectedCurrency') || 'EUR';
+      };
+      
+      // Get exchange rates (if available)
+      const getExchangeRate = function() {
+        try {
+          const cached = localStorage.getItem('exchangeRatesCache');
+          if (cached) {
+            const rates = JSON.parse(cached);
+            return rates;
+          }
+        } catch (e) {
+          console.warn('Could not load exchange rates from cache');
+        }
+        // Fallback rates
+        return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+      };
+      
+      const currentCurrency = getCurrentCurrency().toLowerCase();
+      const exchangeRates = getExchangeRate();
+      const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+      const totalAmount = totalAmountEUR * rate;
+      
+      console.log('💰 Cart - Current currency:', currentCurrency.toUpperCase());
+      console.log('💰 Cart - Exchange rate:', rate);
+      console.log('💰 Cart - Total amount EUR:', totalAmountEUR);
+      console.log('💰 Cart - Total amount (converted):', totalAmount);
       
       // Allowed countries list (must match backend validation)
       const ALLOWED_COUNTRIES = {
@@ -594,10 +624,10 @@
       
       const paymentRequest = stripe.paymentRequest({
         country: 'BG',
-        currency: 'usd',
+        currency: currentCurrency, // Use selected currency (usd, eur, or gbp)
         total: {
           label: 'Total',
-          amount: Math.round(totalAmount * 100),
+          amount: Math.round(totalAmount * 100), // Convert to cents in selected currency
         },
         requestPayerName: true,
         requestPayerEmail: true,

@@ -816,14 +816,42 @@
     const unavailableDiv = document.getElementById('payment-request-unavailable');
     const container = document.getElementById('payment-request-button-container');
     
-    const totalAmount = {% if total %}{{ total }}{% else %}{{ subtotal|default:0 }}{% endif %};
-    console.log('Total amount:', totalAmount);
+    const totalAmountEUR = {% if total %}{{ total }}{% else %}{{ subtotal|default:0 }}{% endif %};
+    console.log('Total amount (EUR):', totalAmountEUR);
+    
+    // Get current currency from localStorage (EUR, USD, or GBP)
+    const getCurrentCurrency = window.getCurrentCurrency || function() {
+      return localStorage.getItem('selectedCurrency') || 'EUR';
+    };
+    
+    // Get exchange rates (if available)
+    const getExchangeRate = function() {
+      try {
+        const cached = localStorage.getItem('exchangeRatesCache');
+        if (cached) {
+          const rates = JSON.parse(cached);
+          return rates;
+        }
+      } catch (e) {
+        console.warn('Could not load exchange rates from cache');
+      }
+      // Fallback rates
+      return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+    };
+    
+    const currentCurrency = getCurrentCurrency().toLowerCase();
+    const exchangeRates = getExchangeRate();
+    const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+    const totalAmount = totalAmountEUR * rate;
+    
+    console.log('Current currency:', currentCurrency.toUpperCase());
+    console.log('Exchange rate:', rate);
+    console.log('Total amount (converted):', totalAmount);
     console.log('Total in cents:', Math.round(totalAmount * 100));
-    console.log('Currency: USD');
     console.log('Country: BG (Bulgaria)');
     
-    if (!totalAmount || totalAmount <= 0 || isNaN(totalAmount)) {
-      console.error('❌ Invalid total amount:', totalAmount);
+    if (!totalAmountEUR || totalAmountEUR <= 0 || isNaN(totalAmountEUR)) {
+      console.error('❌ Invalid total amount:', totalAmountEUR);
       if (unavailableDiv) {
         unavailableDiv.style.display = 'block';
         unavailableDiv.textContent = 'Invalid order total. Please refresh the page.';
@@ -837,10 +865,10 @@
       // Only create Payment Request if amount is valid
       window.paymentRequest = stripe.paymentRequest({
         country: 'BG', // Bulgaria
-        currency: 'usd',
+        currency: currentCurrency, // Use selected currency (usd, eur, or gbp)
         total: {
           label: 'Total',
-          amount: Math.round(totalAmount * 100), // Convert to cents
+          amount: Math.round(totalAmount * 100), // Convert to cents in selected currency
         },
         requestPayerName: true,
         requestPayerEmail: true,
@@ -972,14 +1000,16 @@
             return;
           }
           
-          // Update shipping cost based on country
-          let shippingCost = 0;
+          // Update shipping cost based on country (convert to selected currency)
+          let shippingCostEUR = 0;
           if (country === 'CA' || country === 'AU' || country === 'Canada' || country === 'Australia') {
-            shippingCost = 1999; // $19.99 in cents
+            shippingCostEUR = 19.99; // €19.99 in EUR
           } else {
-            shippingCost = 0; // Free shipping
+            shippingCostEUR = 0; // Free shipping
           }
           
+          // Convert shipping cost to selected currency
+          const shippingCost = Math.round(shippingCostEUR * rate * 100);
           const finalTotal = Math.round(totalAmount * 100) + shippingCost;
           
           // Update the total shown in Apple Pay
