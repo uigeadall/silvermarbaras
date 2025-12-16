@@ -695,22 +695,33 @@ def register_view(request: HttpRequest) -> HttpResponse:
                         user = User.objects.create_user(username=username, email=email, password=password)
                         logger.info("User created successfully: %s", username)
                         
-                        # Send user_registered signal to trigger welcome email
-                        logger.info("Sending user_registered signal for user: %s", username)
-                        user_registered.send(sender=User, user=user, request=request)
-                        logger.info("user_registered signal sent successfully")
+                        # Send user_registered signal to trigger welcome email (in background thread)
+                        try:
+                            logger.info("Sending user_registered signal for user: %s", username)
+                            user_registered.send(sender=User, user=user, request=request)
+                            logger.info("user_registered signal sent successfully")
+                        except Exception as signal_error:
+                            logger.exception("Error sending user_registered signal: %s", signal_error)
+                            # Continue anyway - email sending is not critical
                         
                         # Automatically log in the user after registration
-                        from django.contrib.auth import login
-                        login(request, user)
-                        logger.info("User %s automatically logged in after registration", username)
+                        try:
+                            login(request, user)
+                            logger.info("User %s automatically logged in after registration", username)
+                        except Exception as login_error:
+                            logger.exception("Error logging in user after registration: %s", login_error)
+                            # If login fails, redirect to login page instead
+                            messages.warning(request, "Account created successfully. Please log in.")
+                            return redirect("login")
                         
                         messages.success(request, "Registration successful! Welcome to Marbaras!")
                         logger.info("Redirecting to home page for user: %s", username)
                         return redirect("home")
                     except Exception as e:
                         logger.exception("Error creating user: %s", e)
-                        messages.error(request, f"An error occurred during registration. Please try again.")
+                        error_msg = str(e)
+                        logger.error("Registration error details: %s", error_msg)
+                        messages.error(request, f"An error occurred during registration: {error_msg}. Please try again.")
                         return render(request, "register.html")
 
         return render(request, "register.html")
