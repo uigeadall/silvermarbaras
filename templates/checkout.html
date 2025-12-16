@@ -293,8 +293,8 @@
                   <select id="shipping_option" name="shipping_option">
                     <option value="">-- Select --</option>
                     {% for opt in shipping_options %}
-                      <option value="{{ opt.id }}" data-price="{{ opt.price }}" data-eur-price="{{ opt.price }}" data-name="{{ opt.name }}">
-                        {{ opt.name }}{% if opt.price > 0 %} (€{{ opt.price|floatformat:2 }}){% else %} (Free){% endif %}
+                      <option value="{{ opt.id }}" data-price="{{ opt.price }}" data-eur-price="{{ opt.price }}" data-name="{{ opt.name }}" data-shipping-type="{% if opt.price == 0 %}free{% elif opt.price == 19.99 %}express{% else %}standard{% endif %}">
+                        {% if opt.price == 0 %}Free Shipping{% elif opt.price == 19.99 %}Express Shipping (€{{ opt.price|floatformat:2 }}){% else %}{{ opt.name }} (€{{ opt.price|floatformat:2 }}){% endif %}
                       </option>
                     {% endfor %}
                   </select>
@@ -406,7 +406,7 @@
               {% endif %}
 
               <div class="row" id="shipping-row" style="display: none;">
-                  <span>Shipping</span>
+                  <span id="shipping-label">Shipping</span>
                 <span id="shipping-cost-display" data-eur-price="0">$0.00</span>
                 </div>
 
@@ -581,10 +581,15 @@
           };
           const price = parseFloat(optData.dataPrice) || 0;
           const optionName = optData.dataName || '';
-          if (price > 0) {
-            option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+          if (price === 0) {
+            option.textContent = 'Free Shipping';
+            option.setAttribute('data-shipping-type', 'free');
+          } else if (price === 19.99) {
+            option.textContent = 'Express Shipping (' + formatPrice(price, currency) + ')';
+            option.setAttribute('data-shipping-type', 'express');
           } else {
-            option.textContent = optionName + ' (Free)';
+            option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+            option.setAttribute('data-shipping-type', 'standard');
           }
           option.setAttribute('data-name', optData.dataName || '');
           option.setAttribute('data-price', optData.dataPrice || '0');
@@ -596,17 +601,22 @@
 
     function updateTotal() {
       let shippingCost = 0;
+      let shippingType = null;
       const selectedOption = shippingSelect?.options[shippingSelect?.selectedIndex];
+      const shippingLabel = document.getElementById('shipping-label');
       
       if (selectedOption && selectedOption.value) {
         shippingCost = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+        shippingType = selectedOption.getAttribute('data-shipping-type');
       } else {
         // If no option selected, check country
         const country = countrySelect?.value;
         if (country === 'Canada' || country === 'Australia') {
           shippingCost = 19.99; // Default to Express for Canada and Australia (only option)
+          shippingType = 'express';
         } else {
           shippingCost = 0.00; // Free for other countries
+          shippingType = 'free';
         }
       }
 
@@ -620,17 +630,30 @@
         return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
       };
 
-      if (shippingCost > 0) {
-        shippingRow.style.display = 'flex';
+      // Always show shipping row, but with appropriate text
+      shippingRow.style.display = 'flex';
+      
+      // Update shipping label based on type
+      if (shippingType === 'free') {
+        shippingLabel.textContent = 'Free Shipping';
+        shippingCostDisplay.textContent = formatPrice(0, currency);
+        shippingCostDisplay.setAttribute('data-eur-price', 0);
+      } else if (shippingType === 'express') {
+        shippingLabel.textContent = 'Express Shipping';
         shippingCostDisplay.setAttribute('data-eur-price', shippingCost);
-        // Let the currency converter update the display
         if (window.updateAllPrices) {
           window.updateAllPrices();
         } else {
           shippingCostDisplay.textContent = formatPrice(shippingCost, currency);
         }
       } else {
-        shippingRow.style.display = 'none';
+        shippingLabel.textContent = 'Shipping';
+        shippingCostDisplay.setAttribute('data-eur-price', shippingCost);
+        if (window.updateAllPrices) {
+          window.updateAllPrices();
+        } else {
+          shippingCostDisplay.textContent = formatPrice(shippingCost, currency);
+        }
       }
 
       totalDisplay.setAttribute('data-eur-price', total);
@@ -684,10 +707,12 @@
         const option = shippingSelect.options[i];
         const price = parseFloat(option.getAttribute('data-price')) || 0;
         const name = option.getAttribute('data-name') || '';
-        if (price > 0) {
-          option.textContent = name + ' (' + formatPrice(price, currency) + ')';
+        if (price === 0) {
+          option.textContent = 'Free Shipping';
+        } else if (price === 19.99) {
+          option.textContent = 'Express Shipping (' + formatPrice(price, currency) + ')';
         } else {
-          option.textContent = name + ' (Free)';
+          option.textContent = name + ' (' + formatPrice(price, currency) + ')';
         }
       }
     }
