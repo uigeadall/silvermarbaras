@@ -921,6 +921,34 @@
         }
       }
       
+      // Allowed countries list (must match backend validation)
+      const ALLOWED_COUNTRIES = {
+        // ISO codes
+        'AL': 'Albania', 'AD': 'Andorra', 'BA': 'Bosnia and Herzegovina', 'VA': 'Vatican',
+        'GB': 'United Kingdom', 'IS': 'Iceland', 'LI': 'Liechtenstein', 'MC': 'Monaco',
+        'ME': 'Montenegro', 'NO': 'Norway', 'SM': 'San Marino', 'RS': 'Serbia',
+        'CH': 'Switzerland', 'BH': 'Bahrain', 'JP': 'Japan', 'QA': 'Qatar',
+        'SA': 'Saudi Arabia', 'AE': 'United Arab Emirates', 'ZA': 'South Africa',
+        'CA': 'Canada', 'CR': 'Costa Rica', 'US': 'United States', 'AU': 'Australia',
+        'NZ': 'New Zealand',
+        // Full names (for compatibility)
+        'Albania': true, 'Andorra': true, 'Bosnia and Herzegovina': true, 'Vatican': true,
+        'United Kingdom': true, 'Iceland': true, 'Liechtenstein': true, 'Monaco': true,
+        'Montenegro': true, 'Norway': true, 'San Marino': true, 'Serbia': true,
+        'Switzerland': true, 'Bahrain': true, 'Japan': true, 'Qatar': true,
+        'Saudi Arabia': true, 'United Arab Emirates': true, 'South Africa': true,
+        'Canada': true, 'Costa Rica': true, 'United States': true, 'Australia': true,
+        'New Zealand': true
+      };
+      
+      function isCountryAllowed(country) {
+        if (!country) return false;
+        // Check ISO code
+        if (ALLOWED_COUNTRIES[country]) return true;
+        // Check full name
+        return ALLOWED_COUNTRIES[country] === true;
+      }
+      
       // Handle shipping address change (REQUIRED for mobile devices)
       // This event is triggered when user selects/changes shipping address in Apple Pay
       window.paymentRequest.on('shippingaddresschange', function(ev) {
@@ -929,6 +957,20 @@
         if (ev.shippingAddress) {
           const addr = ev.shippingAddress;
           const country = addr.country;
+          
+          console.log('🌍 Selected country:', country);
+          
+          // Check if country is allowed
+          if (!isCountryAllowed(country)) {
+            console.error('❌ Country not allowed:', country);
+            ev.updateWith({
+              status: 'fail',
+              errors: {
+                shippingAddress: 'We do not ship to this country. Please select a country from the allowed list.'
+              }
+            });
+            return;
+          }
           
           // Update shipping cost based on country
           let shippingCost = 0;
@@ -1067,14 +1109,24 @@
           
           if (shippingAddr) {
             const addr = shippingAddr;
+            const country = addr.country;
+            
             console.log('📦 Shipping Address received:', addr);
             console.log('📦 Address details:', {
               addressLine: addr.addressLine,
               city: addr.city,
               postalCode: addr.postalCode,
-              country: addr.country,
+              country: country,
               region: addr.region,
             });
+            
+            // Validate country before proceeding
+            if (!isCountryAllowed(country)) {
+              console.error('❌ Country not allowed:', country);
+              ev.complete('fail');
+              document.getElementById('card-errors').textContent = 'We do not ship to ' + (country || 'this country') + '. Please select a country from the allowed list.';
+              return;
+            }
             
             if (addr.addressLine && addr.addressLine.length > 0 && addressField) {
               const addressLine = addr.addressLine.join(', ');
@@ -1093,9 +1145,9 @@
               console.log('✅ Filled postal_code:', addr.postalCode);
               postalCodeField.dispatchEvent(new Event('input', { bubbles: true }));
             }
-            if (addr.country && countryField) {
-              countryField.value = addr.country;
-              console.log('✅ Filled country:', addr.country);
+            if (country && countryField) {
+              countryField.value = country;
+              console.log('✅ Filled country:', country);
               countryField.dispatchEvent(new Event('change', { bubbles: true }));
             }
             if (addr.region && cityField && !cityField.value) {

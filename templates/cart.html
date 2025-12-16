@@ -646,6 +646,15 @@
         // Store payment method data in sessionStorage to pass to checkout
         // Check both shippingAddress and payerAddress (for compatibility)
         const shippingAddr = ev.shippingAddress || ev.payerAddress;
+        const country = shippingAddr ? shippingAddr.country : null;
+        
+        // Validate country before proceeding
+        if (country && !isCountryAllowed(country)) {
+          console.error('❌ Cart - Country not allowed:', country);
+          ev.complete('fail');
+          alert('We do not ship to ' + country + '. Please select a country from the allowed list.');
+          return;
+        }
         
         if (ev.payerName || ev.payerEmail || ev.payerPhone || shippingAddr) {
           const paymentData = {
