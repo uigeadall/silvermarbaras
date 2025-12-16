@@ -684,6 +684,10 @@
           return;
         }
         
+        // Complete payment first (before redirect)
+        ev.complete('success');
+        
+        // Store data in sessionStorage
         if (ev.payerName || ev.payerEmail || ev.payerPhone || shippingAddr) {
           const paymentData = {
             payerName: ev.payerName,
@@ -698,10 +702,13 @@
             } : null
           };
           sessionStorage.setItem('applePayData', JSON.stringify(paymentData));
+          console.log('✅ Cart - Payment data stored, redirecting to checkout...');
         }
-        // Redirect to checkout for payment processing
-        window.location.href = "{% url 'checkout' %}";
-        ev.complete('success');
+        
+        // Small delay before redirect to ensure ev.complete is processed
+        setTimeout(function() {
+          window.location.href = "{% url 'checkout' %}";
+        }, 100);
       });
 
     } catch (error) {
