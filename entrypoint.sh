@@ -151,6 +151,14 @@ elif [ -f "staticfiles/images/image0.png" ]; then
     echo "✅ image0.png already exists in staticfiles"
 fi
 
+if [ -f "static/images/image2.jpeg" ]; then
+    echo "✅ Ensuring image2.jpeg (logo) is in staticfiles..."
+    mkdir -p staticfiles/images
+    cp static/images/image2.jpeg staticfiles/images/image2.jpeg && echo "✅ Logo image (image2.jpeg) copied successfully" || echo "⚠️  Could not copy image2.jpeg"
+elif [ -f "staticfiles/images/image2.jpeg" ]; then
+    echo "✅ image2.jpeg already exists in staticfiles"
+fi
+
 # Ensure admin custom static files are copied
 if [ -f "static/admin/js/sale_timer.js" ]; then
     echo "✅ Ensuring admin/js/sale_timer.js is in staticfiles..."
