@@ -64,8 +64,10 @@
     
     {% if categories %}
     <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
-      <a href="{% url 'home' %}" class="block mb-3 font-extrabold text-2xl leading-none tracking-tight text-brand truncate">
-        Marbaras
+      <a href="{% url 'home' %}" class="block mb-3">
+        <img src="{% static 'images/image2.jpeg' %}" 
+             alt="Marbaras" 
+             class="h-8 w-auto object-contain">
       </a>
       <div class="rounded-xl bg-white shadow-sm">
         <div class="px-3 py-2">
