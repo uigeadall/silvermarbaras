@@ -305,12 +305,12 @@
       </nav>
       
       <!-- Payment Methods -->
-      <div class="flex items-center gap-3 flex-wrap justify-center">
+      <div class="flex items-center justify-center">
         {% load static %}
         <img src="{% static 'images/payment-methods.jpg' %}" 
-             alt="Payment methods: VISA, MasterCard, Maestro, Google Pay, Apple Pay - Powered by Stripe" 
-             class="h-6 object-contain"
-             onerror="this.onerror=null; this.style.display='none';">
+             alt="Accepted payment methods: Apple Pay, Google Pay, VISA, American Express, Mastercard" 
+             class="h-8 sm:h-10 object-contain opacity-90 hover:opacity-100 transition-opacity"
+             loading="lazy">
       </div>
       
       <span class="text-center sm:text-left">© {% now "Y" %} Marbaras</span>
