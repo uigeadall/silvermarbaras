@@ -550,26 +550,44 @@
       originalOptions.forEach((optData, index) => {
         if (index === 0) return; // Skip -- Select -- option
         
-        const optionName = optData.dataName || optData.text;
-        const optionPrice = parseFloat(optData.dataPrice) || 0;
+        const price = parseFloat(optData.dataPrice) || 0;
+        // Extract option name properly for filtering
+        let optionNameForFilter = optData.dataName || '';
+        if (!optionNameForFilter && optData.text) {
+          const match = optData.text.match(/^([^(]+)/);
+          if (match) {
+            optionNameForFilter = match[1].trim();
+          }
+        }
+        // Fallback for filtering
+        if (!optionNameForFilter) {
+          if (price === 0) {
+            optionNameForFilter = 'Free Delivery';
+          } else if (price === 19.99) {
+            optionNameForFilter = 'Express Delivery';
+          } else {
+            optionNameForFilter = 'Standard Shipping';
+          }
+        }
+        
         let shouldShow = false;
         
         if (country === 'Canada' || country === 'Australia') {
           // Canada and Australia: Express Delivery ($19.99) only
-          if (optionName && optionName.includes('Express Delivery')) {
+          if (optionNameForFilter.includes('Express Delivery') || optionNameForFilter.includes('Express')) {
             shouldShow = true;
-          } else if (optionPrice === 19.99 && optionName && optionName.includes('Express')) {
+          } else if (price === 19.99) {
             shouldShow = true;
           }
         } else {
           // Other countries: Free Delivery ($0) and Express Delivery ($19.99)
-          if (optionName && optionName.includes('Free Delivery')) {
+          if (optionNameForFilter.includes('Free Delivery') || optionNameForFilter.includes('Free')) {
             shouldShow = true;
-          } else if (optionPrice === 0 && optionName && !optionName.includes('Standard')) {
+          } else if (price === 0 && !optionNameForFilter.includes('Standard')) {
             shouldShow = true;
-          } else if (optionName && optionName.includes('Express Delivery')) {
+          } else if (optionNameForFilter.includes('Express Delivery') || optionNameForFilter.includes('Express')) {
             shouldShow = true;
-          } else if (optionPrice === 19.99 && optionName && optionName.includes('Express')) {
+          } else if (price === 19.99) {
             shouldShow = true;
           }
         }
@@ -583,9 +601,8 @@
             const symbols = { USD: '$', EUR: '€', GBP: '£' };
             return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
           };
-          const price = parseFloat(optData.dataPrice) || 0;
           // Use dataName if available, otherwise extract name from text
-          let optionName = optData.dataName;
+          let optionName = optData.dataName || '';
           if (!optionName || optionName.trim() === '') {
             if (optData.text) {
               // Try to extract name from text (format: "Name (€price)" or "Name (price)")
