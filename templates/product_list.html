@@ -75,7 +75,8 @@
         {% for category in categories %}
           <li>
             <a href="{% url 'products_by_category' category.pk %}?sort={{ request.GET.sort|default:'' }}"
-               class="{% if category.name|lower == 'sale' %}sale-category{% elif selected_category and selected_category.id == category.id %}active{% endif %}">
+               class="{% if category.name|lower == 'sale' %}sale-category{% elif selected_category and selected_category.id == category.id %}active{% endif %}"
+               {% if category.parent %}style="padding-left: 1.5rem;"{% endif %}>
               {{ category.name }}
             </a>
           </li>

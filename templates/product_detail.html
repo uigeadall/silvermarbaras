@@ -658,7 +658,8 @@
              text-red-600 font-bold hover:bg-red-50
            {% else %}
              hover:bg-slate-100 text-slate-800
-           {% endif %}">
+           {% endif %}"
+           {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
           {{ cat.name }}
         </a>
       </li>
@@ -722,7 +723,8 @@
                class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
                {% if cat.name|lower == 'sale' %}
                  text-red-600 font-bold hover:bg-red-50
-               {% elif selected_category and selected_category.id == cat.id %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}">
+               {% elif selected_category and selected_category.id == cat.id %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}"
+               {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
               {{ cat.name }}
             </a>
           </li>

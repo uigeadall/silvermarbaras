@@ -116,7 +116,8 @@
              bg-red-100 text-red-700
            {% else %}
              hover:bg-slate-100 text-slate-800
-           {% endif %}">
+           {% endif %}"
+           {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
           {{ cat.name }}
         </a>
       </li>
@@ -196,7 +197,8 @@
                  bg-red-100 text-red-700
                {% else %}
                  hover:bg-slate-100 text-slate-800
-               {% endif %}">
+               {% endif %}"
+               {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
               {{ cat.name }}
             </a>
           </li>

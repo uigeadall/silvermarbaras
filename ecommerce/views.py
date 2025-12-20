@@ -268,14 +268,17 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
 
 
 def _get_categories():
-    """Get all categories ordered by name, with 'Sale' at the end (cached for 1 hour)."""
+    """Get all categories ordered by parent first, then name, with 'Sale' at the end (cached for 1 hour)."""
     cache_key = 'all_categories'
     categories = cache.get(cache_key)
     if categories is None:
-
+        # Order: parent categories first (None comes first), then sub-categories under their parents
+        # Also put 'Sale' at the end
         categories = list(Category.objects.all().order_by(
             Case(When(name__iexact='Sale', then=Value(1)), default=Value(0)),
-            "name"
+            Case(When(parent=None, then=Value(0)), default=Value(1)),
+            'parent__name',
+            'name'
         ))
         cache.set(cache_key, categories, 3600)
     return categories
