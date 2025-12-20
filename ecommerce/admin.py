@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.db.models import Count, Sum
 from django.http import HttpResponse
 from django.contrib import messages
+from django.utils.html import format_html
 import csv
 
 from .models import (
@@ -39,6 +40,17 @@ class ProductBundleItemInline(admin.TabularInline):
             if obj_id:
                 kwargs["queryset"] = Product.objects.exclude(pk=obj_id)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+class CategorySubcategoryInline(admin.TabularInline):
+    """Inline for adding sub-categories to a category."""
+    model = Category
+    fk_name = "parent"
+    extra = 1
+    fields = ("name", "slug")
+    exclude = ("parent",)  # Parent is automatically set to the current category
+    verbose_name = "Sub-category"
+    verbose_name_plural = "Sub-categories"
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -152,22 +164,29 @@ class BlogPostAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'parent', 'slug', 'get_subcategories_count', 'get_products_count')
+    list_display = ('get_indented_name', 'slug', 'get_subcategories_count', 'get_products_count')
     list_filter = ('parent',)
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
-    # Removed autocomplete_fields to allow creating new parent categories directly from the form
+    inlines = [CategorySubcategoryInline]
     
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'slug', 'parent'),
-            'description': 'You can create a new parent category by clicking the "+" button next to the Parent field.'
+            'description': 'To add sub-categories, use the "Sub-categories" section below. You can create a new parent category by clicking the "+" button next to the Parent field.'
         }),
     )
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('parent').prefetch_related('subcategories')
+        return qs.select_related('parent').prefetch_related('subcategories').order_by('parent__name', 'name')
+    
+    @admin.display(description='Category Name')
+    def get_indented_name(self, obj):
+        """Display category name with indentation for sub-categories."""
+        if obj.parent:
+            return format_html('&nbsp;&nbsp;&nbsp;&nbsp;{}', obj.name)
+        return obj.name
     
     @admin.display(description='Sub-categories')
     def get_subcategories_count(self, obj):
