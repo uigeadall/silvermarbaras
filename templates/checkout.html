@@ -298,7 +298,7 @@
                     <option value="">-- Select --</option>
                     {% for opt in shipping_options %}
                       <option value="{{ opt.id }}" data-price="{{ opt.price }}" data-eur-price="{{ opt.price }}" data-name="{{ opt.name }}" data-shipping-type="{% if opt.price == 0 %}free{% elif opt.price == 19.99 %}express{% else %}standard{% endif %}">
-                        {% if opt.price == 0 %}Free Shipping{% elif opt.price == 19.99 %}Express Shipping (€{{ opt.price|floatformat:2 }}){% else %}{{ opt.name }} (€{{ opt.price|floatformat:2 }}){% endif %}
+                        {{ opt.name }} (€{{ opt.price|floatformat:2 }})
                       </option>
                     {% endfor %}
                   </select>
@@ -585,14 +585,14 @@
           };
           const price = parseFloat(optData.dataPrice) || 0;
           const optionName = optData.dataName || '';
+          // Always show the option name with price
+          option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+          // Set shipping type based on price for other logic
           if (price === 0) {
-            option.textContent = 'Free Shipping';
             option.setAttribute('data-shipping-type', 'free');
           } else if (price === 19.99) {
-            option.textContent = 'Express Shipping (' + formatPrice(price, currency) + ')';
             option.setAttribute('data-shipping-type', 'express');
           } else {
-            option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
             option.setAttribute('data-shipping-type', 'standard');
           }
           option.setAttribute('data-name', optData.dataName || '');
@@ -711,13 +711,8 @@
         const option = shippingSelect.options[i];
         const price = parseFloat(option.getAttribute('data-price')) || 0;
         const name = option.getAttribute('data-name') || '';
-        if (price === 0) {
-          option.textContent = 'Free Shipping';
-        } else if (price === 19.99) {
-          option.textContent = 'Express Shipping (' + formatPrice(price, currency) + ')';
-        } else {
-          option.textContent = name + ' (' + formatPrice(price, currency) + ')';
-        }
+        // Always show the option name with price
+        option.textContent = name + ' (' + formatPrice(price, currency) + ')';
       }
     }
     
