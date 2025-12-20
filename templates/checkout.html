@@ -544,7 +544,55 @@
         shippingSelect.remove(1);
       }
       
-      if (!country) return;
+      // If no country selected, show all options with their names
+      if (!country) {
+        originalOptions.forEach((optData, index) => {
+          if (index === 0) return; // Skip -- Select -- option
+          
+          const option = document.createElement('option');
+          option.value = optData.value;
+          const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+          const formatPrice = window.formatPrice || function(price, curr) {
+            const symbols = { USD: '$', EUR: '€', GBP: '£' };
+            return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+          };
+          const price = parseFloat(optData.dataPrice) || 0;
+          // Use dataName if available, otherwise extract name from text
+          let optionName = optData.dataName || '';
+          if (!optionName || optionName.trim() === '') {
+            if (optData.text) {
+              const match = optData.text.match(/^([^(]+)/);
+              if (match) {
+                optionName = match[1].trim();
+              }
+            }
+            // Fallback: use price-based names if still empty
+            if (!optionName || optionName.trim() === '') {
+              if (price === 0) {
+                optionName = 'Free Delivery';
+              } else if (price === 19.99) {
+                optionName = 'Express Delivery';
+              } else {
+                optionName = 'Standard Shipping';
+              }
+            }
+          }
+          // Always show the option name with price
+          option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+          option.setAttribute('data-name', optData.dataName || '');
+          option.setAttribute('data-price', optData.dataPrice || '0');
+          option.setAttribute('data-eur-price', optData.dataPrice || '0');
+          if (price === 0) {
+            option.setAttribute('data-shipping-type', 'free');
+          } else if (price === 19.99) {
+            option.setAttribute('data-shipping-type', 'express');
+          } else {
+            option.setAttribute('data-shipping-type', 'standard');
+          }
+          shippingSelect.appendChild(option);
+        });
+        return;
+      }
       
       // Add filtered options based on country
       originalOptions.forEach((optData, index) => {
@@ -782,9 +830,15 @@
     // Initialize on page load
     // Use setTimeout to ensure DOM is fully ready
     setTimeout(function() {
-      filterShippingOptions();
-      // Update shipping options currency after filter
-      setTimeout(updateShippingOptionsCurrency, 100);
+      // Only filter if country is selected, otherwise show all options with names
+      if (countrySelect?.value) {
+        filterShippingOptions();
+        // Update shipping options currency after filter
+        setTimeout(updateShippingOptionsCurrency, 100);
+      } else {
+        // If no country selected, just update currency for existing options
+        updateShippingOptionsCurrency();
+      }
       updateTotal();
     }, 100);
     
