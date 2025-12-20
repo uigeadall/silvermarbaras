@@ -16,22 +16,48 @@ RING_SIZE_CHOICES = [(s, s) for s in [
 
 
 class Category(models.Model):
-    """Product category (e.g., Rings, Necklaces, etc.)."""
+    """Product category (e.g., Rings, Necklaces, etc.) with support for sub-categories."""
     name = models.CharField(max_length=100)
-    slug = models.SlugField(blank=True, unique=True)
+    slug = models.SlugField(blank=True)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='subcategories',
+        help_text="Select a parent category to make this a sub-category"
+    )
     
     class Meta:
         verbose_name = "Category"
         verbose_name_plural = "Categories"
         ordering = ["name"]
+        unique_together = [['slug', 'parent']]
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name or "")
+            base_slug = slugify(self.name or "")
+            # If has parent, prepend parent slug to ensure uniqueness
+            if self.parent:
+                parent_slug = self.parent.slug or slugify(self.parent.name or "")
+                self.slug = f"{parent_slug}-{base_slug}"
+            else:
+                self.slug = base_slug
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
+        if self.parent:
+            return f"{self.parent.name} > {self.name}"
         return self.name
+    
+    def get_full_path(self) -> str:
+        """Return full category path (e.g., 'Jewelry > Rings > Wedding Rings')."""
+        path = [self.name]
+        current = self.parent
+        while current:
+            path.insert(0, current.name)
+            current = current.parent
+        return " > ".join(path)
 
 
 class Product(models.Model):

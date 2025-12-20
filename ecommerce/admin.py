@@ -150,7 +150,51 @@ class BlogPostAdmin(admin.ModelAdmin):
     has_video_url.boolean = True
     has_video_url.short_description = 'Has Video URL'
 
-admin.site.register(Category)
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'parent', 'slug', 'get_subcategories_count', 'get_products_count')
+    list_filter = ('parent',)
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+    autocomplete_fields = ['parent']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'parent')
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('parent').prefetch_related('subcategories')
+    
+    @admin.display(description='Sub-categories')
+    def get_subcategories_count(self, obj):
+        count = obj.subcategories.count()
+        if count > 0:
+            return f"{count} sub-category{'ies' if count != 1 else ''}"
+        return "-"
+    
+    @admin.display(description='Products')
+    def get_products_count(self, obj):
+        count = obj.products.count()
+        if count > 0:
+            return count
+        return "-"
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        # Prevent circular references - exclude current category and its descendants from parent choices
+        if obj:
+            def get_descendant_ids(category):
+                ids = [category.id]
+                for subcat in category.subcategories.all():
+                    ids.extend(get_descendant_ids(subcat))
+                return ids
+            
+            excluded_ids = get_descendant_ids(obj)
+            form.base_fields['parent'].queryset = Category.objects.exclude(id__in=excluded_ids)
+        return form
 admin.site.register(ProductImage)
 admin.site.register(CartItem)
 admin.site.register(OrderItem)
