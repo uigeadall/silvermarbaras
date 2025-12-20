@@ -268,18 +268,50 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
 
 
 def _get_categories():
-    """Get all categories ordered by parent first, then name, with 'Sale' at the end (cached for 1 hour)."""
+    """Get all categories ordered with sub-categories directly under their parent categories (cached for 1 hour)."""
     cache_key = 'all_categories'
     categories = cache.get(cache_key)
     if categories is None:
-        # Order: parent categories first (None comes first), then sub-categories under their parents
-        # Also put 'Sale' at the end
-        categories = list(Category.objects.all().order_by(
-            Case(When(name__iexact='Sale', then=Value(1)), default=Value(0)),
-            Case(When(parent=None, then=Value(0)), default=Value(1)),
-            'parent__name',
-            'name'
-        ))
+        # Get all categories
+        all_categories = Category.objects.select_related('parent').all()
+        
+        # Separate parent categories and sub-categories
+        parent_categories = []
+        subcategories_dict = {}
+        sale_category = None
+        
+        for cat in all_categories:
+            if cat.name.lower() == 'sale':
+                sale_category = cat
+            elif cat.parent is None:
+                parent_categories.append(cat)
+                subcategories_dict[cat.id] = []
+            else:
+                parent_id = cat.parent.id
+                if parent_id not in subcategories_dict:
+                    subcategories_dict[parent_id] = []
+                subcategories_dict[parent_id].append(cat)
+        
+        # Sort parent categories by name
+        parent_categories.sort(key=lambda x: x.name.lower())
+        
+        # Sort subcategories within each parent by name
+        for parent_id in subcategories_dict:
+            subcategories_dict[parent_id].sort(key=lambda x: x.name.lower())
+        
+        # Build final list: parent category followed by its sub-categories
+        categories = []
+        for parent in parent_categories:
+            categories.append(parent)
+            if parent.id in subcategories_dict:
+                categories.extend(subcategories_dict[parent.id])
+        
+        # Add Sale category at the end if it exists
+        if sale_category:
+            categories.append(sale_category)
+            if sale_category.id in subcategories_dict:
+                categories.extend(subcategories_dict[sale_category.id])
+        
         cache.set(cache_key, categories, 3600)
     return categories
 
