@@ -156,11 +156,12 @@ class CategoryAdmin(admin.ModelAdmin):
     list_filter = ('parent',)
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
-    autocomplete_fields = ['parent']
+    # Removed autocomplete_fields to allow creating new parent categories directly from the form
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'slug', 'parent')
+            'fields': ('name', 'slug', 'parent'),
+            'description': 'You can create a new parent category by clicking the "+" button next to the Parent field.'
         }),
     )
     
