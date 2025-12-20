@@ -796,25 +796,38 @@
         const option = shippingSelect.options[i];
         const price = parseFloat(option.getAttribute('data-price')) || 0;
         let name = option.getAttribute('data-name') || '';
-        // If name is empty, try to extract from current text or use fallback
-        if (!name) {
+        
+        // If name is empty, try to extract from current text
+        if (!name || name.trim() === '') {
           const currentText = option.textContent;
+          // Try to extract name from text (format: "Name (price)" or just "price")
           const match = currentText.match(/^([^(]+)/);
           if (match) {
-            name = match[1].trim();
-          } else {
-            // Fallback: use price-based names
-            if (price === 0) {
-              name = 'Free Delivery';
-            } else if (price === 19.99) {
-              name = 'Express Delivery';
-            } else {
-              name = 'Standard Shipping';
+            const extracted = match[1].trim();
+            // Only use extracted name if it's not just a price
+            if (!extracted.match(/^[£$€]\d+\.?\d*$/)) {
+              name = extracted;
             }
           }
         }
+        
+        // Fallback: use price-based names if still empty
+        if (!name || name.trim() === '') {
+          if (price === 0) {
+            name = 'Free Delivery';
+          } else if (price === 19.99) {
+            name = 'Express Delivery';
+          } else {
+            name = 'Standard Shipping';
+          }
+        }
+        
         // Always show the option name with price
         option.textContent = name + ' (' + formatPrice(price, currency) + ')';
+        // Make sure data-name is set for future updates
+        if (!option.getAttribute('data-name') || option.getAttribute('data-name') === '') {
+          option.setAttribute('data-name', name);
+        }
       }
     }
     
@@ -830,6 +843,35 @@
     // Initialize on page load
     // Use setTimeout to ensure DOM is fully ready
     setTimeout(function() {
+      // First, ensure all options have data-name attribute set from their text
+      if (shippingSelect) {
+        for (let i = 1; i < shippingSelect.options.length; i++) {
+          const option = shippingSelect.options[i];
+          // If data-name is missing or empty, extract it from text
+          if (!option.getAttribute('data-name') || option.getAttribute('data-name').trim() === '') {
+            const currentText = option.textContent;
+            const match = currentText.match(/^([^(]+)/);
+            if (match) {
+              const extractedName = match[1].trim();
+              // Only set if it's not just a price
+              if (!extractedName.match(/^[£$€]\d+\.?\d*$/)) {
+                option.setAttribute('data-name', extractedName);
+              } else {
+                // Fallback: use price-based name
+                const price = parseFloat(option.getAttribute('data-price')) || 0;
+                if (price === 0) {
+                  option.setAttribute('data-name', 'Free Delivery');
+                } else if (price === 19.99) {
+                  option.setAttribute('data-name', 'Express Delivery');
+                } else {
+                  option.setAttribute('data-name', 'Standard Shipping');
+                }
+              }
+            }
+          }
+        }
+      }
+      
       // Only filter if country is selected, otherwise show all options with names
       if (countrySelect?.value) {
         filterShippingOptions();
