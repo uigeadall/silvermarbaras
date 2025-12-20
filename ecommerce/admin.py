@@ -1,6 +1,6 @@
 
 from django.contrib import admin
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Case, When, Value
 from django.http import HttpResponse
 from django.contrib import messages
 from django.utils.html import format_html
@@ -179,14 +179,24 @@ class CategoryAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('parent').prefetch_related('subcategories').order_by('parent__name', 'name')
+        # Order by parent name first (None comes first), then by category name
+        # This groups sub-categories under their parent categories
+        return qs.select_related('parent').prefetch_related('subcategories').order_by(
+            Case(
+                When(parent=None, then=Value(0)),
+                default=Value(1)
+            ),
+            'parent__name',
+            'name'
+        )
     
     @admin.display(description='Category Name')
     def get_indented_name(self, obj):
         """Display category name with indentation for sub-categories."""
         if obj.parent:
-            return format_html('&nbsp;&nbsp;&nbsp;&nbsp;{}', obj.name)
-        return obj.name
+            # Show sub-category with indentation (2-3 spaces)
+            return format_html('&nbsp;&nbsp;&nbsp;{}', obj.name.upper())
+        return obj.name.upper()
     
     @admin.display(description='Sub-categories')
     def get_subcategories_count(self, obj):
