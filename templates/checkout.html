@@ -584,7 +584,27 @@
             return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
           };
           const price = parseFloat(optData.dataPrice) || 0;
-          const optionName = optData.dataName || '';
+          // Use dataName if available, otherwise extract name from text
+          let optionName = optData.dataName;
+          if (!optionName || optionName.trim() === '') {
+            if (optData.text) {
+              // Try to extract name from text (format: "Name (€price)" or "Name (price)")
+              const match = optData.text.match(/^([^(]+)/);
+              if (match) {
+                optionName = match[1].trim();
+              }
+            }
+            // Fallback: use price-based names if still empty
+            if (!optionName || optionName.trim() === '') {
+              if (price === 0) {
+                optionName = 'Free Delivery';
+              } else if (price === 19.99) {
+                optionName = 'Express Delivery';
+              } else {
+                optionName = 'Standard Shipping';
+              }
+            }
+          }
           // Always show the option name with price
           option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
           // Set shipping type based on price for other logic
@@ -710,7 +730,24 @@
       for (let i = 1; i < shippingSelect.options.length; i++) {
         const option = shippingSelect.options[i];
         const price = parseFloat(option.getAttribute('data-price')) || 0;
-        const name = option.getAttribute('data-name') || '';
+        let name = option.getAttribute('data-name') || '';
+        // If name is empty, try to extract from current text or use fallback
+        if (!name) {
+          const currentText = option.textContent;
+          const match = currentText.match(/^([^(]+)/);
+          if (match) {
+            name = match[1].trim();
+          } else {
+            // Fallback: use price-based names
+            if (price === 0) {
+              name = 'Free Delivery';
+            } else if (price === 19.99) {
+              name = 'Express Delivery';
+            } else {
+              name = 'Standard Shipping';
+            }
+          }
+        }
         // Always show the option name with price
         option.textContent = name + ' (' + formatPrice(price, currency) + ')';
       }
