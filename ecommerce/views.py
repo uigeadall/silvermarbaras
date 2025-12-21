@@ -482,10 +482,14 @@ def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
         else []
     )
 
+    # Get sub-categories for the selected category
+    subcategories = category.subcategories.all().order_by('name') if category else []
+    
     context = {
         "products": products,
         "categories": _get_categories(),
         "selected_category": category,
+        "subcategories": subcategories,
         "recently_viewed": recently_viewed,
         "popular_products": popular_products,
         "favorite_ids": favorite_ids,

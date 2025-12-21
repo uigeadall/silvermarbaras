@@ -19,6 +19,7 @@ class Category(models.Model):
     """Product category (e.g., Rings, Necklaces, etc.) with support for sub-categories."""
     name = models.CharField(max_length=100)
     slug = models.SlugField(blank=True)
+    image = models.ImageField(upload_to="categories/", blank=True, null=True, help_text="Image for sub-category display")
     parent = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,

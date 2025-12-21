@@ -469,6 +469,37 @@
         </div>
       {% endif %}
 
+      {# ===== Sub-categories display: show when viewing a parent category ===== #}
+      {% if selected_category and subcategories %}
+        <div class="mt-6 mb-8">
+          <h3 class="section-title mb-4"><span>Sub-categories</span></h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {% for subcat in subcategories %}
+            <a href="{% url 'products_by_category' subcat.pk %}" 
+               class="group block rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition">
+              {% if subcat.image %}
+                <div class="aspect-[4/3] overflow-hidden">
+                  <img src="{{ subcat.image.url }}" 
+                       alt="{{ subcat.name }}" 
+                       class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                       loading="lazy">
+                </div>
+              {% else %}
+                <div class="aspect-[4/3] bg-slate-100 flex items-center justify-center">
+                  <span class="text-slate-400 text-lg font-semibold">{{ subcat.name|upper }}</span>
+                </div>
+              {% endif %}
+              <div class="p-4">
+                <h4 class="text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                  {{ subcat.name|upper }}
+                </h4>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
       {# ===== Products grid: only when filtering/searching (WITH hearts) ===== #}
       {% if selected_category or request.GET.q or request.GET.sort or request.GET.all %}
         {% if products %}
