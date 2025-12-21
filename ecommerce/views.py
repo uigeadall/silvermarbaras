@@ -282,16 +282,26 @@ def _get_categories():
         sale_category = None
         
         for cat in all_categories:
+            # Ensure parent relationship is loaded
+            if hasattr(cat, 'parent_id'):
+                if cat.parent_id is None:
+                    cat.parent = None
+            
             if cat.name.lower() == 'sale':
                 sale_category = cat
-            elif cat.parent is None:
+                # Still initialize subcategories_dict for Sale category
+                if sale_category.id not in subcategories_dict:
+                    subcategories_dict[sale_category.id] = []
+            elif cat.parent is None or (hasattr(cat, 'parent_id') and cat.parent_id is None):
                 parent_categories.append(cat)
-                subcategories_dict[cat.id] = []
+                if cat.id not in subcategories_dict:
+                    subcategories_dict[cat.id] = []
             else:
-                parent_id = cat.parent.id
-                if parent_id not in subcategories_dict:
-                    subcategories_dict[parent_id] = []
-                subcategories_dict[parent_id].append(cat)
+                parent_id = cat.parent.id if cat.parent else (cat.parent_id if hasattr(cat, 'parent_id') else None)
+                if parent_id:
+                    if parent_id not in subcategories_dict:
+                        subcategories_dict[parent_id] = []
+                    subcategories_dict[parent_id].append(cat)
         
         # Sort parent categories by name (case-insensitive, stable sort)
         parent_categories.sort(key=lambda x: (x.name.lower(), x.id))
@@ -321,8 +331,23 @@ def _get_categories():
         categories = list(Category.objects.select_related('parent').filter(id__in=cached_ids).all())
         # Create a dict for quick lookup
         categories_dict = {cat.id: cat for cat in categories}
-        # Rebuild the list in the correct order
-        categories = [categories_dict[cid] for cid in cached_ids if cid in categories_dict]
+        # Rebuild the list in the correct order, ensuring all categories are included
+        categories = []
+        for cid in cached_ids:
+            if cid in categories_dict:
+                categories.append(categories_dict[cid])
+        # If some categories are missing (maybe deleted), invalidate cache and rebuild
+        if len(categories) != len(cached_ids):
+            cache.delete(cache_key)
+            return _get_categories()  # Recursive call to rebuild cache
+    
+    # Ensure all parent relationships are properly loaded
+    for cat in categories:
+        if hasattr(cat, 'parent_id') and cat.parent_id and not cat.parent:
+            try:
+                cat.parent = Category.objects.get(id=cat.parent_id)
+            except Category.DoesNotExist:
+                cat.parent = None
     
     return categories
 

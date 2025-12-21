@@ -136,6 +136,7 @@ def send_order_confirmation(sender, order, request=None, base_url=None, **kwargs
 def invalidate_categories_cache(sender, instance, **kwargs):
     """Invalidate categories cache when a category is saved or deleted."""
     cache.delete('all_categories')
+    cache.delete('all_categories_ids')
 
 
 @receiver(post_save, sender=Product, dispatch_uid="invalidate_products_cache")
