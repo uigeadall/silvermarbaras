@@ -47,8 +47,7 @@ class CategorySubcategoryInline(admin.TabularInline):
     model = Category
     fk_name = "parent"
     extra = 1
-    fields = ("name", "slug")
-    exclude = ("parent",)  # Parent is automatically set to the current category
+    fields = ("name", "slug", "image")  # Only show these fields, parent is automatically set via fk_name
     verbose_name = "Sub-category"
     verbose_name_plural = "Sub-categories"
 
