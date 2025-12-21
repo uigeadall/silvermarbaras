@@ -18,7 +18,7 @@
         <a href="{% url 'products_by_category' cat.pk %}"
            class="block px-3 py-2 rounded-md text-sm font-semibold transition hover:bg-slate-100 text-slate-800"
               {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
-              {% if cat.parent %}- {% endif %}{{ cat.name }}
+              {% if cat.parent %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
         </a>
       </li>
       {% endfor %}
