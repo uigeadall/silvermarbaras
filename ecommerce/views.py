@@ -269,11 +269,12 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
 
 def _get_categories():
     """Get all categories ordered with sub-categories directly under their parent categories (cached for 1 hour)."""
-    cache_key = 'all_categories'
-    categories = cache.get(cache_key)
-    if categories is None:
-        # Get all categories
-        all_categories = Category.objects.select_related('parent').all()
+    cache_key = 'all_categories_ids'
+    cached_ids = cache.get(cache_key)
+    
+    if cached_ids is None:
+        # Get all categories with parent relationship loaded
+        all_categories = list(Category.objects.select_related('parent').all())
         
         # Separate parent categories and sub-categories
         parent_categories = []
@@ -312,7 +313,17 @@ def _get_categories():
             if sale_category.id in subcategories_dict:
                 categories.extend(subcategories_dict[sale_category.id])
         
-        cache.set(cache_key, categories, 3600)
+        # Cache only the IDs to avoid Django model instance caching issues
+        category_ids = [cat.id for cat in categories]
+        cache.set(cache_key, category_ids, 3600)
+    else:
+        # Retrieve categories by IDs in the correct order, with parent relationships
+        categories = list(Category.objects.select_related('parent').filter(id__in=cached_ids).all())
+        # Create a dict for quick lookup
+        categories_dict = {cat.id: cat for cat in categories}
+        # Rebuild the list in the correct order
+        categories = [categories_dict[cid] for cid in cached_ids if cid in categories_dict]
+    
     return categories
 
 @ensure_csrf_cookie

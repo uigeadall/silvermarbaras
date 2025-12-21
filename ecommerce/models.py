@@ -47,6 +47,7 @@ class Category(models.Model):
         # Invalidate categories cache when category is saved
         from django.core.cache import cache
         cache.delete('all_categories')
+        cache.delete('all_categories_ids')
 
     def __str__(self) -> str:
         if self.parent:
