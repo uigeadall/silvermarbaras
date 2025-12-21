@@ -44,6 +44,9 @@ class Category(models.Model):
             else:
                 self.slug = base_slug
         super().save(*args, **kwargs)
+        # Invalidate categories cache when category is saved
+        from django.core.cache import cache
+        cache.delete('all_categories')
 
     def __str__(self) -> str:
         if self.parent:

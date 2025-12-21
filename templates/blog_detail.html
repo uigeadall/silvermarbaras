@@ -91,7 +91,7 @@
                  hover:bg-slate-100 text-slate-800
                {% endif %}"
                {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
-              {{ cat.name }}
+              {% if cat.parent %}- {% endif %}{{ cat.name }}
             </a>
           </li>
           {% endfor %}

@@ -292,12 +292,12 @@ def _get_categories():
                     subcategories_dict[parent_id] = []
                 subcategories_dict[parent_id].append(cat)
         
-        # Sort parent categories by name
-        parent_categories.sort(key=lambda x: x.name.lower())
+        # Sort parent categories by name (case-insensitive, stable sort)
+        parent_categories.sort(key=lambda x: (x.name.lower(), x.id))
         
-        # Sort subcategories within each parent by name
+        # Sort subcategories within each parent by name (case-insensitive, stable sort)
         for parent_id in subcategories_dict:
-            subcategories_dict[parent_id].sort(key=lambda x: x.name.lower())
+            subcategories_dict[parent_id].sort(key=lambda x: (x.name.lower(), x.id))
         
         # Build final list: parent category followed by its sub-categories
         categories = []

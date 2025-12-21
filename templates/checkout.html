@@ -182,7 +182,7 @@
                  text-red-600 font-bold hover:bg-red-50
                {% elif selected_category and selected_category.id == cat.id %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}"
                {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
-              {{ cat.name }}
+              {% if cat.parent %}- {% endif %}{{ cat.name }}
             </a>
           </li>
           {% endfor %}
@@ -513,7 +513,9 @@
 
   // Update total when shipping option is selected
   (function(){
+    // eslint-disable-next-line
     const subtotal = {{ subtotal|default:0 }};
+    // eslint-disable-next-line
     const discount = {{ discount|default:0 }};
     const shippingSelect = document.getElementById('shipping_option');
     const shippingRow = document.getElementById('shipping-row');
@@ -754,6 +756,7 @@
       }
       
       // Update Stripe Payment Intent if it exists
+      // eslint-disable-next-line
       {% if stripe_public_key %}
       if (typeof stripe !== 'undefined' && window.paymentRequest) {
         try {
@@ -767,6 +770,7 @@
           console.log('Could not update payment request:', e);
         }
       }
+      // eslint-disable-next-line
       {% endif %}
     }
 
@@ -897,6 +901,7 @@
   })();
 
   // Stripe
+  // eslint-disable-next-line
   {% if stripe_public_key %}
   // Load Apple Pay / Google Pay data from sessionStorage (if coming from cart)
   (function() {
@@ -965,6 +970,7 @@
     const unavailableDiv = document.getElementById('payment-request-unavailable');
     const container = document.getElementById('payment-request-button-container');
     
+    // eslint-disable-next-line
     const totalAmountEUR = {% if total %}{{ total }}{% else %}{{ subtotal|default:0 }}{% endif %};
     console.log('Total amount (EUR):', totalAmountEUR);
     
@@ -1479,9 +1485,11 @@
       unavailableDiv.textContent = 'Error: ' + error.message;
     }
   }
+  // eslint-disable-next-line
   {% else %}
   console.error('Stripe publishable key is not configured');
   document.getElementById('card-errors').textContent = 'Payment system is not configured. Please contact support.';
+  // eslint-disable-next-line
   {% endif %}
 </script>
 {% endblock %}
