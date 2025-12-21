@@ -472,7 +472,6 @@
       {# ===== Sub-categories display: show when viewing a parent category ===== #}
       {% if selected_category and subcategories %}
         <div class="mt-6 mb-8">
-          <h3 class="section-title mb-4"><span>Sub-categories</span></h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {% for subcat in subcategories %}
             <a href="{% url 'products_by_category' subcat.pk %}" 
@@ -576,8 +575,6 @@
             </button>
           </div>
           {% endif %}
-        {% else %}
-          <p class="text-center text-slate-600 my-10">No products found. Try a different category or sorting option.</p>
         {% endif %}
       {% endif %}
 
