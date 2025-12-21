@@ -68,10 +68,10 @@
     {# ===== Left: Categories ===== #}
     {% if categories %}
     <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
-      <a href="{% url 'home' %}" class="block mb-3">
+      <a href="{% url 'home' %}" class="block mb-3 overflow-hidden">
         <img src="{% static 'images/image2.jpeg' %}" 
              alt="Marbaras" 
-             class="h-8 w-auto object-contain">
+             class="h-12 w-auto object-contain scale-125 origin-left">
       </a>
 
       <div class="rounded-xl bg-white shadow-sm">
