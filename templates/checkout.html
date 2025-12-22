@@ -705,8 +705,11 @@
             }
           }
           
+          // Convert price to current currency for display
+          const convertedPrice = window.convertPrice ? window.convertPrice(price, currency) : price;
+          
           // Always show the option name with price
-          option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+          option.textContent = optionName + ' (' + formatPrice(convertedPrice, currency) + ')';
           // Set shipping type based on price for other logic
           if (price === 0 || price === 0.0 || price === 0.00) {
             option.setAttribute('data-shipping-type', 'free');
@@ -855,10 +858,15 @@
           name = name || 'Standard Shipping';
         }
         
+        // Convert price to current currency for display
+        const convertedPrice = window.convertPrice ? window.convertPrice(price, currency) : price;
+        
         // Always show the option name with price
-        option.textContent = name + ' (' + formatPrice(price, currency) + ')';
+        option.textContent = name + ' (' + formatPrice(convertedPrice, currency) + ')';
         // Always update data-name to ensure consistency
         option.setAttribute('data-name', name);
+        // Don't let updateAllPrices() overwrite this
+        option.setAttribute('data-shipping-option', 'true');
       }
     }
     
@@ -906,9 +914,14 @@
             }
           }
           
+          // Convert price to current currency for display
+          const convertedPrice = window.convertPrice ? window.convertPrice(price, currency) : price;
+          
           // Always update the option text with name and price
-          option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+          option.textContent = optionName + ' (' + formatPrice(convertedPrice, currency) + ')';
           option.setAttribute('data-name', optionName);
+          // Don't let updateAllPrices() overwrite this
+          option.setAttribute('data-shipping-option', 'true');
         }
         
         // Store original options AFTER updating names
