@@ -439,7 +439,8 @@
         });
         
         // Also support legacy data-eur-price for backward compatibility (convert USD to EUR first)
-        document.querySelectorAll('[data-eur-price]:not([data-eur-price])').forEach(element => {
+        // But skip shipping options - they handle their own display
+        document.querySelectorAll('[data-eur-price]:not([data-shipping-option]):not([data-eur-price])').forEach(element => {
           const usdPrice = parseFloat(element.getAttribute('data-eur-price'));
           if (!isNaN(usdPrice)) {
             // Convert USD to EUR first, then to selected currency
