@@ -300,9 +300,9 @@
                       <option value="{{ opt.id }}" 
                               data-price="{{ opt.price }}" 
                               data-eur-price="{{ opt.price }}" 
-                              data-name="{% if opt.price == 0 %}Free Shipping{% elif opt.price == 19.99 %}Express Shipping{% else %}{{ opt.name }}{% endif %}" 
-                              data-shipping-type="{% if opt.price == 0 %}free{% elif opt.price == 19.99 %}express{% else %}standard{% endif %}">
-                        {% if opt.price == 0 %}Free Shipping{% elif opt.price == 19.99 %}Express Shipping{% else %}{{ opt.name }}{% endif %} (€{{ opt.price|floatformat:2 }})
+                              data-name="{% if opt.price == 0 or opt.price == 0.00 %}Free Shipping{% elif opt.price == 19.99 or opt.price == 19.9900 %}Express Shipping{% else %}{{ opt.name }}{% endif %}" 
+                              data-shipping-type="{% if opt.price == 0 or opt.price == 0.00 %}free{% elif opt.price == 19.99 or opt.price == 19.9900 %}express{% else %}standard{% endif %}">
+                        {% if opt.price == 0 or opt.price == 0.00 %}Free Shipping{% elif opt.price == 19.99 or opt.price == 19.9900 %}Express Shipping{% else %}{{ opt.name }}{% endif %} (€{{ opt.price|floatformat:2 }})
                       </option>
                     {% endfor %}
                   </select>

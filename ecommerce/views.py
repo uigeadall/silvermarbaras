@@ -1331,48 +1331,25 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
         }
 
     # Ensure shipping options exist (Standard $5.99, Express $19.99, Free Shipping $0)
-    # First, try to find existing options by price to avoid duplicates
-    free_shipping = ShippingOption.objects.filter(price=Decimal("0.00")).first()
-    express_shipping = ShippingOption.objects.filter(price=Decimal("19.99")).first()
-    standard_shipping = ShippingOption.objects.filter(price=Decimal("5.99")).first()
+    # Delete all existing shipping options to avoid duplicates
+    ShippingOption.objects.all().delete()
     
-    # Create or update free shipping
-    if not free_shipping:
-        free_shipping, _ = ShippingOption.objects.get_or_create(
-            name="Free Shipping",
-            defaults={"price": Decimal("0.00"), "delivery_time": "7-10 business days"}
-        )
-    else:
-        free_shipping.name = "Free Shipping"
-        free_shipping.delivery_time = "7-10 business days"
-        free_shipping.save(update_fields=["name", "delivery_time"])
-    
-    # Create or update express shipping
-    if not express_shipping:
-        express_shipping, _ = ShippingOption.objects.get_or_create(
-            name="Express Shipping",
-            defaults={"price": Decimal("19.99"), "delivery_time": "2-3 business days"}
-        )
-    else:
-        express_shipping.name = "Express Shipping"
-        express_shipping.delivery_time = "2-3 business days"
-        express_shipping.save(update_fields=["name", "delivery_time"])
-    
-    # Create or update standard shipping
-    if not standard_shipping:
-        standard_shipping, _ = ShippingOption.objects.get_or_create(
-            name="Standard Shipping",
-            defaults={"price": Decimal("5.99"), "delivery_time": "5-7 business days"}
-        )
-    else:
-        standard_shipping.name = "Standard Shipping"
-        standard_shipping.delivery_time = "5-7 business days"
-        standard_shipping.save(update_fields=["name", "delivery_time"])
-    
-    # Delete any duplicate shipping options with old names or wrong prices
-    ShippingOption.objects.filter(price=Decimal("0.00")).exclude(id=free_shipping.id).delete()
-    ShippingOption.objects.filter(price=Decimal("19.99")).exclude(id=express_shipping.id).delete()
-    ShippingOption.objects.filter(price=Decimal("5.99")).exclude(id=standard_shipping.id).delete()
+    # Create the three shipping options with correct names
+    free_shipping = ShippingOption.objects.create(
+        name="Free Shipping",
+        price=Decimal("0.00"),
+        delivery_time="7-10 business days"
+    )
+    express_shipping = ShippingOption.objects.create(
+        name="Express Shipping",
+        price=Decimal("19.99"),
+        delivery_time="2-3 business days"
+    )
+    standard_shipping = ShippingOption.objects.create(
+        name="Standard Shipping",
+        price=Decimal("5.99"),
+        delivery_time="5-7 business days"
+    )
 
     return render(
         request,
