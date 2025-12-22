@@ -531,8 +531,8 @@
       const country = countrySelect?.value;
       if (!shippingSelect) return;
       
-      // Store original options on first call
-      if (!originalOptions) {
+      // Store original options on first call if not already stored
+      if (!originalOptions || originalOptions.length === 0) {
         originalOptions = Array.from(shippingSelect.options).map(opt => ({
           value: opt.value,
           text: opt.textContent,
@@ -650,25 +650,25 @@
             const symbols = { USD: '$', EUR: '€', GBP: '£' };
             return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
           };
-          // Use dataName if available, otherwise extract name from text
-          let optionName = optData.dataName || '';
-          if (!optionName || optionName.trim() === '') {
-            if (optData.text) {
-              // Try to extract name from text (format: "Name (€price)" or "Name (price)")
-              const match = optData.text.match(/^([^(]+)/);
-              if (match) {
-                optionName = match[1].trim();
+          // Always use price-based names for consistency
+          let optionName;
+          if (price === 0) {
+            optionName = 'Free Shipping';
+          } else if (price === 19.99) {
+            optionName = 'Express Shipping';
+          } else {
+            // Try to use dataName or extract from text for other prices
+            optionName = optData.dataName || '';
+            if (!optionName || optionName.trim() === '') {
+              if (optData.text) {
+                // Try to extract name from text (format: "Name (€price)" or "Name (price)")
+                const match = optData.text.match(/^([^(]+)/);
+                if (match) {
+                  optionName = match[1].trim();
+                }
               }
             }
-            // Fallback: use price-based names if still empty
-            // Also override with price-based names for consistency
-            if (price === 0) {
-              optionName = 'Free Shipping';
-            } else if (price === 19.99) {
-              optionName = 'Express Shipping';
-            } else {
-              optionName = optionName || 'Standard Shipping';
-            }
+            optionName = optionName || 'Standard Shipping';
           }
           // Always show the option name with price
           option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
@@ -880,29 +880,21 @@
           option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
           option.setAttribute('data-name', optionName);
         }
+        
+        // Store original options AFTER updating names
+        originalOptions = Array.from(shippingSelect.options).map(opt => ({
+          value: opt.value,
+          text: opt.textContent,
+          dataName: opt.getAttribute('data-name'),
+          dataPrice: opt.getAttribute('data-price')
+        }));
       }
       
       // Only filter if country is selected, otherwise show all options with names
       if (countrySelect?.value) {
         filterShippingOptions();
-        // Update shipping options currency after filter
-        setTimeout(updateShippingOptionsCurrency, 100);
-      } else {
-        // If no country selected, just update currency for existing options
-        updateShippingOptionsCurrency();
       }
       updateTotal();
-    }, 100);
-    
-    // Also check periodically in case country is pre-filled
-    let checkCount = 0;
-    const checkInterval = setInterval(function() {
-      if (countrySelect?.value) {
-        filterShippingOptions();
-        clearInterval(checkInterval);
-      }
-      checkCount++;
-      if (checkCount > 10) clearInterval(checkInterval); // Stop after 1 second
     }, 100);
   })();
 
