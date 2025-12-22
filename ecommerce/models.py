@@ -372,6 +372,14 @@ class ShippingOption(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2)
     delivery_time = models.CharField(max_length=100)
 
+    def display_label(self):
+        """Return display label based on price."""
+        if self.price == 0 or self.price == Decimal("0.00"):
+            return "Free Shipping"
+        elif self.price == Decimal("19.99") or self.price == 19.99:
+            return "Express Shipping"
+        return self.name
+
     def __str__(self) -> str:
         return f"{self.name} (${self.price}) - {self.delivery_time}"
 

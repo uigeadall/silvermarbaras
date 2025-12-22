@@ -297,31 +297,13 @@
                   <select id="shipping_option" name="shipping_option">
                     <option value="">-- Select --</option>
                     {% for opt in shipping_options %}
-                      {% if opt.price == 0 or opt.price == 0.0 or opt.price|floatformat:2 == "0.00" %}
-                        <option value="{{ opt.id }}" 
-                                data-price="{{ opt.price }}" 
-                                data-eur-price="{{ opt.price }}" 
-                                data-name="Free Shipping" 
-                                data-shipping-type="free">
-                          Free Shipping (€{{ opt.price|floatformat:2 }})
-                        </option>
-                      {% elif opt.price == 19.99 or opt.price|floatformat:2 == "19.99" %}
-                        <option value="{{ opt.id }}" 
-                                data-price="{{ opt.price }}" 
-                                data-eur-price="{{ opt.price }}" 
-                                data-name="Express Shipping" 
-                                data-shipping-type="express">
-                          Express Shipping (€{{ opt.price|floatformat:2 }})
-                        </option>
-                      {% else %}
-                        <option value="{{ opt.id }}" 
-                                data-price="{{ opt.price }}" 
-                                data-eur-price="{{ opt.price }}" 
-                                data-name="{{ opt.name }}" 
-                                data-shipping-type="standard">
-                          {{ opt.name }} (€{{ opt.price|floatformat:2 }})
-                        </option>
-                      {% endif %}
+                      <option value="{{ opt.id }}" 
+                              data-price="{{ opt.price }}" 
+                              data-eur-price="{{ opt.price }}" 
+                              data-name="{{ opt.display_label }}" 
+                              data-shipping-type="{% if opt.price == 0 or opt.price == 0.0 %}free{% elif opt.price == 19.99 %}express{% else %}standard{% endif %}">
+                        {{ opt.display_label }} (€{{ opt.price|floatformat:2 }})
+                      </option>
                     {% endfor %}
                   </select>
                 </div>
