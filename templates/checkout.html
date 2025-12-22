@@ -569,14 +569,13 @@
               }
             }
             // Fallback: use price-based names if still empty
-            if (!optionName || optionName.trim() === '') {
-              if (price === 0) {
-                optionName = 'Free Delivery';
-              } else if (price === 19.99) {
-                optionName = 'Express Delivery';
-              } else {
-                optionName = 'Standard Shipping';
-              }
+            // Also override with price-based names for consistency
+            if (price === 0) {
+              optionName = 'Free Shipping';
+            } else if (price === 19.99) {
+              optionName = 'Express Shipping';
+            } else {
+              optionName = optionName || 'Standard Shipping';
             }
           }
           // Always show the option name with price
@@ -612,9 +611,9 @@
         // Fallback for filtering
         if (!optionNameForFilter) {
           if (price === 0) {
-            optionNameForFilter = 'Free Delivery';
+            optionNameForFilter = 'Free Shipping';
           } else if (price === 19.99) {
-            optionNameForFilter = 'Express Delivery';
+            optionNameForFilter = 'Express Shipping';
           } else {
             optionNameForFilter = 'Standard Shipping';
           }
@@ -623,19 +622,19 @@
         let shouldShow = false;
         
         if (country === 'Canada' || country === 'Australia') {
-          // Canada and Australia: Express Delivery ($19.99) only
-          if (optionNameForFilter.includes('Express Delivery') || optionNameForFilter.includes('Express')) {
+          // Canada and Australia: Express Shipping ($19.99) only
+          if (optionNameForFilter.includes('Express Shipping') || optionNameForFilter.includes('Express Delivery') || optionNameForFilter.includes('Express')) {
             shouldShow = true;
           } else if (price === 19.99) {
             shouldShow = true;
           }
         } else {
-          // Other countries: Free Delivery ($0) and Express Delivery ($19.99)
-          if (optionNameForFilter.includes('Free Delivery') || optionNameForFilter.includes('Free')) {
+          // Other countries: Free Shipping ($0) and Express Shipping ($19.99)
+          if (optionNameForFilter.includes('Free Shipping') || optionNameForFilter.includes('Free Delivery') || optionNameForFilter.includes('Free')) {
             shouldShow = true;
           } else if (price === 0 && !optionNameForFilter.includes('Standard')) {
             shouldShow = true;
-          } else if (optionNameForFilter.includes('Express Delivery') || optionNameForFilter.includes('Express')) {
+          } else if (optionNameForFilter.includes('Express Shipping') || optionNameForFilter.includes('Express Delivery') || optionNameForFilter.includes('Express')) {
             shouldShow = true;
           } else if (price === 19.99) {
             shouldShow = true;
@@ -662,14 +661,13 @@
               }
             }
             // Fallback: use price-based names if still empty
-            if (!optionName || optionName.trim() === '') {
-              if (price === 0) {
-                optionName = 'Free Delivery';
-              } else if (price === 19.99) {
-                optionName = 'Express Delivery';
-              } else {
-                optionName = 'Standard Shipping';
-              }
+            // Also override with price-based names for consistency
+            if (price === 0) {
+              optionName = 'Free Shipping';
+            } else if (price === 19.99) {
+              optionName = 'Express Shipping';
+            } else {
+              optionName = optionName || 'Standard Shipping';
             }
           }
           // Always show the option name with price
@@ -816,14 +814,13 @@
         }
         
         // Fallback: use price-based names if still empty
-        if (!name || name.trim() === '') {
-          if (price === 0) {
-            name = 'Free Delivery';
-          } else if (price === 19.99) {
-            name = 'Express Delivery';
-          } else {
-            name = 'Standard Shipping';
-          }
+        // Also override with price-based names for consistency
+        if (price === 0) {
+          name = 'Free Shipping';
+        } else if (price === 19.99) {
+          name = 'Express Shipping';
+        } else {
+          name = name || 'Standard Shipping';
         }
         
         // Always show the option name with price
@@ -864,9 +861,9 @@
                 // Fallback: use price-based name
                 const price = parseFloat(option.getAttribute('data-price')) || 0;
                 if (price === 0) {
-                  option.setAttribute('data-name', 'Free Delivery');
+                  option.setAttribute('data-name', 'Free Shipping');
                 } else if (price === 19.99) {
-                  option.setAttribute('data-name', 'Express Delivery');
+                  option.setAttribute('data-name', 'Express Shipping');
                 } else {
                   option.setAttribute('data-name', 'Standard Shipping');
                 }
