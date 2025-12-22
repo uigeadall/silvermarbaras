@@ -559,24 +559,24 @@
             return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
           };
           const price = parseFloat(optData.dataPrice) || 0;
-          // Use dataName if available, otherwise extract name from text
-          let optionName = optData.dataName || '';
-          if (!optionName || optionName.trim() === '') {
-            if (optData.text) {
-              const match = optData.text.match(/^([^(]+)/);
-              if (match) {
-                optionName = match[1].trim();
+          // Always use price-based names for consistency
+          let optionName;
+          if (price === 0) {
+            optionName = 'Free Shipping';
+          } else if (price === 19.99) {
+            optionName = 'Express Shipping';
+          } else {
+            // Try to use dataName or extract from text for other prices
+            optionName = optData.dataName || '';
+            if (!optionName || optionName.trim() === '') {
+              if (optData.text) {
+                const match = optData.text.match(/^([^(]+)/);
+                if (match) {
+                  optionName = match[1].trim();
+                }
               }
             }
-            // Fallback: use price-based names if still empty
-            // Also override with price-based names for consistency
-            if (price === 0) {
-              optionName = 'Free Shipping';
-            } else if (price === 19.99) {
-              optionName = 'Express Shipping';
-            } else {
-              optionName = optionName || 'Standard Shipping';
-            }
+            optionName = optionName || 'Standard Shipping';
           }
           // Always show the option name with price
           option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
@@ -844,32 +844,41 @@
     // Initialize on page load
     // Use setTimeout to ensure DOM is fully ready
     setTimeout(function() {
-      // First, ensure all options have data-name attribute set from their text
+      // First, ensure all options have correct names based on price
       if (shippingSelect) {
+        const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+        const formatPrice = window.formatPrice || function(price, curr) {
+          const symbols = { USD: '$', EUR: '€', GBP: '£' };
+          return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+        };
         for (let i = 1; i < shippingSelect.options.length; i++) {
           const option = shippingSelect.options[i];
-          // If data-name is missing or empty, extract it from text
-          if (!option.getAttribute('data-name') || option.getAttribute('data-name').trim() === '') {
-            const currentText = option.textContent;
-            const match = currentText.match(/^([^(]+)/);
-            if (match) {
-              const extractedName = match[1].trim();
-              // Only set if it's not just a price
-              if (!extractedName.match(/^[£$€]\d+\.?\d*$/)) {
-                option.setAttribute('data-name', extractedName);
-              } else {
-                // Fallback: use price-based name
-                const price = parseFloat(option.getAttribute('data-price')) || 0;
-                if (price === 0) {
-                  option.setAttribute('data-name', 'Free Shipping');
-                } else if (price === 19.99) {
-                  option.setAttribute('data-name', 'Express Shipping');
-                } else {
-                  option.setAttribute('data-name', 'Standard Shipping');
+          const price = parseFloat(option.getAttribute('data-price')) || 0;
+          // Always set name based on price for consistency
+          let optionName;
+          if (price === 0) {
+            optionName = 'Free Shipping';
+          } else if (price === 19.99) {
+            optionName = 'Express Shipping';
+          } else {
+            // Try to use existing data-name or extract from text
+            optionName = option.getAttribute('data-name') || '';
+            if (!optionName || optionName.trim() === '') {
+              const currentText = option.textContent;
+              const match = currentText.match(/^([^(]+)/);
+              if (match) {
+                const extractedName = match[1].trim();
+                // Only use if it's not just a price
+                if (!extractedName.match(/^[£$€]\d+\.?\d*$/)) {
+                  optionName = extractedName;
                 }
               }
             }
+            optionName = optionName || 'Standard Shipping';
           }
+          // Update the option text and data-name
+          option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+          option.setAttribute('data-name', optionName);
         }
       }
       
