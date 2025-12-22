@@ -516,7 +516,9 @@
         mutations.forEach(function(mutation) {
           if (mutation.addedNodes.length > 0) {
             mutation.addedNodes.forEach(function(node) {
-              if (node.nodeType === 1 && (node.hasAttribute('data-eur-price') || node.querySelector('[data-eur-price]'))) {
+              // Skip shipping options - they handle their own display
+              if (node.nodeType === 1 && !node.hasAttribute('data-shipping-option') && 
+                  (node.hasAttribute('data-eur-price') || node.querySelector('[data-eur-price]:not([data-shipping-option])'))) {
                 shouldUpdate = true;
               }
             });

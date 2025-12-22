@@ -724,6 +724,8 @@
           option.setAttribute('data-name', optionName);
           option.setAttribute('data-price', optData.dataPrice || '0');
           option.setAttribute('data-eur-price', optData.dataPrice || '0');
+          // Don't let updateAllPrices() overwrite this
+          option.setAttribute('data-shipping-option', 'true');
           shippingSelect.appendChild(option);
         }
       });
