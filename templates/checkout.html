@@ -703,9 +703,9 @@
           // Always show the option name with price
           option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
           // Set shipping type based on price for other logic
-          if (price === 0) {
+          if (price === 0 || price === 0.0 || price === 0.00) {
             option.setAttribute('data-shipping-type', 'free');
-          } else if (price === 19.99) {
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
             option.setAttribute('data-shipping-type', 'express');
           } else {
             option.setAttribute('data-shipping-type', 'standard');
@@ -918,10 +918,8 @@
       // Only filter if country is selected, otherwise show all options with names
       if (countrySelect?.value) {
         filterShippingOptions();
-      } else {
-        // If no country selected, ensure all options have correct names
-        updateShippingOptionsCurrency();
       }
+      // Names are already set above, no need to call updateShippingOptionsCurrency()
       updateTotal();
     }, 100);
   })();
