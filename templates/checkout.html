@@ -297,7 +297,7 @@
                   <select id="shipping_option" name="shipping_option">
                     <option value="">-- Select --</option>
                     {% for opt in shipping_options %}
-                      {% if opt.price|floatformat:2 == "0.00" %}
+                      {% if opt.price == 0 or opt.price == 0.0 or opt.price|floatformat:2 == "0.00" %}
                         <option value="{{ opt.id }}" 
                                 data-price="{{ opt.price }}" 
                                 data-eur-price="{{ opt.price }}" 
@@ -305,7 +305,7 @@
                                 data-shipping-type="free">
                           Free Shipping (€{{ opt.price|floatformat:2 }})
                         </option>
-                      {% elif opt.price|floatformat:2 == "19.99" %}
+                      {% elif opt.price == 19.99 or opt.price|floatformat:2 == "19.99" %}
                         <option value="{{ opt.id }}" 
                                 data-price="{{ opt.price }}" 
                                 data-eur-price="{{ opt.price }}" 
