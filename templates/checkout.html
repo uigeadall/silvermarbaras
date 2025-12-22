@@ -302,7 +302,8 @@
                                 data-price="{{ opt.price }}" 
                                 data-eur-price="{{ opt.price }}" 
                                 data-name="Free Shipping" 
-                                data-shipping-type="free">
+                                data-shipping-type="free"
+                                data-shipping-option="true">
                           Free Shipping (€{{ opt.price|floatformat:2 }})
                         </option>
                       {% elif opt.price == 19.99 or opt.price|floatformat:2 == "19.99" %}
@@ -310,7 +311,8 @@
                                 data-price="{{ opt.price }}" 
                                 data-eur-price="{{ opt.price }}" 
                                 data-name="Express Shipping" 
-                                data-shipping-type="express">
+                                data-shipping-type="express"
+                                data-shipping-option="true">
                           Express Shipping (€{{ opt.price|floatformat:2 }})
                         </option>
                       {% else %}
@@ -318,7 +320,8 @@
                                 data-price="{{ opt.price }}" 
                                 data-eur-price="{{ opt.price }}" 
                                 data-name="{{ opt.name }}" 
-                                data-shipping-type="standard">
+                                data-shipping-type="standard"
+                                data-shipping-option="true">
                           {{ opt.name }} (€{{ opt.price|floatformat:2 }})
                         </option>
                       {% endif %}
