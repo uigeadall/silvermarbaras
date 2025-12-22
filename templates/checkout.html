@@ -297,13 +297,31 @@
                   <select id="shipping_option" name="shipping_option">
                     <option value="">-- Select --</option>
                     {% for opt in shipping_options %}
-                      <option value="{{ opt.id }}" 
-                              data-price="{{ opt.price }}" 
-                              data-eur-price="{{ opt.price }}" 
-                              data-name="{{ opt.display_label }}" 
-                              data-shipping-type="{% if opt.price == 0 or opt.price == 0.0 %}free{% elif opt.price == 19.99 %}express{% else %}standard{% endif %}">
-                        {{ opt.display_label }} (€{{ opt.price|floatformat:2 }})
-                      </option>
+                      {% if opt.price == 0 or opt.price == 0.0 or opt.price|floatformat:2 == "0.00" %}
+                        <option value="{{ opt.id }}" 
+                                data-price="{{ opt.price }}" 
+                                data-eur-price="{{ opt.price }}" 
+                                data-name="Free Shipping" 
+                                data-shipping-type="free">
+                          Free Shipping (€{{ opt.price|floatformat:2 }})
+                        </option>
+                      {% elif opt.price == 19.99 or opt.price|floatformat:2 == "19.99" %}
+                        <option value="{{ opt.id }}" 
+                                data-price="{{ opt.price }}" 
+                                data-eur-price="{{ opt.price }}" 
+                                data-name="Express Shipping" 
+                                data-shipping-type="express">
+                          Express Shipping (€{{ opt.price|floatformat:2 }})
+                        </option>
+                      {% else %}
+                        <option value="{{ opt.id }}" 
+                                data-price="{{ opt.price }}" 
+                                data-eur-price="{{ opt.price }}" 
+                                data-name="{{ opt.name }}" 
+                                data-shipping-type="standard">
+                          {{ opt.name }} (€{{ opt.price|floatformat:2 }})
+                        </option>
+                      {% endif %}
                     {% endfor %}
                   </select>
                 </div>
@@ -563,28 +581,30 @@
             return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
           };
           const price = parseFloat(optData.dataPrice) || 0;
-          // Always use price-based names for consistency
-          let optionName;
-          if (price === 0) {
-            optionName = 'Free Shipping';
-          } else if (price === 19.99) {
-            optionName = 'Express Shipping';
-          } else {
-            // Try to use dataName or extract from text for other prices
-            optionName = optData.dataName || '';
-            if (!optionName || optionName.trim() === '') {
+          // Use dataName from template (set by display_label method) if available
+          let optionName = optData.dataName || '';
+          
+          // If dataName is empty, determine from price
+          if (!optionName || optionName.trim() === '') {
+            if (price === 0 || price === 0.0) {
+              optionName = 'Free Shipping';
+            } else if (price === 19.99 || price === 19.9900) {
+              optionName = 'Express Shipping';
+            } else {
+              // Try to extract from text for other prices
               if (optData.text) {
                 const match = optData.text.match(/^([^(]+)/);
                 if (match) {
                   optionName = match[1].trim();
                 }
               }
+              optionName = optionName || 'Standard Shipping';
             }
-            optionName = optionName || 'Standard Shipping';
           }
+          
           // Always show the option name with price
           option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
-          option.setAttribute('data-name', optData.dataName || '');
+          option.setAttribute('data-name', optionName);
           option.setAttribute('data-price', optData.dataPrice || '0');
           option.setAttribute('data-eur-price', optData.dataPrice || '0');
           if (price === 0) {
@@ -605,18 +625,24 @@
         
         const price = parseFloat(optData.dataPrice) || 0;
         // Extract option name properly for filtering
+        // First try to use dataName from template (set by display_label method)
         let optionNameForFilter = optData.dataName || '';
-        if (!optionNameForFilter && optData.text) {
-          const match = optData.text.match(/^([^(]+)/);
-          if (match) {
-            optionNameForFilter = match[1].trim();
+        
+        // If dataName is empty, try to extract from text
+        if (!optionNameForFilter || optionNameForFilter.trim() === '') {
+          if (optData.text) {
+            const match = optData.text.match(/^([^(]+)/);
+            if (match) {
+              optionNameForFilter = match[1].trim();
+            }
           }
         }
-        // Fallback for filtering
-        if (!optionNameForFilter) {
-          if (price === 0) {
+        
+        // Fallback: determine from price if still empty
+        if (!optionNameForFilter || optionNameForFilter.trim() === '') {
+          if (price === 0 || price === 0.0) {
             optionNameForFilter = 'Free Shipping';
-          } else if (price === 19.99) {
+          } else if (price === 19.99 || price === 19.9900) {
             optionNameForFilter = 'Express Shipping';
           } else {
             optionNameForFilter = 'Standard Shipping';
@@ -654,26 +680,27 @@
             const symbols = { USD: '$', EUR: '€', GBP: '£' };
             return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
           };
-          // Always use price-based names for consistency
-          let optionName;
-          if (price === 0) {
-            optionName = 'Free Shipping';
-          } else if (price === 19.99) {
-            optionName = 'Express Shipping';
-          } else {
-            // Try to use dataName or extract from text for other prices
-            optionName = optData.dataName || '';
-            if (!optionName || optionName.trim() === '') {
+          // Use dataName from template (set by display_label method) if available
+          let optionName = optData.dataName || '';
+          
+          // If dataName is empty, determine from price
+          if (!optionName || optionName.trim() === '') {
+            if (price === 0 || price === 0.0) {
+              optionName = 'Free Shipping';
+            } else if (price === 19.99 || price === 19.9900) {
+              optionName = 'Express Shipping';
+            } else {
+              // Try to extract from text for other prices
               if (optData.text) {
-                // Try to extract name from text (format: "Name (€price)" or "Name (price)")
                 const match = optData.text.match(/^([^(]+)/);
                 if (match) {
                   optionName = match[1].trim();
                 }
               }
+              optionName = optionName || 'Standard Shipping';
             }
-            optionName = optionName || 'Standard Shipping';
           }
+          
           // Always show the option name with price
           option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
           // Set shipping type based on price for other logic
@@ -684,7 +711,7 @@
           } else {
             option.setAttribute('data-shipping-type', 'standard');
           }
-          option.setAttribute('data-name', optData.dataName || '');
+          option.setAttribute('data-name', optionName);
           option.setAttribute('data-price', optData.dataPrice || '0');
           option.setAttribute('data-eur-price', optData.dataPrice || '0');
           shippingSelect.appendChild(option);
