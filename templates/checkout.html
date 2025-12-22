@@ -607,9 +607,9 @@
           option.setAttribute('data-name', optionName);
           option.setAttribute('data-price', optData.dataPrice || '0');
           option.setAttribute('data-eur-price', optData.dataPrice || '0');
-          if (price === 0) {
+          if (price === 0 || price === 0.0 || price === 0.00) {
             option.setAttribute('data-shipping-type', 'free');
-          } else if (price === 19.99) {
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
             option.setAttribute('data-shipping-type', 'express');
           } else {
             option.setAttribute('data-shipping-type', 'standard');
@@ -640,9 +640,9 @@
         
         // Fallback: determine from price if still empty
         if (!optionNameForFilter || optionNameForFilter.trim() === '') {
-          if (price === 0 || price === 0.0) {
+          if (price === 0 || price === 0.0 || price === 0.00) {
             optionNameForFilter = 'Free Shipping';
-          } else if (price === 19.99 || price === 19.9900) {
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
             optionNameForFilter = 'Express Shipping';
           } else {
             optionNameForFilter = 'Standard Shipping';
@@ -828,16 +828,16 @@
         const option = shippingSelect.options[i];
         const price = parseFloat(option.getAttribute('data-price')) || 0;
         
-        // Always determine name based on price for consistency
+        // Always determine name from price first (most reliable)
         let name;
-        if (price === 0) {
+        if (price === 0 || price === 0.0 || price === 0.00) {
           name = 'Free Shipping';
-        } else if (price === 19.99) {
+        } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
           name = 'Express Shipping';
         } else {
           // For other prices, try to use existing name or default to Standard Shipping
           name = option.getAttribute('data-name') || '';
-          if (!name || name.trim() === '') {
+          if (!name || name.trim() === '' || name.match(/^[£$€]\d+\.?\d*$/)) {
             const currentText = option.textContent;
             const match = currentText.match(/^([^(]+)/);
             if (match) {
