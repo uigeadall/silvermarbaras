@@ -429,7 +429,8 @@
         const currency = getCurrentCurrency();
 
         // Find all elements with data-eur-price attribute (EUR is base currency)
-        document.querySelectorAll('[data-eur-price]').forEach(element => {
+        // But skip shipping options - they handle their own display
+        document.querySelectorAll('[data-eur-price]:not([data-shipping-option])').forEach(element => {
           const eurPrice = parseFloat(element.getAttribute('data-eur-price'));
           if (!isNaN(eurPrice)) {
             const convertedPrice = convertPrice(eurPrice, currency);

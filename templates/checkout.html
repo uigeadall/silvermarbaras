@@ -602,11 +602,16 @@
             }
           }
           
+          // Convert price to current currency for display
+          const convertedPrice = window.convertPrice ? window.convertPrice(price, currency) : price;
+          
           // Always show the option name with price
-          option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
+          option.textContent = optionName + ' (' + formatPrice(convertedPrice, currency) + ')';
           option.setAttribute('data-name', optionName);
           option.setAttribute('data-price', optData.dataPrice || '0');
           option.setAttribute('data-eur-price', optData.dataPrice || '0');
+          // Don't let updateAllPrices() overwrite this - remove data-eur-price or use a different approach
+          option.setAttribute('data-shipping-option', 'true');
           if (price === 0 || price === 0.0 || price === 0.00) {
             option.setAttribute('data-shipping-type', 'free');
           } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
