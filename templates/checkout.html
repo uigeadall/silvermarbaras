@@ -581,17 +581,17 @@
             return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
           };
           const price = parseFloat(optData.dataPrice) || 0;
-          // Use dataName from template (set by display_label method) if available
-          let optionName = optData.dataName || '';
           
-          // If dataName is empty, determine from price
-          if (!optionName || optionName.trim() === '') {
-            if (price === 0 || price === 0.0) {
-              optionName = 'Free Shipping';
-            } else if (price === 19.99 || price === 19.9900) {
-              optionName = 'Express Shipping';
-            } else {
-              // Try to extract from text for other prices
+          // Always determine name from price first (most reliable)
+          let optionName;
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            optionName = 'Free Shipping';
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            optionName = 'Express Shipping';
+          } else {
+            // For other prices, try to use dataName or extract from text
+            optionName = optData.dataName || '';
+            if (!optionName || optionName.trim() === '') {
               if (optData.text) {
                 const match = optData.text.match(/^([^(]+)/);
                 if (match) {
@@ -680,17 +680,16 @@
             const symbols = { USD: '$', EUR: '€', GBP: '£' };
             return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
           };
-          // Use dataName from template (set by display_label method) if available
-          let optionName = optData.dataName || '';
-          
-          // If dataName is empty, determine from price
-          if (!optionName || optionName.trim() === '') {
-            if (price === 0 || price === 0.0) {
-              optionName = 'Free Shipping';
-            } else if (price === 19.99 || price === 19.9900) {
-              optionName = 'Express Shipping';
-            } else {
-              // Try to extract from text for other prices
+          // Always determine name from price first (most reliable)
+          let optionName;
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            optionName = 'Free Shipping';
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            optionName = 'Express Shipping';
+          } else {
+            // For other prices, try to use dataName or extract from text
+            optionName = optData.dataName || '';
+            if (!optionName || optionName.trim() === '') {
               if (optData.text) {
                 const match = optData.text.match(/^([^(]+)/);
                 if (match) {
@@ -880,17 +879,16 @@
         for (let i = 1; i < shippingSelect.options.length; i++) {
           const option = shippingSelect.options[i];
           const price = parseFloat(option.getAttribute('data-price')) || 0;
-          // Get name from data-name attribute first (set by template)
-          let optionName = option.getAttribute('data-name') || '';
-          
-          // If data-name is empty or just a price, determine name from price
-          if (!optionName || optionName.trim() === '' || optionName.match(/^[£$€]\d+\.?\d*$/)) {
-            if (price === 0 || price === 0.00) {
-              optionName = 'Free Shipping';
-            } else if (price === 19.99 || price === 19.9900) {
-              optionName = 'Express Shipping';
-            } else {
-              // Try to extract from current text
+          // Always determine name from price first (most reliable)
+          let optionName;
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            optionName = 'Free Shipping';
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            optionName = 'Express Shipping';
+          } else {
+            // For other prices, try to use data-name attribute or extract from text
+            optionName = option.getAttribute('data-name') || '';
+            if (!optionName || optionName.trim() === '' || optionName.match(/^[£$€]\d+\.?\d*$/)) {
               const currentText = option.textContent;
               const match = currentText.match(/^([^(]+)/);
               if (match) {
@@ -903,11 +901,8 @@
             }
           }
           
-          // Update the option text and data-name ONLY if text doesn't already have the name
-          const currentText = option.textContent;
-          if (!currentText.includes(optionName) || currentText.match(/^[£$€]\d+\.?\d*$/)) {
-            option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
-          }
+          // Always update the option text with name and price
+          option.textContent = optionName + ' (' + formatPrice(price, currency) + ')';
           option.setAttribute('data-name', optionName);
         }
         
