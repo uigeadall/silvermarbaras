@@ -1330,19 +1330,27 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
             "country": "",
         }
 
-    # Ensure shipping options exist (Standard $5.99, Express $19.99, Free Delivery $0)
+    # Ensure shipping options exist (Standard $5.99, Express $19.99, Free Shipping $0)
     standard_shipping, _ = ShippingOption.objects.get_or_create(
         name="Standard Shipping",
         defaults={"price": Decimal("5.99"), "delivery_time": "5-7 business days"}
     )
     express_shipping, _ = ShippingOption.objects.get_or_create(
-        name="Express Delivery",
+        name="Express Shipping",
         defaults={"price": Decimal("19.99"), "delivery_time": "2-3 business days"}
     )
     free_shipping, _ = ShippingOption.objects.get_or_create(
-        name="Free Delivery",
+        name="Free Shipping",
         defaults={"price": Decimal("0.00"), "delivery_time": "7-10 business days"}
     )
+    
+    # Update names if they exist with old names
+    if express_shipping.name != "Express Shipping":
+        express_shipping.name = "Express Shipping"
+        express_shipping.save(update_fields=["name"])
+    if free_shipping.name != "Free Shipping":
+        free_shipping.name = "Free Shipping"
+        free_shipping.save(update_fields=["name"])
     
     # Update prices if they exist but have wrong prices
     if standard_shipping.price != Decimal("5.99"):
