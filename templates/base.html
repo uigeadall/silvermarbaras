@@ -430,7 +430,12 @@
 
         // Find all elements with data-eur-price attribute (EUR is base currency)
         // But skip shipping options - they handle their own display
-        document.querySelectorAll('[data-eur-price]:not([data-shipping-option])').forEach(element => {
+        document.querySelectorAll('[data-eur-price]').forEach(element => {
+          // Skip shipping options - they handle their own display
+          if (element.hasAttribute('data-shipping-option') || 
+              element.tagName === 'OPTION' && element.closest('select') && element.closest('select').id === 'shipping_option') {
+            return;
+          }
           const eurPrice = parseFloat(element.getAttribute('data-eur-price'));
           if (!isNaN(eurPrice)) {
             const convertedPrice = convertPrice(eurPrice, currency);
