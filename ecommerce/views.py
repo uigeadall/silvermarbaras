@@ -1331,34 +1331,48 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
         }
 
     # Ensure shipping options exist (Standard $5.99, Express $19.99, Free Shipping $0)
-    standard_shipping, _ = ShippingOption.objects.get_or_create(
-        name="Standard Shipping",
-        defaults={"price": Decimal("5.99"), "delivery_time": "5-7 business days"}
-    )
-    express_shipping, _ = ShippingOption.objects.get_or_create(
-        name="Express Shipping",
-        defaults={"price": Decimal("19.99"), "delivery_time": "2-3 business days"}
-    )
-    free_shipping, _ = ShippingOption.objects.get_or_create(
-        name="Free Shipping",
-        defaults={"price": Decimal("0.00"), "delivery_time": "7-10 business days"}
-    )
+    # First, try to find existing options by price to avoid duplicates
+    free_shipping = ShippingOption.objects.filter(price=Decimal("0.00")).first()
+    express_shipping = ShippingOption.objects.filter(price=Decimal("19.99")).first()
+    standard_shipping = ShippingOption.objects.filter(price=Decimal("5.99")).first()
     
-    # Update names if they exist with old names
-    if express_shipping.name != "Express Shipping":
-        express_shipping.name = "Express Shipping"
-        express_shipping.save(update_fields=["name"])
-    if free_shipping.name != "Free Shipping":
+    # Create or update free shipping
+    if not free_shipping:
+        free_shipping, _ = ShippingOption.objects.get_or_create(
+            name="Free Shipping",
+            defaults={"price": Decimal("0.00"), "delivery_time": "7-10 business days"}
+        )
+    else:
         free_shipping.name = "Free Shipping"
-        free_shipping.save(update_fields=["name"])
+        free_shipping.delivery_time = "7-10 business days"
+        free_shipping.save(update_fields=["name", "delivery_time"])
     
-    # Update prices if they exist but have wrong prices
-    if standard_shipping.price != Decimal("5.99"):
-        standard_shipping.price = Decimal("5.99")
-        standard_shipping.save(update_fields=["price"])
-    if express_shipping.price != Decimal("19.99"):
-        express_shipping.price = Decimal("19.99")
-        express_shipping.save(update_fields=["price"])
+    # Create or update express shipping
+    if not express_shipping:
+        express_shipping, _ = ShippingOption.objects.get_or_create(
+            name="Express Shipping",
+            defaults={"price": Decimal("19.99"), "delivery_time": "2-3 business days"}
+        )
+    else:
+        express_shipping.name = "Express Shipping"
+        express_shipping.delivery_time = "2-3 business days"
+        express_shipping.save(update_fields=["name", "delivery_time"])
+    
+    # Create or update standard shipping
+    if not standard_shipping:
+        standard_shipping, _ = ShippingOption.objects.get_or_create(
+            name="Standard Shipping",
+            defaults={"price": Decimal("5.99"), "delivery_time": "5-7 business days"}
+        )
+    else:
+        standard_shipping.name = "Standard Shipping"
+        standard_shipping.delivery_time = "5-7 business days"
+        standard_shipping.save(update_fields=["name", "delivery_time"])
+    
+    # Delete any duplicate shipping options with old names or wrong prices
+    ShippingOption.objects.filter(price=Decimal("0.00")).exclude(id=free_shipping.id).delete()
+    ShippingOption.objects.filter(price=Decimal("19.99")).exclude(id=express_shipping.id).delete()
+    ShippingOption.objects.filter(price=Decimal("5.99")).exclude(id=standard_shipping.id).delete()
 
     return render(
         request,
@@ -1375,7 +1389,7 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
             "coupon_applied": coupon_applied,
             "coupon_error": coupon_error,
             "coupon_code": coupon_code,
-            "shipping_options": ShippingOption.objects.all().order_by("price", "name"),
+            "shipping_options": list(ShippingOption.objects.all().order_by("price", "name").distinct()),
             "client_secret": intent.client_secret,
             "stripe_public_key": stripe_public_key,
             "is_guest": not request.user.is_authenticated,
@@ -1513,7 +1527,7 @@ def guest_checkout_view(request: HttpRequest) -> HttpResponse:
             "coupon_error": coupon_error,
             "coupon_code": coupon_code,
             "client_secret": intent.client_secret,
-            "shipping_options": ShippingOption.objects.all().order_by("price", "name"),
+            "shipping_options": list(ShippingOption.objects.all().order_by("price", "name").distinct()),
             "stripe_public_key": stripe_public_key,
         },
     )
