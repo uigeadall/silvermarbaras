@@ -665,14 +665,6 @@
             return;
           }
           
-          // Update shipping cost based on country (convert to selected currency)
-          let shippingCostEUR = 0;
-          if (country === 'CA' || country === 'AU' || country === 'Canada' || country === 'Australia') {
-            shippingCostEUR = 19.99; // €19.99 in EUR
-          } else {
-            shippingCostEUR = 0; // Free shipping
-          }
-          
           // Get current currency and exchange rate
           const getCurrentCurrency = window.getCurrentCurrency || function() {
             return localStorage.getItem('selectedCurrency') || 'EUR';
@@ -693,25 +685,148 @@
           const exchangeRates = getExchangeRate();
           const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
           
-          // Convert shipping cost to selected currency
-          const shippingCost = Math.round(shippingCostEUR * rate * 100);
-          const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+          // Determine shipping options based on country
+          let shippingOptions = [];
           
-          // Update the total shown in Apple Pay
-          ev.updateWith({
-            status: 'success',
-            total: {
-              label: 'Total',
-              amount: finalTotal,
-            },
-            shippingOptions: [{
-              id: shippingCost === 0 ? 'free' : 'express',
-              label: shippingCost === 0 ? 'Free Shipping' : 'Express Shipping',
-              amount: shippingCost,
-            }],
-          });
+          if (country === 'CA' || country === 'AU' || country === 'NZ' || country === 'NO' || country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
+            // Canada, Australia, New Zealand and Norway: Standard Shipping ($5.99) and Express Shipping ($19.99)
+            const standardCostEUR = 5.99;
+            const expressCostEUR = 19.99;
+            const standardCost = Math.round(standardCostEUR * rate * 100);
+            const expressCost = Math.round(expressCostEUR * rate * 100);
+            
+            shippingOptions = [
+              {
+                id: 'standard',
+                label: 'Standard Shipping',
+                amount: standardCost,
+              },
+              {
+                id: 'express',
+                label: 'Express Shipping',
+                amount: expressCost,
+              }
+            ];
+            
+            // Default to Standard Shipping
+            const defaultTotal = Math.round(totalAmount * 100) + standardCost;
+            ev.updateWith({
+              status: 'success',
+              total: {
+                label: 'Total',
+                amount: defaultTotal,
+              },
+              shippingOptions: shippingOptions,
+            });
+            
+            console.log('✅ Cart - Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100);
+          } else {
+            // Other countries: Free Shipping ($0) and Express Shipping ($19.99)
+            const freeCostEUR = 0;
+            const expressCostEUR = 19.99;
+            const freeCost = Math.round(freeCostEUR * rate * 100);
+            const expressCost = Math.round(expressCostEUR * rate * 100);
+            
+            shippingOptions = [
+              {
+                id: 'free',
+                label: 'Free Shipping',
+                amount: freeCost,
+              },
+              {
+                id: 'express',
+                label: 'Express Shipping',
+                amount: expressCost,
+              }
+            ];
+            
+            // Default to Free Shipping
+            const defaultTotal = Math.round(totalAmount * 100) + freeCost;
+            ev.updateWith({
+              status: 'success',
+              total: {
+                label: 'Total',
+                amount: defaultTotal,
+              },
+              shippingOptions: shippingOptions,
+            });
+            
+            console.log('✅ Cart - Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100);
+          }
+        } else {
+          ev.updateWith({ status: 'success' });
+        }
+      });
+      
+      // Handle shipping option change (when user selects different shipping option in Apple Pay)
+      paymentRequest.on('shippingoptionchange', function(ev) {
+        console.log('📦 Cart - Shipping option changed:', ev.shippingOption);
+        console.log('📦 Cart - Available shipping options:', ev.shippingOptions);
+        console.log('📦 Cart - Shipping address:', ev.shippingAddress);
+        
+        if (ev.shippingOption) {
+          const selectedOptionId = ev.shippingOption;
           
-          console.log('✅ Cart - Updated shipping cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+          // Get exchange rate for currency conversion
+          const getExchangeRate = function() {
+            try {
+              const cached = localStorage.getItem('exchangeRatesCache');
+              if (cached) {
+                const rates = JSON.parse(cached);
+                return rates;
+              }
+            } catch (e) {
+              console.warn('Could not load exchange rates from cache');
+            }
+            return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+          };
+          const exchangeRates = getExchangeRate();
+          const getCurrentCurrency = window.getCurrentCurrency || function() {
+            return localStorage.getItem('selectedCurrency') || 'EUR';
+          };
+          const currentCurrency = getCurrentCurrency().toLowerCase();
+          const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+          
+          // Find the selected shipping option from the available options
+          const shippingOption = ev.shippingOptions ? ev.shippingOptions.find(opt => opt.id === selectedOptionId) : null;
+          
+          if (shippingOption) {
+            const shippingCost = shippingOption.amount;
+            const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+            
+            ev.updateWith({
+              status: 'success',
+              total: {
+                label: 'Total',
+                amount: finalTotal,
+              },
+            });
+            
+            console.log('✅ Cart - Updated total with shipping option:', shippingOption.label, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+          } else {
+            // Fallback: calculate based on option ID
+            let shippingCostEUR = 0;
+            if (selectedOptionId === 'standard') {
+              shippingCostEUR = 5.99;
+            } else if (selectedOptionId === 'express') {
+              shippingCostEUR = 19.99;
+            } else if (selectedOptionId === 'free') {
+              shippingCostEUR = 0;
+            }
+            
+            const shippingCost = Math.round(shippingCostEUR * rate * 100);
+            const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+            
+            ev.updateWith({
+              status: 'success',
+              total: {
+                label: 'Total',
+                amount: finalTotal,
+              },
+            });
+            
+            console.log('✅ Cart - Updated total with shipping option ID:', selectedOptionId, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+          }
         } else {
           ev.updateWith({ status: 'success' });
         }
