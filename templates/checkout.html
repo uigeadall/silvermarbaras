@@ -1420,10 +1420,17 @@
               const option = options[i];
               const price = parseFloat(option.getAttribute('data-price')) || 0;
               if (country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
-                if (price === 5.99 || price === 19.99) {
+                // Auto-select Standard Shipping (5.99) as default, or Express if Standard not available
+                if (price === 5.99) {
                   shippingSelect.value = option.value;
-                  console.log('✅ Auto-selected Express Shipping for', country);
+                  console.log('✅ Auto-selected Standard Shipping for', country);
                   break;
+                } else if (price === 19.99) {
+                  // Only select Express if Standard wasn't found
+                  if (!shippingSelect.value) {
+                    shippingSelect.value = option.value;
+                    console.log('✅ Auto-selected Express Shipping for', country);
+                  }
                 }
               } else {
                 if (price === 0) {
