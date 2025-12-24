@@ -1304,9 +1304,35 @@
       // Handle shipping option change (when user selects different shipping option in Apple Pay)
       window.paymentRequest.on('shippingoptionchange', function(ev) {
         console.log('📦 Shipping option changed:', ev.shippingOption);
+        console.log('📦 Available shipping options:', ev.shippingOptions);
+        console.log('📦 Shipping address:', ev.shippingAddress);
         
         if (ev.shippingOption) {
           const selectedOptionId = ev.shippingOption;
+          
+          // Get exchange rate for currency conversion
+          const getExchangeRate = function() {
+            try {
+              const cached = localStorage.getItem('exchangeRatesCache');
+              if (cached) {
+                const rates = JSON.parse(cached);
+                return rates;
+              }
+            } catch (e) {
+              console.warn('Could not load exchange rates from cache');
+            }
+            return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+          };
+          const exchangeRates = getExchangeRate();
+          const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+          const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+          
+          // Get country from shipping address if available
+          let country = null;
+          if (ev.shippingAddress) {
+            country = ev.shippingAddress.country;
+          }
+          
           // Find the selected shipping option from the available options
           const shippingOption = ev.shippingOptions ? ev.shippingOptions.find(opt => opt.id === selectedOptionId) : null;
           
@@ -1324,30 +1350,7 @@
             
             console.log('✅ Updated total with shipping option:', shippingOption.label, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
           } else {
-            // Fallback: calculate based on option ID and country
-            // Get exchange rate for currency conversion
-            const getExchangeRate = function() {
-              try {
-                const cached = localStorage.getItem('exchangeRatesCache');
-                if (cached) {
-                  const rates = JSON.parse(cached);
-                  return rates;
-                }
-              } catch (e) {
-                console.warn('Could not load exchange rates from cache');
-              }
-              return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
-            };
-            const exchangeRates = getExchangeRate();
-            const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
-            const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
-            
-            // Get country from shipping address if available
-            let country = null;
-            if (ev.shippingAddress) {
-              country = ev.shippingAddress.country;
-            }
-            
+            // Fallback: calculate based on option ID
             let shippingCostEUR = 0;
             if (selectedOptionId === 'standard') {
               shippingCostEUR = 5.99;
