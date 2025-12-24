@@ -650,6 +650,8 @@
         if (!optionNameForFilter || optionNameForFilter.trim() === '') {
           if (price === 0 || price === 0.0 || price === 0.00) {
             optionNameForFilter = 'Free Shipping';
+          } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+            optionNameForFilter = 'Standard Shipping';
           } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
             optionNameForFilter = 'Express Shipping';
           } else {
@@ -749,9 +751,9 @@
       } else {
         // If no option selected, check country
         const country = countrySelect?.value;
-        if (country === 'Canada' || country === 'Australia') {
-          shippingCost = 19.99; // Default to Express for Canada and Australia (only option)
-          shippingType = 'express';
+        if (country === 'Canada' || country === 'Australia' || country === 'New Zealand') {
+          shippingCost = 5.99; // Default to Standard Shipping for Canada, Australia and New Zealand
+          shippingType = 'standard';
         } else {
           shippingCost = 0.00; // Free for other countries
           shippingType = 'free';
