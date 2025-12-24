@@ -1308,7 +1308,8 @@
         console.log('📦 Shipping option changed:', ev.shippingOption);
         console.log('📦 Available shipping options:', ev.shippingOptions);
         console.log('📦 Shipping address:', ev.shippingAddress);
-        console.log('📦 Current total amount:', totalAmount);
+        console.log('📦 Current total from event:', ev.total);
+        console.log('📦 Original total amount:', originalTotalAmount);
         
         if (ev.shippingOption) {
           const selectedOptionId = ev.shippingOption;
@@ -1318,12 +1319,13 @@
           
           if (shippingOption) {
             // Use the amount directly from the shipping option (already in correct currency)
-            const shippingCost = shippingOption.amount;
+            const newShippingCost = shippingOption.amount;
+            
             // Calculate final total: original total (without shipping) + new shipping cost
-            const finalTotal = Math.round(originalTotalAmount * 100) + shippingCost;
+            const finalTotal = Math.round(originalTotalAmount * 100) + newShippingCost;
             
             console.log('📦 Original total (without shipping):', originalTotalAmount);
-            console.log('📦 Selected shipping cost:', shippingCost / 100);
+            console.log('📦 New shipping cost:', newShippingCost / 100);
             console.log('📦 Final total:', finalTotal / 100);
             
             ev.updateWith({
@@ -1334,7 +1336,7 @@
               },
             });
             
-            console.log('✅ Updated total with shipping option:', shippingOption.label, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+            console.log('✅ Updated total with shipping option:', shippingOption.label, 'Cost:', newShippingCost / 100, 'Total:', finalTotal / 100);
           } else {
             // Fallback: calculate based on option ID
             // Get exchange rate for currency conversion
