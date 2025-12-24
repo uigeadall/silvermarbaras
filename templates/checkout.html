@@ -1211,6 +1211,23 @@
             return;
           }
           
+          // Get exchange rate for currency conversion
+          const getExchangeRate = function() {
+            try {
+              const cached = localStorage.getItem('exchangeRatesCache');
+              if (cached) {
+                const rates = JSON.parse(cached);
+                return rates;
+              }
+            } catch (e) {
+              console.warn('Could not load exchange rates from cache');
+            }
+            return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+          };
+          const exchangeRates = getExchangeRate();
+          const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+          const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+          
           // Determine shipping options based on country
           let shippingOptions = [];
           
@@ -1307,7 +1324,30 @@
             
             console.log('✅ Updated total with shipping option:', shippingOption.label, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
           } else {
-            // Fallback: calculate based on option ID
+            // Fallback: calculate based on option ID and country
+            // Get exchange rate for currency conversion
+            const getExchangeRate = function() {
+              try {
+                const cached = localStorage.getItem('exchangeRatesCache');
+                if (cached) {
+                  const rates = JSON.parse(cached);
+                  return rates;
+                }
+              } catch (e) {
+                console.warn('Could not load exchange rates from cache');
+              }
+              return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+            };
+            const exchangeRates = getExchangeRate();
+            const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+            const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+            
+            // Get country from shipping address if available
+            let country = null;
+            if (ev.shippingAddress) {
+              country = ev.shippingAddress.country;
+            }
+            
             let shippingCostEUR = 0;
             if (selectedOptionId === 'standard') {
               shippingCostEUR = 5.99;
@@ -1317,17 +1357,17 @@
               shippingCostEUR = 0;
             }
             
-          const shippingCost = Math.round(shippingCostEUR * rate * 100);
-          const finalTotal = Math.round(totalAmount * 100) + shippingCost;
-          
-          ev.updateWith({
-            status: 'success',
-            total: {
-              label: 'Total',
-              amount: finalTotal,
-            },
-          });
-          
+            const shippingCost = Math.round(shippingCostEUR * rate * 100);
+            const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+            
+            ev.updateWith({
+              status: 'success',
+              total: {
+                label: 'Total',
+                amount: finalTotal,
+              },
+            });
+            
             console.log('✅ Updated total with shipping option ID:', selectedOptionId, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
           }
         } else {
