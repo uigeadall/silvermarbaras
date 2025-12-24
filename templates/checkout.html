@@ -1321,30 +1321,24 @@
             // Use the amount directly from the shipping option (already in correct currency)
             const newShippingCost = shippingOption.amount;
             
-            // Get current total from event (which includes old shipping)
-            const currentTotalAmount = ev.total ? ev.total.amount : Math.round(originalTotalAmount * 100);
-            
-            // Find the old shipping cost by checking all options
-            // The old shipping cost is the difference between current total and original total
-            const oldShippingCost = currentTotalAmount - Math.round(originalTotalAmount * 100);
-            
-            // Calculate final total: current total - old shipping + new shipping
-            // Or simpler: original total + new shipping
+            // Calculate final total: original total (without shipping) + new shipping cost
             const baseTotal = Math.round(originalTotalAmount * 100);
             const finalTotal = baseTotal + newShippingCost;
             
-            console.log('📦 Current total (with old shipping):', currentTotalAmount / 100);
             console.log('📦 Original total (without shipping):', originalTotalAmount);
-            console.log('📦 Old shipping cost:', oldShippingCost / 100);
-            console.log('📦 New shipping cost:', newShippingCost / 100);
+            console.log('📦 Base total in cents:', baseTotal);
+            console.log('📦 New shipping cost:', newShippingCost);
+            console.log('📦 Final total in cents:', finalTotal);
             console.log('📦 Final total:', finalTotal / 100);
             
+            // IMPORTANT: Must return shippingOptions as well to keep them available
             ev.updateWith({
               status: 'success',
               total: {
                 label: 'Total',
                 amount: finalTotal,
               },
+              shippingOptions: ev.shippingOptions, // Keep existing shipping options
             });
             
             console.log('✅ Updated total with shipping option:', shippingOption.label, 'Cost:', newShippingCost / 100, 'Total:', finalTotal / 100);
