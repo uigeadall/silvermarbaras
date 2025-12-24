@@ -748,8 +748,8 @@
       } else {
         // If no option selected, check country
         const country = countrySelect?.value;
-        if (country === 'Canada' || country === 'Australia' || country === 'New Zealand') {
-          shippingCost = 5.99; // Default to Standard Shipping for Canada, Australia and New Zealand
+        if (country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
+          shippingCost = 5.99; // Default to Standard Shipping for Canada, Australia, New Zealand and Norway
           shippingType = 'standard';
         } else {
           shippingCost = 0.00; // Free for other countries
@@ -1419,8 +1419,8 @@
             for (let i = 0; i < options.length; i++) {
               const option = options[i];
               const price = parseFloat(option.getAttribute('data-price')) || 0;
-              if (country === 'Canada' || country === 'Australia' || country === 'New Zealand') {
-                if (price === 19.99) {
+              if (country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
+                if (price === 5.99 || price === 19.99) {
                   shippingSelect.value = option.value;
                   console.log('✅ Auto-selected Express Shipping for', country);
                   break;
