@@ -617,6 +617,8 @@
           option.setAttribute('data-shipping-option', 'true');
           if (price === 0 || price === 0.0 || price === 0.00) {
             option.setAttribute('data-shipping-type', 'free');
+          } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+            option.setAttribute('data-shipping-type', 'standard');
           } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
             option.setAttribute('data-shipping-type', 'express');
           } else {
