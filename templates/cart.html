@@ -778,23 +778,10 @@
             // Use the amount directly from the shipping option (already in correct currency)
             const newShippingCost = shippingOption.amount;
             
-            // Get current total from event (which includes old shipping)
-            const currentTotal = ev.total ? ev.total.amount : Math.round(originalTotalAmount * 100);
-            
-            // Find the previously selected shipping option to subtract it
-            let oldShippingCost = 0;
-            if (ev.shippingOptions && ev.shippingOptions.length > 0) {
-              // Try to find the previously selected option (the one that's not the new one)
-              const previousOption = ev.shippingOptions.find(opt => opt.id !== selectedOptionId);
-              if (previousOption) {
-                // This is not reliable, so let's use a different approach
-                // Calculate original total by subtracting all possible shipping costs
-                // The safest way is to use originalTotalAmount directly
-              }
-            }
-            
             // Calculate final total: original total (without shipping) + new shipping cost
-            const finalTotal = Math.round(originalTotalAmount * 100) + newShippingCost;
+            // Use originalTotalAmount which is stored in the outer scope
+            const baseTotal = Math.round(originalTotalAmount * 100);
+            const finalTotal = baseTotal + newShippingCost;
             
             console.log('📦 Cart - Original total (without shipping):', originalTotalAmount);
             console.log('📦 Cart - New shipping cost:', newShippingCost / 100);

@@ -1322,7 +1322,9 @@
             const newShippingCost = shippingOption.amount;
             
             // Calculate final total: original total (without shipping) + new shipping cost
-            const finalTotal = Math.round(originalTotalAmount * 100) + newShippingCost;
+            // Use originalTotalAmount which is stored in the outer scope
+            const baseTotal = Math.round(originalTotalAmount * 100);
+            const finalTotal = baseTotal + newShippingCost;
             
             console.log('📦 Original total (without shipping):', originalTotalAmount);
             console.log('📦 New shipping cost:', newShippingCost / 100);
