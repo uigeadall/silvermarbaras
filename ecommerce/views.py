@@ -1230,17 +1230,17 @@ def checkout_view(request: HttpRequest) -> HttpResponse:
             return redirect("checkout")
         
         # If no shipping option selected:
-        # - Canada and Australia: require Express shipping ($19.99)
+        # - Canada, Australia and New Zealand: default to Standard shipping ($5.99)
         # - Other countries: free shipping
         if not shipping_option_id:
-            if country in ["Canada", "Australia"]:
-                # Default to Express shipping for Canada and Australia (only option available)
-                express_shipping = ShippingOption.objects.filter(name="Express Delivery").first()
-                if express_shipping:
-                    shipping_option = express_shipping
-                    shipping_cost = express_shipping.price
+            if country in ["Canada", "Australia", "New Zealand"]:
+                # Default to Standard shipping for Canada, Australia and New Zealand
+                standard_shipping = ShippingOption.objects.filter(price=Decimal("5.99")).first()
+                if standard_shipping:
+                    shipping_option = standard_shipping
+                    shipping_cost = standard_shipping.price
                 else:
-                    shipping_cost = Decimal("19.99")
+                    shipping_cost = Decimal("5.99")
             else:
                 # Free shipping for other countries
                 shipping_cost = Decimal("0.00")
