@@ -1306,39 +1306,23 @@
         console.log('📦 Shipping option changed:', ev.shippingOption);
         console.log('📦 Available shipping options:', ev.shippingOptions);
         console.log('📦 Shipping address:', ev.shippingAddress);
+        console.log('📦 Current total amount:', totalAmount);
         
         if (ev.shippingOption) {
           const selectedOptionId = ev.shippingOption;
-          
-          // Get exchange rate for currency conversion
-          const getExchangeRate = function() {
-            try {
-              const cached = localStorage.getItem('exchangeRatesCache');
-              if (cached) {
-                const rates = JSON.parse(cached);
-                return rates;
-              }
-            } catch (e) {
-              console.warn('Could not load exchange rates from cache');
-            }
-            return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
-          };
-          const exchangeRates = getExchangeRate();
-          const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
-          const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
-          
-          // Get country from shipping address if available
-          let country = null;
-          if (ev.shippingAddress) {
-            country = ev.shippingAddress.country;
-          }
           
           // Find the selected shipping option from the available options
           const shippingOption = ev.shippingOptions ? ev.shippingOptions.find(opt => opt.id === selectedOptionId) : null;
           
           if (shippingOption) {
+            // Use the amount directly from the shipping option (already in correct currency)
             const shippingCost = shippingOption.amount;
+            // Calculate final total: original total (without shipping) + new shipping cost
             const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+            
+            console.log('📦 Original total (without shipping):', totalAmount);
+            console.log('📦 Selected shipping cost:', shippingCost / 100);
+            console.log('📦 Final total:', finalTotal / 100);
             
             ev.updateWith({
               status: 'success',
@@ -1351,6 +1335,23 @@
             console.log('✅ Updated total with shipping option:', shippingOption.label, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
           } else {
             // Fallback: calculate based on option ID
+            // Get exchange rate for currency conversion
+            const getExchangeRate = function() {
+              try {
+                const cached = localStorage.getItem('exchangeRatesCache');
+                if (cached) {
+                  const rates = JSON.parse(cached);
+                  return rates;
+                }
+              } catch (e) {
+                console.warn('Could not load exchange rates from cache');
+              }
+              return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+            };
+            const exchangeRates = getExchangeRate();
+            const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+            const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+            
             let shippingCostEUR = 0;
             if (selectedOptionId === 'standard') {
               shippingCostEUR = 5.99;
@@ -1362,6 +1363,8 @@
             
             const shippingCost = Math.round(shippingCostEUR * rate * 100);
             const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+            
+            console.log('📦 Fallback: Original total:', totalAmount, 'Shipping cost:', shippingCost / 100, 'Final total:', finalTotal / 100);
             
             ev.updateWith({
               status: 'success',
