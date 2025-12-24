@@ -797,14 +797,24 @@
             console.log('📦 Cart - Final total:', finalTotal / 100);
             
             // IMPORTANT: Must return shippingOptions as well to keep them available
-            ev.updateWith({
+            // Also ensure the amount is an integer (in cents)
+            const updateData = {
               status: 'success',
               total: {
                 label: 'Total',
-                amount: finalTotal,
+                amount: Math.round(finalTotal), // Ensure it's an integer
               },
               shippingOptions: ev.shippingOptions, // Keep existing shipping options
-            });
+            };
+            
+            console.log('📦 Cart - Calling ev.updateWith with:', JSON.stringify(updateData, null, 2));
+            
+            try {
+              ev.updateWith(updateData);
+              console.log('✅ Cart - ev.updateWith called successfully');
+            } catch (error) {
+              console.error('❌ Cart - Error calling ev.updateWith:', error);
+            }
             
             console.log('✅ Cart - Updated total with shipping option:', shippingOption.label, 'Cost:', newShippingCost / 100, 'Total:', finalTotal / 100);
           } else {
