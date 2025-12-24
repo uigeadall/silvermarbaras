@@ -1321,22 +1321,16 @@
             // Use the amount directly from the shipping option (already in correct currency)
             const newShippingCost = shippingOption.amount;
             
-            // Get current total from event (which includes old shipping)
-            const currentTotal = ev.total ? ev.total.amount : Math.round(originalTotalAmount * 100);
-            
-            // Find the old shipping cost by checking which option was previously selected
-            // We can find it by comparing current total with original total
+            // Calculate base total (without shipping) - this is the original order total
             const baseTotal = Math.round(originalTotalAmount * 100);
-            const oldShippingCost = currentTotal - baseTotal;
             
             // Calculate final total: base total + new shipping cost
             const finalTotal = baseTotal + newShippingCost;
             
-            console.log('📦 Current total (with old shipping):', currentTotal / 100);
             console.log('📦 Base total (without shipping):', baseTotal / 100);
-            console.log('📦 Old shipping cost:', oldShippingCost / 100);
             console.log('📦 New shipping cost:', newShippingCost / 100);
             console.log('📦 Final total:', finalTotal / 100);
+            console.log('📦 Final total in cents:', finalTotal);
             
             // IMPORTANT: Must return shippingOptions as well to keep them available
             // The amount must be an integer (in cents)
@@ -1344,7 +1338,7 @@
               status: 'success',
               total: {
                 label: 'Total',
-                amount: finalTotal, // Already in cents, ensure it's integer
+                amount: finalTotal, // Already in cents
               },
               shippingOptions: ev.shippingOptions, // Keep existing shipping options
             };
