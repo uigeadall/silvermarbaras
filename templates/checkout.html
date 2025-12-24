@@ -1321,27 +1321,21 @@
             // Use the amount directly from the shipping option (already in correct currency)
             const newShippingCost = shippingOption.amount;
             
-            // Calculate original total by subtracting all possible shipping costs from current total
-            // This ensures we get the base total without any shipping
+            // Get current total from event (which includes old shipping)
             const currentTotal = ev.total ? ev.total.amount : Math.round(originalTotalAmount * 100);
             
-            // Find the minimum shipping cost (which should be the base/default)
-            const minShippingCost = Math.min(...ev.shippingOptions.map(opt => opt.amount));
+            // Calculate base total (without shipping) by subtracting the old shipping cost
+            // The old shipping cost is the difference between current total and original total
+            const baseTotal = Math.round(originalTotalAmount * 100);
+            const oldShippingCost = currentTotal - baseTotal;
             
-            // Calculate base total: current total - minimum shipping (assuming default was minimum)
-            // But safer: use originalTotalAmount if available, otherwise calculate
-            let baseTotal;
-            if (typeof originalTotalAmount !== 'undefined' && originalTotalAmount !== null) {
-              baseTotal = Math.round(originalTotalAmount * 100);
-            } else {
-              // Fallback: assume current total includes the minimum shipping
-              baseTotal = currentTotal - minShippingCost;
-            }
-            
+            // Calculate final total: current total - old shipping + new shipping
+            // Or simpler: base total + new shipping
             const finalTotal = baseTotal + newShippingCost;
             
             console.log('📦 Current total (with old shipping):', currentTotal / 100);
-            console.log('📦 Original total (without shipping):', baseTotal / 100);
+            console.log('📦 Base total (without shipping):', baseTotal / 100);
+            console.log('📦 Old shipping cost:', oldShippingCost / 100);
             console.log('📦 New shipping cost:', newShippingCost / 100);
             console.log('📦 Final total:', finalTotal / 100);
             
