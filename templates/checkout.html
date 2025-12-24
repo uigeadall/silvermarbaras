@@ -1284,6 +1284,57 @@
         }
       });
       
+      // Handle shipping option change (when user selects different shipping option in Apple Pay)
+      window.paymentRequest.on('shippingoptionchange', function(ev) {
+        console.log('📦 Shipping option changed:', ev.shippingOption);
+        
+        if (ev.shippingOption) {
+          const selectedOptionId = ev.shippingOption;
+          // Find the selected shipping option from the available options
+          const shippingOption = ev.shippingOptions ? ev.shippingOptions.find(opt => opt.id === selectedOptionId) : null;
+          
+          if (shippingOption) {
+            const shippingCost = shippingOption.amount;
+            const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+            
+            ev.updateWith({
+              status: 'success',
+              total: {
+                label: 'Total',
+                amount: finalTotal,
+              },
+            });
+            
+            console.log('✅ Updated total with shipping option:', shippingOption.label, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+          } else {
+            // Fallback: calculate based on option ID
+            let shippingCostEUR = 0;
+            if (selectedOptionId === 'standard') {
+              shippingCostEUR = 5.99;
+            } else if (selectedOptionId === 'express') {
+              shippingCostEUR = 19.99;
+            } else if (selectedOptionId === 'free') {
+              shippingCostEUR = 0;
+            }
+            
+          const shippingCost = Math.round(shippingCostEUR * rate * 100);
+          const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+          
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: finalTotal,
+            },
+          });
+          
+            console.log('✅ Updated total with shipping option ID:', selectedOptionId, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+          }
+        } else {
+          ev.updateWith({ status: 'success' });
+        }
+      });
+      
       // Handle payment method
       window.paymentRequest.on('paymentmethod', async function(ev) {
         try {
