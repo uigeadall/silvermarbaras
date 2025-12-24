@@ -1054,6 +1054,8 @@
     const exchangeRates = getExchangeRate();
     const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
     const totalAmount = totalAmountEUR * rate;
+    // Store original total amount (without shipping) for use in shipping handlers
+    const originalTotalAmount = totalAmount;
     
     console.log('Current currency:', currentCurrency.toUpperCase());
     console.log('Exchange rate:', rate);
@@ -1252,7 +1254,7 @@
             ];
             
             // Default to Standard Shipping
-            const defaultTotal = Math.round(totalAmount * 100) + standardCost;
+            const defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
             ev.updateWith({
               status: 'success',
               total: {
@@ -1284,7 +1286,7 @@
             ];
             
             // Default to Free Shipping
-            const defaultTotal = Math.round(totalAmount * 100) + freeCost;
+            const defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
           ev.updateWith({
             status: 'success',
             total: {
@@ -1318,9 +1320,9 @@
             // Use the amount directly from the shipping option (already in correct currency)
             const shippingCost = shippingOption.amount;
             // Calculate final total: original total (without shipping) + new shipping cost
-            const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+            const finalTotal = Math.round(originalTotalAmount * 100) + shippingCost;
             
-            console.log('📦 Original total (without shipping):', totalAmount);
+            console.log('📦 Original total (without shipping):', originalTotalAmount);
             console.log('📦 Selected shipping cost:', shippingCost / 100);
             console.log('📦 Final total:', finalTotal / 100);
             
@@ -1362,9 +1364,9 @@
             }
             
             const shippingCost = Math.round(shippingCostEUR * rate * 100);
-            const finalTotal = Math.round(totalAmount * 100) + shippingCost;
+            const finalTotal = Math.round(originalTotalAmount * 100) + shippingCost;
             
-            console.log('📦 Fallback: Original total:', totalAmount, 'Shipping cost:', shippingCost / 100, 'Final total:', finalTotal / 100);
+            console.log('📦 Fallback: Original total:', originalTotalAmount, 'Shipping cost:', shippingCost / 100, 'Final total:', finalTotal / 100);
             
             ev.updateWith({
               status: 'success',
