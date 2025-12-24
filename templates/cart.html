@@ -781,13 +781,12 @@
             // Get current total from event (which includes old shipping)
             const currentTotal = ev.total ? ev.total.amount : Math.round(originalTotalAmount * 100);
             
-            // Calculate base total (without shipping) by subtracting the old shipping cost
-            // The old shipping cost is the difference between current total and original total
+            // Find the old shipping cost by checking which option was previously selected
+            // We can find it by comparing current total with original total
             const baseTotal = Math.round(originalTotalAmount * 100);
             const oldShippingCost = currentTotal - baseTotal;
             
-            // Calculate final total: current total - old shipping + new shipping
-            // Or simpler: base total + new shipping
+            // Calculate final total: base total + new shipping cost
             const finalTotal = baseTotal + newShippingCost;
             
             console.log('📦 Cart - Current total (with old shipping):', currentTotal / 100);
@@ -797,24 +796,20 @@
             console.log('📦 Cart - Final total:', finalTotal / 100);
             
             // IMPORTANT: Must return shippingOptions as well to keep them available
-            // Also ensure the amount is an integer (in cents)
+            // The amount must be an integer (in cents)
             const updateData = {
               status: 'success',
               total: {
                 label: 'Total',
-                amount: Math.round(finalTotal), // Ensure it's an integer
+                amount: finalTotal, // Already in cents, ensure it's integer
               },
               shippingOptions: ev.shippingOptions, // Keep existing shipping options
             };
             
             console.log('📦 Cart - Calling ev.updateWith with:', JSON.stringify(updateData, null, 2));
             
-            try {
-              ev.updateWith(updateData);
-              console.log('✅ Cart - ev.updateWith called successfully');
-            } catch (error) {
-              console.error('❌ Cart - Error calling ev.updateWith:', error);
-            }
+            // Call updateWith synchronously
+            ev.updateWith(updateData);
             
             console.log('✅ Cart - Updated total with shipping option:', shippingOption.label, 'Cost:', newShippingCost / 100, 'Total:', finalTotal / 100);
           } else {
