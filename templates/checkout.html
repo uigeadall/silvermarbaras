@@ -1221,6 +1221,20 @@
       console.log('📦 Initial total (subtotal + shipping):', initialTotal / 100);
       console.log('📦 Subtotal:', totalAmount);
       console.log('📦 Shipping cost:', selectedShippingOption ? selectedShippingOption.amount / 100 : 0);
+      console.log('📦 Selected shipping option before Payment Request:', window.selectedShippingOptionForPayment);
+      
+      // DEBUG: Log dropdown state before creating Payment Request
+      const shippingSelectDebug = document.getElementById('shipping_option');
+      if (shippingSelectDebug) {
+        console.log('🔍 DEBUG - Dropdown value:', shippingSelectDebug.value);
+        console.log('🔍 DEBUG - Dropdown selectedIndex:', shippingSelectDebug.selectedIndex);
+        if (shippingSelectDebug.selectedIndex >= 0 && shippingSelectDebug.options[shippingSelectDebug.selectedIndex]) {
+          const selectedOpt = shippingSelectDebug.options[shippingSelectDebug.selectedIndex];
+          console.log('🔍 DEBUG - Selected option text:', selectedOpt.textContent);
+          console.log('🔍 DEBUG - Selected option data-price:', selectedOpt.getAttribute('data-price'));
+          console.log('🔍 DEBUG - Selected option data-name:', selectedOpt.getAttribute('data-name'));
+        }
+      }
       
       // Only create Payment Request if amount is valid
       window.paymentRequest = stripe.paymentRequest({
@@ -1240,6 +1254,7 @@
         }),
       });
       console.log('✅ Payment Request object created with initial total:', initialTotal / 100);
+      console.log('✅ Payment Request initial total includes shipping:', selectedShippingOption ? 'YES (' + selectedShippingOption.label + ')' : 'NO');
 
       const paymentRequestButton = elements.create('paymentRequestButton', {
         paymentRequest: window.paymentRequest,
@@ -1386,8 +1401,14 @@
           
           // Always try to get directly from dropdown first (most reliable)
           const shippingSelect = document.getElementById('shipping_option');
+          console.log('🔍 DEBUG shippingaddresschange - Dropdown element:', shippingSelect);
+          console.log('🔍 DEBUG shippingaddresschange - Dropdown value:', shippingSelect ? shippingSelect.value : 'N/A');
+          console.log('🔍 DEBUG shippingaddresschange - Dropdown selectedIndex:', shippingSelect ? shippingSelect.selectedIndex : 'N/A');
+          console.log('🔍 DEBUG shippingaddresschange - Stored option:', window.selectedShippingOptionForPayment);
+          
           if (shippingSelect && shippingSelect.value) {
             const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+            console.log('🔍 DEBUG shippingaddresschange - Selected option:', selectedOption);
             if (selectedOption && selectedOption.value) {
               const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
               const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
@@ -1404,7 +1425,13 @@
               console.log('📦 Dropdown selected value:', shippingSelect.value);
               console.log('📦 Dropdown selected index:', shippingSelect.selectedIndex);
               console.log('📦 Selected option text:', selectedOption.textContent);
+              console.log('📦 Shipping price (EUR):', shippingPrice);
+              console.log('📦 Shipping name:', shippingName);
+            } else {
+              console.log('⚠️ WARNING - Selected option is invalid:', selectedOption);
             }
+          } else {
+            console.log('⚠️ WARNING - No shipping option selected in dropdown');
           }
           
           // Fallback to stored option if dropdown doesn't have selection
