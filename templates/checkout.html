@@ -1384,38 +1384,45 @@
           // Check if user selected a shipping option from dropdown before clicking Apple Pay
           let defaultShippingOption = null;
           
-          // First, try to get from stored option
-          if (window.selectedShippingOptionForPayment) {
+          // Always try to get directly from dropdown first (most reliable)
+          const shippingSelect = document.getElementById('shipping_option');
+          if (shippingSelect && shippingSelect.value) {
+            const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+              const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+              const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+              const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
+              const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
+              
+              defaultShippingOption = {
+                id: selectedOption.value,
+                label: shippingName,
+                amount: shippingCostInCents,
+                price: shippingPrice,
+              };
+              console.log('📦 Using pre-selected shipping option from dropdown (direct read):', defaultShippingOption);
+              console.log('📦 Dropdown selected value:', shippingSelect.value);
+              console.log('📦 Dropdown selected index:', shippingSelect.selectedIndex);
+              console.log('📦 Selected option text:', selectedOption.textContent);
+            }
+          }
+          
+          // Fallback to stored option if dropdown doesn't have selection
+          if (!defaultShippingOption && window.selectedShippingOptionForPayment) {
             defaultShippingOption = window.selectedShippingOptionForPayment;
             console.log('📦 Using pre-selected shipping option from stored:', defaultShippingOption);
-          } else {
-            // If not stored, try to get directly from dropdown
-            const shippingSelect = document.getElementById('shipping_option');
-            if (shippingSelect && shippingSelect.value) {
-              const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
-              if (selectedOption && selectedOption.value) {
-                const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-                const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
-                const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
-                const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
-                
-                defaultShippingOption = {
-                  id: selectedOption.value,
-                  label: shippingName,
-                  amount: shippingCostInCents,
-                  price: shippingPrice,
-                };
-                console.log('📦 Using pre-selected shipping option from dropdown (direct read):', defaultShippingOption);
-              }
-            }
           }
           
           if (defaultShippingOption) {
             console.log('📦 Pre-selected option ID:', defaultShippingOption.id);
             console.log('📦 Pre-selected option label:', defaultShippingOption.label);
             console.log('📦 Pre-selected option price (EUR):', defaultShippingOption.price);
+            console.log('📦 Pre-selected option amount (cents):', defaultShippingOption.amount);
           } else {
             console.log('📦 No pre-selected shipping option found');
+            console.log('📦 Shipping select element:', shippingSelect);
+            console.log('📦 Shipping select value:', shippingSelect ? shippingSelect.value : 'N/A');
+            console.log('📦 Stored option:', window.selectedShippingOptionForPayment);
           }
           
           // Determine shipping options based on country
