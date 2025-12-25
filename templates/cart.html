@@ -773,59 +773,50 @@
         console.log('📦 Cart - Original total amount:', originalTotalAmount);
         
         if (ev.shippingOption) {
-          // ev.shippingOption can be either an ID (string) or the full option object
+          // ev.shippingOption is the selected option object (not an ID)
           let shippingOption;
           let newShippingCost;
           
           if (typeof ev.shippingOption === 'string') {
-            // If it's an ID, find the option from ev.shippingOptions
-            if (ev.shippingOptions && ev.shippingOptions.length > 0) {
+            // If it's an ID string, try to find it in ev.shippingOptions
+            if (ev.shippingOptions && Array.isArray(ev.shippingOptions) && ev.shippingOptions.length > 0) {
               shippingOption = ev.shippingOptions.find(opt => opt.id === ev.shippingOption);
               if (shippingOption) {
                 newShippingCost = shippingOption.amount;
               }
             }
-          } else if (ev.shippingOption && typeof ev.shippingOption === 'object') {
-            // If it's already the option object, use it directly
+          } else if (ev.shippingOption && typeof ev.shippingOption === 'object' && ev.shippingOption.amount !== undefined) {
+            // If it's already the option object (most common case), use it directly
             shippingOption = ev.shippingOption;
             newShippingCost = shippingOption.amount;
+            console.log('✅ Cart - Found shipping option object:', shippingOption);
           }
           
-          if (newShippingCost !== undefined) {
-            // Get current total from event (which includes old shipping)
-            const currentTotal = ev.total ? ev.total.amount : Math.round(originalTotalAmount * 100);
-            
-            // Calculate base total (without shipping) by subtracting old shipping from current total
-            // If we don't have current total, use originalTotalAmount directly
-            let baseTotal;
-            if (ev.total && ev.total.amount) {
-              // Try to find old shipping cost by checking all options
-              // The old shipping is the difference between current total and original total
-              const oldShippingCost = currentTotal - Math.round(originalTotalAmount * 100);
-              baseTotal = currentTotal - oldShippingCost;
-            } else {
-              // Fallback: use originalTotalAmount directly
-              baseTotal = Math.round(originalTotalAmount * 100);
-            }
+          if (newShippingCost !== undefined && newShippingCost !== null) {
+            // Calculate base total (without shipping) - use originalTotalAmount directly
+            const baseTotal = Math.round(originalTotalAmount * 100);
             
             // Calculate final total: base total + new shipping cost
             const finalTotal = baseTotal + newShippingCost;
             
-            console.log('📦 Cart - Current total (with old shipping):', currentTotal / 100);
             console.log('📦 Cart - Base total (without shipping):', baseTotal / 100);
+            console.log('📦 Cart - Base total in cents:', baseTotal);
             console.log('📦 Cart - New shipping cost:', newShippingCost / 100);
+            console.log('📦 Cart - New shipping cost in cents:', newShippingCost);
             console.log('📦 Cart - Final total:', finalTotal / 100);
             console.log('📦 Cart - Final total in cents:', finalTotal);
             
             // IMPORTANT: Must return shippingOptions as well to keep them available
-            // The amount must be an integer (in cents)
+            // Try to get shippingOptions from the previous shippingaddresschange event
+            const shippingOptionsToReturn = ev.shippingOptions || [];
+            
             const updateData = {
               status: 'success',
               total: {
                 label: 'Total',
                 amount: finalTotal, // Already in cents
               },
-              shippingOptions: ev.shippingOptions || [], // Keep existing shipping options or empty array
+              shippingOptions: shippingOptionsToReturn, // Keep existing shipping options
             };
             
             console.log('📦 Cart - Calling ev.updateWith with:', JSON.stringify(updateData, null, 2));
