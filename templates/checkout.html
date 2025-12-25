@@ -1372,6 +1372,9 @@
         return ALLOWED_COUNTRIES[country] === true;
       }
       
+      // Store shipping options from shippingaddresschange for use in shippingoptionchange
+      let storedShippingOptions = null;
+      
       // Handle shipping address change (REQUIRED for mobile devices)
       // This event is triggered when user selects/changes shipping address in Apple Pay
       window.paymentRequest.on('shippingaddresschange', function(ev) {
