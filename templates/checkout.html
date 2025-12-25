@@ -1027,8 +1027,9 @@
     const container = document.getElementById('payment-request-button-container');
     
     // eslint-disable-next-line
-    const totalAmountEUR = {% if total %}{{ total }}{% else %}{{ subtotal|default:0 }}{% endif %};
-    console.log('Total amount (EUR):', totalAmountEUR);
+    // IMPORTANT: Use subtotal (without shipping) for Apple Pay base calculation
+    const totalAmountEUR = {{ subtotal|default:0 }};
+    console.log('Subtotal amount (EUR, without shipping):', totalAmountEUR);
     
     // Get current currency from localStorage (EUR, USD, or GBP)
     const getCurrentCurrency = window.getCurrentCurrency || function() {
