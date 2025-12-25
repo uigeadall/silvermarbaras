@@ -1694,6 +1694,44 @@
             }
           }
           
+          // If we still don't have the shipping cost, try to get it from ev.shippingOptions array
+          if ((newShippingCost === undefined || newShippingCost === null) && ev.shippingOptions && Array.isArray(ev.shippingOptions) && ev.shippingOptions.length > 0) {
+            console.log('⚠️ Shipping cost not found, trying to get from shippingOptions array');
+            console.log('⚠️ Available options:', ev.shippingOptions);
+            // If user preferred Express, try to find it first
+            if (preferredShippingOption === 'express') {
+              const expressOption = ev.shippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express'));
+              if (expressOption) {
+                shippingOption = expressOption;
+                newShippingCost = expressOption.amount;
+                console.log('✅ Found Express Shipping from options array (user preference):', expressOption);
+              }
+            }
+            // If still not found, use first non-free option or first option
+            if (!shippingOption || newShippingCost === undefined || newShippingCost === null) {
+              const nonFreeOption = ev.shippingOptions.find(opt => opt.amount > 0);
+              if (nonFreeOption) {
+                shippingOption = nonFreeOption;
+                newShippingCost = nonFreeOption.amount;
+                console.log('✅ Using first non-free option:', nonFreeOption);
+              } else {
+                shippingOption = ev.shippingOptions[0];
+                newShippingCost = shippingOption.amount;
+                console.log('⚠️ Using first shipping option from array:', shippingOption);
+              }
+            }
+          }
+          
+          // Final check: if user selected Express from dropdown but we got Free Shipping, force Express
+          if (preferredShippingOption === 'express' && newShippingCost === 0 && ev.shippingOptions && ev.shippingOptions.length > 0) {
+            const expressOption = ev.shippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express') || opt.amount > 0);
+            if (expressOption) {
+              console.log('🔄 FORCING Express Shipping (user selected Express from dropdown):', expressOption);
+              shippingOption = expressOption;
+              newShippingCost = expressOption.amount;
+            }
+          }
+          
           if (newShippingCost !== undefined && newShippingCost !== null) {
             // Calculate base total (without shipping) - get subtotal from DOM or use originalTotalAmount
             let baseTotal;
