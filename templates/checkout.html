@@ -1028,6 +1028,7 @@
     
     // eslint-disable-next-line
     // IMPORTANT: Use subtotal (without shipping) for Apple Pay base calculation
+    // Get subtotal directly from Django template - this is the base amount without shipping
     const totalAmountEUR = {{ subtotal|default:0 }};
     console.log('Subtotal amount (EUR, without shipping):', totalAmountEUR);
     
@@ -1060,8 +1061,8 @@
     
     console.log('Current currency:', currentCurrency.toUpperCase());
     console.log('Exchange rate:', rate);
-    console.log('Total amount (converted):', totalAmount);
-    console.log('Total in cents:', Math.round(totalAmount * 100));
+    console.log('Subtotal amount (converted):', totalAmount);
+    console.log('Subtotal in cents:', Math.round(totalAmount * 100));
     console.log('Country: BG (Bulgaria)');
     
     if (!totalAmountEUR || totalAmountEUR <= 0 || isNaN(totalAmountEUR)) {
