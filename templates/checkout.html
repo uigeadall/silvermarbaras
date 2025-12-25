@@ -1620,6 +1620,9 @@
               selectedShippingId = 'free';
               console.log('⚠️ No pre-selected option, defaulting to Free Shipping');
             }
+          // Store shipping options for use in shippingoptionchange
+          storedShippingOptions = shippingOptions;
+          
           ev.updateWith({
             status: 'success',
             total: {
@@ -1631,19 +1634,28 @@
             });
             
             console.log('✅ Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
+            console.log('💾 Stored shipping options for shippingoptionchange:', storedShippingOptions);
           }
         } else {
           ev.updateWith({ status: 'success' });
         }
       });
       
+      // Store shipping options from shippingaddresschange for use in shippingoptionchange
+      let storedShippingOptions = null;
+      
       // Handle shipping option change (when user selects different shipping option in Apple Pay)
       window.paymentRequest.on('shippingoptionchange', function(ev) {
         console.log('📦 Shipping option changed:', ev.shippingOption);
         console.log('📦 Available shipping options:', ev.shippingOptions);
+        console.log('📦 Stored shipping options:', storedShippingOptions);
         console.log('📦 Shipping address:', ev.shippingAddress);
         console.log('📦 Current total from event:', ev.total);
         console.log('📦 Original total amount:', originalTotalAmount);
+        
+        // Use stored shipping options if ev.shippingOptions is undefined
+        const availableShippingOptions = ev.shippingOptions || storedShippingOptions || [];
+        console.log('📦 Using shipping options:', availableShippingOptions);
         
         // Check if user selected Express Shipping from dropdown before clicking Apple Pay
         let preferredShippingOption = null;
@@ -1667,9 +1679,9 @@
           let newShippingCost;
           
           if (typeof ev.shippingOption === 'string') {
-            // If it's an ID, find the option from ev.shippingOptions
-            if (ev.shippingOptions && ev.shippingOptions.length > 0) {
-              shippingOption = ev.shippingOptions.find(opt => opt.id === ev.shippingOption);
+            // If it's an ID, find the option from available shipping options
+            if (availableShippingOptions && availableShippingOptions.length > 0) {
+              shippingOption = availableShippingOptions.find(opt => opt.id === ev.shippingOption);
               if (shippingOption) {
                 newShippingCost = shippingOption.amount;
               }
@@ -1684,8 +1696,8 @@
             console.log('✅ Shipping option amount:', shippingOption.amount);
             
             // If user selected Express Shipping from dropdown but Apple Pay shows Free Shipping, override it
-            if (preferredShippingOption === 'express' && shippingOption.id === 'free' && ev.shippingOptions && ev.shippingOptions.length > 0) {
-              const expressOption = ev.shippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express'));
+            if (preferredShippingOption === 'express' && shippingOption.id === 'free' && availableShippingOptions && availableShippingOptions.length > 0) {
+              const expressOption = availableShippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express'));
               if (expressOption) {
                 console.log('🔄 Overriding Free Shipping with Express Shipping (user preference)');
                 shippingOption = expressOption;
@@ -1694,13 +1706,13 @@
             }
           }
           
-          // If we still don't have the shipping cost, try to get it from ev.shippingOptions array
-          if ((newShippingCost === undefined || newShippingCost === null) && ev.shippingOptions && Array.isArray(ev.shippingOptions) && ev.shippingOptions.length > 0) {
+          // If we still don't have the shipping cost, try to get it from available shipping options array
+          if ((newShippingCost === undefined || newShippingCost === null) && availableShippingOptions && Array.isArray(availableShippingOptions) && availableShippingOptions.length > 0) {
             console.log('⚠️ Shipping cost not found, trying to get from shippingOptions array');
-            console.log('⚠️ Available options:', ev.shippingOptions);
+            console.log('⚠️ Available options:', availableShippingOptions);
             // If user preferred Express, try to find it first
             if (preferredShippingOption === 'express') {
-              const expressOption = ev.shippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express'));
+              const expressOption = availableShippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express'));
               if (expressOption) {
                 shippingOption = expressOption;
                 newShippingCost = expressOption.amount;
@@ -1709,13 +1721,13 @@
             }
             // If still not found, use first non-free option or first option
             if (!shippingOption || newShippingCost === undefined || newShippingCost === null) {
-              const nonFreeOption = ev.shippingOptions.find(opt => opt.amount > 0);
+              const nonFreeOption = availableShippingOptions.find(opt => opt.amount > 0);
               if (nonFreeOption) {
                 shippingOption = nonFreeOption;
                 newShippingCost = nonFreeOption.amount;
                 console.log('✅ Using first non-free option:', nonFreeOption);
               } else {
-                shippingOption = ev.shippingOptions[0];
+                shippingOption = availableShippingOptions[0];
                 newShippingCost = shippingOption.amount;
                 console.log('⚠️ Using first shipping option from array:', shippingOption);
               }
@@ -1723,8 +1735,8 @@
           }
           
           // Final check: if user selected Express from dropdown but we got Free Shipping, force Express
-          if (preferredShippingOption === 'express' && newShippingCost === 0 && ev.shippingOptions && ev.shippingOptions.length > 0) {
-            const expressOption = ev.shippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express') || opt.amount > 0);
+          if (preferredShippingOption === 'express' && newShippingCost === 0 && availableShippingOptions && availableShippingOptions.length > 0) {
+            const expressOption = availableShippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express') || opt.amount > 0);
             if (expressOption) {
               console.log('🔄 FORCING Express Shipping (user selected Express from dropdown):', expressOption);
               shippingOption = expressOption;
@@ -1787,8 +1799,8 @@
             
             // IMPORTANT: Must return shippingOptions as well to keep them available
             // Try to get shippingOptions from the previous shippingaddresschange event
-            // If not available, use empty array (Apple Pay will handle it)
-            const shippingOptionsToReturn = ev.shippingOptions || [];
+            // If not available, use stored options or empty array
+            const shippingOptionsToReturn = ev.shippingOptions || storedShippingOptions || [];
             
             const updateData = {
               status: 'success',
