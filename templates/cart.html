@@ -88,14 +88,9 @@
     .cart-footer{ flex-direction:column; align-items:stretch; }
   }
   
-  /* Hide Apple Pay/Google Pay buttons on desktop, show only on mobile */
+  /* Show Apple Pay/Google Pay buttons on both desktop and mobile */
   #cart-payment-section {
-    display: none;
-  }
-  @media (max-width: 768px) {
-    #cart-payment-section {
-      display: block;
-    }
+    display: block;
   }
 </style>
 {% endblock %}
@@ -627,6 +622,9 @@
         return ALLOWED_COUNTRIES[country] === true;
       }
       
+      // Store shipping options from shippingaddresschange for use in shippingoptionchange
+      let storedShippingOptions = null;
+      
       const paymentRequest = stripe.paymentRequest({
         country: 'BG',
         currency: currentCurrency, // Use selected currency (usd, eur, or gbp)
@@ -656,9 +654,7 @@
           console.log('🌍 Cart - Selected country:', country);
           
           // Check if country is allowed
-          // TEMPORARY: Allow all countries for testing (remove in production)
-          const TEST_MODE = true; // Set to false in production
-          if (!TEST_MODE && !isCountryAllowed(country)) {
+          if (!isCountryAllowed(country)) {
             console.error('❌ Cart - Country not allowed:', country);
             ev.updateWith({
               status: 'fail',
@@ -669,7 +665,7 @@
             return;
           }
           
-          console.log('🌍 Cart - Testing mode: Country allowed for testing:', country);
+          console.log('✅ Cart - Country allowed:', country);
           
           // Get current currency and exchange rate
           const getCurrentCurrency = window.getCurrentCurrency || function() {
@@ -690,6 +686,62 @@
           const currentCurrency = getCurrentCurrency().toLowerCase();
           const exchangeRates = getExchangeRate();
           const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+          
+          // Check if user selected a shipping option from dropdown before clicking Apple Pay
+          let defaultShippingOption = null;
+          
+          // Always try to get directly from dropdown first (most reliable)
+          const shippingSelect = document.getElementById('shipping_option');
+          console.log('🔍 DEBUG Cart shippingaddresschange - Dropdown element:', shippingSelect);
+          console.log('🔍 DEBUG Cart shippingaddresschange - Dropdown value:', shippingSelect ? shippingSelect.value : 'N/A');
+          console.log('🔍 DEBUG Cart shippingaddresschange - Dropdown selectedIndex:', shippingSelect ? shippingSelect.selectedIndex : 'N/A');
+          console.log('🔍 DEBUG Cart shippingaddresschange - Stored option:', window.selectedShippingOptionForPayment);
+          
+          if (shippingSelect && shippingSelect.value) {
+            const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+            console.log('🔍 DEBUG Cart shippingaddresschange - Selected option:', selectedOption);
+            if (selectedOption && selectedOption.value) {
+              const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+              const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+              const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
+              const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
+              
+              defaultShippingOption = {
+                id: selectedOption.value,
+                label: shippingName,
+                amount: shippingCostInCents,
+                price: shippingPrice,
+              };
+              console.log('📦 Cart - Using pre-selected shipping option from dropdown (direct read):', defaultShippingOption);
+              console.log('📦 Cart - Dropdown selected value:', shippingSelect.value);
+              console.log('📦 Cart - Dropdown selected index:', shippingSelect.selectedIndex);
+              console.log('📦 Cart - Selected option text:', selectedOption.textContent);
+              console.log('📦 Cart - Shipping price (EUR):', shippingPrice);
+              console.log('📦 Cart - Shipping name:', shippingName);
+            } else {
+              console.log('⚠️ WARNING Cart - Selected option is invalid:', selectedOption);
+            }
+          } else {
+            console.log('⚠️ WARNING Cart - No shipping option selected in dropdown');
+          }
+          
+          // Fallback to stored option if dropdown doesn't have selection
+          if (!defaultShippingOption && window.selectedShippingOptionForPayment) {
+            defaultShippingOption = window.selectedShippingOptionForPayment;
+            console.log('📦 Cart - Using pre-selected shipping option from stored:', defaultShippingOption);
+          }
+          
+          if (defaultShippingOption) {
+            console.log('📦 Cart - Pre-selected option ID:', defaultShippingOption.id);
+            console.log('📦 Cart - Pre-selected option label:', defaultShippingOption.label);
+            console.log('📦 Cart - Pre-selected option price (EUR):', defaultShippingOption.price);
+            console.log('📦 Cart - Pre-selected option amount (cents):', defaultShippingOption.amount);
+          } else {
+            console.log('📦 Cart - No pre-selected shipping option found');
+            console.log('📦 Cart - Shipping select element:', shippingSelect);
+            console.log('📦 Cart - Shipping select value:', shippingSelect ? shippingSelect.value : 'N/A');
+            console.log('📦 Cart - Stored option:', window.selectedShippingOptionForPayment);
+          }
           
           // Determine shipping options based on country
           let shippingOptions = [];
@@ -714,8 +766,42 @@
               }
             ];
             
-            // Default to Standard Shipping
-            const defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+            // Use pre-selected option if available, otherwise default to Standard Shipping
+            let defaultTotal;
+            let selectedShippingId = null;
+            
+            if (defaultShippingOption) {
+              // Check if it's Express Shipping by price (19.99) or label
+              if (defaultShippingOption.price === 19.99 || 
+                  defaultShippingOption.price === 19.9900 || 
+                  Math.abs(defaultShippingOption.price - 19.99) < 0.01 ||
+                  defaultShippingOption.label === 'Express Shipping' ||
+                  defaultShippingOption.label.includes('Express')) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                selectedShippingId = 'express';
+                console.log('📦 Cart - Using pre-selected Express Shipping (matched by price or label)');
+              } else if (defaultShippingOption.price === 5.99 || 
+                         defaultShippingOption.price === 5.9900 || 
+                         Math.abs(defaultShippingOption.price - 5.99) < 0.01 ||
+                         defaultShippingOption.label === 'Standard Shipping' ||
+                         defaultShippingOption.label.includes('Standard')) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+                selectedShippingId = 'standard';
+                console.log('📦 Cart - Using pre-selected Standard Shipping (matched by price or label)');
+              } else {
+                defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+                selectedShippingId = 'standard';
+                console.log('📦 Cart - Could not match pre-selected option, defaulting to Standard Shipping');
+              }
+            } else {
+              defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+              selectedShippingId = 'standard';
+              console.log('📦 Cart - No pre-selected option, defaulting to Standard Shipping');
+            }
+            
+            // Store shipping options for use in shippingoptionchange
+            storedShippingOptions = shippingOptions;
+            
             ev.updateWith({
               status: 'success',
               total: {
@@ -723,14 +809,16 @@
                 amount: defaultTotal,
               },
               shippingOptions: shippingOptions,
+              ...(selectedShippingId && { shippingOption: selectedShippingId }), // Set default shipping option
             });
             
-            console.log('✅ Cart - Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100);
+            console.log('✅ Cart - Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
+            console.log('💾 Cart - Stored shipping options for shippingoptionchange:', storedShippingOptions);
           } else {
             // Other countries: Free Shipping ($0) and Express Shipping ($19.99)
             const freeCostEUR = 0;
             const expressCostEUR = 19.99;
-            const freeCost = Math.round(freeCostEUR * rate * 100);
+            const freeCost = Math.round(freeCostEUR * 100);
             const expressCost = Math.round(expressCostEUR * rate * 100);
             
             shippingOptions = [
@@ -746,8 +834,69 @@
               }
             ];
             
-            // Default to Free Shipping
-            const defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+            // Use pre-selected option if available, otherwise default to Free Shipping
+            let defaultTotal;
+            let selectedShippingId = null;
+            
+            if (defaultShippingOption) {
+              console.log('🔍 Cart - Matching defaultShippingOption:', defaultShippingOption);
+              console.log('🔍 Cart - Price:', defaultShippingOption.price);
+              console.log('🔍 Cart - Label:', defaultShippingOption.label);
+              console.log('🔍 Cart - Amount:', defaultShippingOption.amount);
+              console.log('🔍 Cart - Express cost to match:', expressCost);
+              
+              // Check if it's Express Shipping by price (19.99) or label or amount
+              const isExpress = defaultShippingOption.price === 19.99 || 
+                                defaultShippingOption.price === 19.9900 || 
+                                Math.abs(defaultShippingOption.price - 19.99) < 0.01 ||
+                                defaultShippingOption.label === 'Express Shipping' ||
+                                defaultShippingOption.label.includes('Express') ||
+                                defaultShippingOption.label.toLowerCase().includes('express') ||
+                                Math.abs(defaultShippingOption.amount - expressCost) < 50; // Match by amount (within 50 cents)
+              
+              const isFree = defaultShippingOption.price === 0 || 
+                             defaultShippingOption.price === 0.0 || 
+                             defaultShippingOption.price === 0.00 ||
+                             defaultShippingOption.label === 'Free Shipping' ||
+                             defaultShippingOption.label.includes('Free') ||
+                             defaultShippingOption.label.toLowerCase().includes('free') ||
+                             defaultShippingOption.amount === 0;
+              
+              console.log('🔍 Cart - Is Express?', isExpress);
+              console.log('🔍 Cart - Is Free?', isFree);
+              
+              if (isExpress) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                selectedShippingId = 'express';
+                console.log('✅ Cart - Using pre-selected Express Shipping (matched by price, label, or amount)');
+                console.log('📦 Cart - Express cost:', expressCost / 100);
+                console.log('📦 Cart - Original total:', originalTotalAmount);
+                console.log('📦 Cart - Default total:', defaultTotal / 100);
+              } else if (isFree) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+                selectedShippingId = 'free';
+                console.log('✅ Cart - Using pre-selected Free Shipping (matched by price or label)');
+              } else {
+                // If we can't match, default to Express if price is > 0, otherwise Free
+                if (defaultShippingOption.price > 0 || defaultShippingOption.amount > 0) {
+                  defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                  selectedShippingId = 'express';
+                  console.log('✅ Cart - Defaulting to Express Shipping (price > 0)');
+                } else {
+                  defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+                  selectedShippingId = 'free';
+                  console.log('⚠️ Cart - Could not match pre-selected option, defaulting to Free Shipping');
+                }
+              }
+            } else {
+              defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+              selectedShippingId = 'free';
+              console.log('⚠️ Cart - No pre-selected option, defaulting to Free Shipping');
+            }
+            
+            // Store shipping options for use in shippingoptionchange
+            storedShippingOptions = shippingOptions;
+            
             ev.updateWith({
               status: 'success',
               total: {
@@ -755,9 +904,11 @@
                 amount: defaultTotal,
               },
               shippingOptions: shippingOptions,
+              ...(selectedShippingId && { shippingOption: selectedShippingId }), // Set default shipping option
             });
             
-            console.log('✅ Cart - Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100);
+            console.log('✅ Cart - Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
+            console.log('💾 Cart - Stored shipping options for shippingoptionchange:', storedShippingOptions);
           }
         } else {
           ev.updateWith({ status: 'success' });
@@ -808,7 +959,8 @@
             
             // IMPORTANT: Must return shippingOptions as well to keep them available
             // Try to get shippingOptions from the previous shippingaddresschange event
-            const shippingOptionsToReturn = ev.shippingOptions || [];
+            // If not available, use stored options or empty array
+            const shippingOptionsToReturn = ev.shippingOptions || storedShippingOptions || [];
             
             const updateData = {
               status: 'success',
