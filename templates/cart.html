@@ -919,19 +919,40 @@
       paymentRequest.on('shippingoptionchange', function(ev) {
         console.log('📦 Cart - Shipping option changed:', ev.shippingOption);
         console.log('📦 Cart - Available shipping options:', ev.shippingOptions);
+        console.log('📦 Cart - Stored shipping options:', storedShippingOptions);
         console.log('📦 Cart - Shipping address:', ev.shippingAddress);
         console.log('📦 Cart - Current total from event:', ev.total);
         console.log('📦 Cart - Original total amount:', originalTotalAmount);
         
+        // Determine which shipping options array to use
+        const currentShippingOptions = ev.shippingOptions && ev.shippingOptions.length > 0 ? ev.shippingOptions : storedShippingOptions;
+        console.log('📦 Cart - Using shipping options:', currentShippingOptions);
+        
+        // Check if user selected Express Shipping from dropdown before clicking Apple Pay
+        let preferredShippingOption = null;
+        const shippingSelect = document.getElementById('shipping_option');
+        if (shippingSelect && shippingSelect.value) {
+          const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+          if (selectedOption && selectedOption.value) {
+            const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+            const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+            // Check if it's Express Shipping
+            if (shippingPrice === 19.99 || shippingName.includes('Express')) {
+              preferredShippingOption = 'express';
+              console.log('🎯 Cart - User selected Express Shipping from dropdown, preferring Express in Apple Pay');
+            }
+          }
+        }
+        
         if (ev.shippingOption) {
-          // ev.shippingOption is the selected option object (not an ID)
+          // ev.shippingOption can be either an ID (string) or the full option object
           let shippingOption;
           let newShippingCost;
           
           if (typeof ev.shippingOption === 'string') {
-            // If it's an ID string, try to find it in ev.shippingOptions
-            if (ev.shippingOptions && Array.isArray(ev.shippingOptions) && ev.shippingOptions.length > 0) {
-              shippingOption = ev.shippingOptions.find(opt => opt.id === ev.shippingOption);
+            // If it's an ID, find the option from currentShippingOptions
+            if (currentShippingOptions && currentShippingOptions.length > 0) {
+              shippingOption = currentShippingOptions.find(opt => opt.id === ev.shippingOption);
               if (shippingOption) {
                 newShippingCost = shippingOption.amount;
               }
@@ -941,11 +962,63 @@
             shippingOption = ev.shippingOption;
             newShippingCost = shippingOption.amount;
             console.log('✅ Cart - Found shipping option object:', shippingOption);
+            console.log('✅ Cart - Shipping option ID:', shippingOption.id);
+            console.log('✅ Cart - Shipping option label:', shippingOption.label);
+            console.log('✅ Cart - Shipping option amount:', shippingOption.amount);
+            
+            // If user selected Express Shipping from dropdown but Apple Pay shows Free Shipping, override it
+            if (preferredShippingOption === 'express' && shippingOption.id === 'free' && currentShippingOptions && currentShippingOptions.length > 0) {
+              const expressOption = currentShippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express'));
+              if (expressOption) {
+                console.log('🔄 Cart - FORCING Express Shipping (user preference)');
+                shippingOption = expressOption;
+                newShippingCost = expressOption.amount;
+              }
+            }
           }
           
           if (newShippingCost !== undefined && newShippingCost !== null) {
-            // Calculate base total (without shipping) - use originalTotalAmount directly
-            const baseTotal = Math.round(originalTotalAmount * 100);
+            // Calculate base total (without shipping) - get subtotal from DOM or use originalTotalAmount
+            let baseTotal;
+            
+            // Try to get subtotal from DOM element first (most reliable)
+            const subtotalDisplay = document.querySelector('.cart-footer h3 span[data-eur-price]');
+            if (subtotalDisplay) {
+              const subtotalAttr = subtotalDisplay.getAttribute('data-eur-price');
+              if (subtotalAttr) {
+                const subtotalValue = parseFloat(subtotalAttr);
+                if (!isNaN(subtotalValue) && subtotalValue > 0) {
+                  // Convert to current currency
+                  const getCurrentCurrency = window.getCurrentCurrency || function() {
+                    return localStorage.getItem('selectedCurrency') || 'EUR';
+                  };
+                  const getExchangeRate = function() {
+                    try {
+                      const cached = localStorage.getItem('exchangeRatesCache');
+                      if (cached) {
+                        const rates = JSON.parse(cached);
+                        return rates;
+                      }
+                    } catch (e) {
+                      console.warn('Could not load exchange rates from cache');
+                    }
+                    return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+                  };
+                  const currentCurrency = getCurrentCurrency().toLowerCase();
+                  const exchangeRates = getExchangeRate();
+                  const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+                  const subtotalInCurrency = subtotalValue * rate;
+                  baseTotal = Math.round(subtotalInCurrency * 100);
+                  console.log('📦 Cart - Using subtotal from DOM:', subtotalValue, 'EUR, converted to', subtotalInCurrency, currentCurrency.toUpperCase());
+                }
+              }
+            }
+            
+            // Fallback to originalTotalAmount if DOM value not available
+            if (!baseTotal) {
+              baseTotal = Math.round(originalTotalAmount * 100);
+              console.log('📦 Cart - Using originalTotalAmount:', originalTotalAmount);
+            }
             
             // Calculate final total: base total + new shipping cost
             const finalTotal = baseTotal + newShippingCost;
@@ -958,9 +1031,7 @@
             console.log('📦 Cart - Final total in cents:', finalTotal);
             
             // IMPORTANT: Must return shippingOptions as well to keep them available
-            // Try to get shippingOptions from the previous shippingaddresschange event
-            // If not available, use stored options or empty array
-            const shippingOptionsToReturn = ev.shippingOptions || storedShippingOptions || [];
+            const shippingOptionsToReturn = currentShippingOptions || [];
             
             const updateData = {
               status: 'success',
