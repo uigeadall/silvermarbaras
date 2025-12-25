@@ -1536,6 +1536,7 @@
                 amount: defaultTotal,
               },
               shippingOptions: shippingOptions,
+              ...(selectedShippingId && { shippingOption: selectedShippingId }), // Set default shipping option
             });
             
             console.log('✅ Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
@@ -1626,6 +1627,7 @@
                 amount: defaultTotal,
               },
               shippingOptions: shippingOptions,
+              ...(selectedShippingId && { shippingOption: selectedShippingId }), // Set default shipping option
             });
             
             console.log('✅ Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
