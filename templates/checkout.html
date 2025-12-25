@@ -1644,9 +1644,6 @@
         }
       });
       
-      // Store shipping options from shippingaddresschange for use in shippingoptionchange
-      let storedShippingOptions = null;
-      
       // Handle shipping option change (when user selects different shipping option in Apple Pay)
       window.paymentRequest.on('shippingoptionchange', function(ev) {
         console.log('📦 Shipping option changed:', ev.shippingOption);
