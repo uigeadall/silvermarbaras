@@ -837,6 +837,41 @@
       filterShippingOptions();
     });
     
+    // Function to update Payment Request when shipping option changes
+    function updatePaymentRequestShipping() {
+      if (!window.paymentRequest) return;
+      
+      const selectedOption = shippingSelect?.options[shippingSelect?.selectedIndex];
+      if (selectedOption && selectedOption.value) {
+        const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+        const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+        
+        // Get current currency
+        const getCurrentCurrency = window.getCurrentCurrency || function() {
+          return localStorage.getItem('selectedCurrency') || 'EUR';
+        };
+        const currentCurrency = getCurrentCurrency().toLowerCase();
+        
+        // Convert shipping cost to current currency
+        const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
+        const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
+        
+        // Store selected shipping option globally for use in shippingaddresschange handler
+        window.selectedShippingOptionForPayment = {
+          id: selectedOption.value,
+          label: shippingName,
+          amount: shippingCostInCents,
+          price: shippingPrice, // Store original EUR price for comparison
+        };
+        
+        console.log('🔄 Updated Payment Request shipping option:', window.selectedShippingOptionForPayment);
+      } else {
+        // Clear selection if no option selected
+        window.selectedShippingOptionForPayment = null;
+        console.log('🔄 Cleared Payment Request shipping option');
+      }
+    }
+    
     // Function to update shipping options display with current currency
     function updateShippingOptionsCurrency() {
       if (!shippingSelect) return;
@@ -1328,6 +1363,9 @@
           if (window.selectedShippingOptionForPayment) {
             defaultShippingOption = window.selectedShippingOptionForPayment;
             console.log('📦 Using pre-selected shipping option from dropdown:', defaultShippingOption);
+            console.log('📦 Pre-selected option ID:', defaultShippingOption.id);
+            console.log('📦 Pre-selected option label:', defaultShippingOption.label);
+            console.log('📦 Pre-selected option price (EUR):', defaultShippingOption.price);
           }
           
           // Determine shipping options based on country
@@ -1354,17 +1392,39 @@
             ];
             
             // Use pre-selected option if available, otherwise default to Standard Shipping
+            // Check by price (most reliable) or by label
             let defaultTotal;
-            if (defaultShippingOption && (defaultShippingOption.id === 'standard' || defaultShippingOption.label === 'Standard Shipping')) {
-              defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
-              console.log('📦 Using pre-selected Standard Shipping');
-            } else if (defaultShippingOption && (defaultShippingOption.id === 'express' || defaultShippingOption.label === 'Express Shipping')) {
-              defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
-              console.log('📦 Using pre-selected Express Shipping');
+            let selectedShippingId = null;
+            
+            if (defaultShippingOption) {
+              // Check if it's Express Shipping by price (19.99) or label
+              if (defaultShippingOption.price === 19.99 || 
+                  defaultShippingOption.price === 19.9900 || 
+                  Math.abs(defaultShippingOption.price - 19.99) < 0.01 ||
+                  defaultShippingOption.label === 'Express Shipping' ||
+                  defaultShippingOption.label.includes('Express')) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                selectedShippingId = 'express';
+                console.log('📦 Using pre-selected Express Shipping (matched by price or label)');
+              } else if (defaultShippingOption.price === 5.99 || 
+                         defaultShippingOption.price === 5.9900 || 
+                         Math.abs(defaultShippingOption.price - 5.99) < 0.01 ||
+                         defaultShippingOption.label === 'Standard Shipping' ||
+                         defaultShippingOption.label.includes('Standard')) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+                selectedShippingId = 'standard';
+                console.log('📦 Using pre-selected Standard Shipping (matched by price or label)');
+              } else {
+                defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+                selectedShippingId = 'standard';
+                console.log('📦 Could not match pre-selected option, defaulting to Standard Shipping');
+              }
             } else {
               defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
-              console.log('📦 Defaulting to Standard Shipping');
+              selectedShippingId = 'standard';
+              console.log('📦 No pre-selected option, defaulting to Standard Shipping');
             }
+            
             ev.updateWith({
               status: 'success',
               total: {
@@ -1374,7 +1434,7 @@
               shippingOptions: shippingOptions,
             });
             
-            console.log('✅ Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100);
+            console.log('✅ Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
           } else {
             // Other countries: Free Shipping ($0) and Express Shipping ($19.99)
             const freeCostEUR = 0;
@@ -1396,16 +1456,37 @@
             ];
             
             // Use pre-selected option if available, otherwise default to Free Shipping
+            // Check by price (most reliable) or by label
             let defaultTotal;
-            if (defaultShippingOption && (defaultShippingOption.id === 'express' || defaultShippingOption.label === 'Express Shipping')) {
-              defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
-              console.log('📦 Using pre-selected Express Shipping');
-            } else if (defaultShippingOption && (defaultShippingOption.id === 'free' || defaultShippingOption.label === 'Free Shipping')) {
-              defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
-              console.log('📦 Using pre-selected Free Shipping');
+            let selectedShippingId = null;
+            
+            if (defaultShippingOption) {
+              // Check if it's Express Shipping by price (19.99) or label
+              if (defaultShippingOption.price === 19.99 || 
+                  defaultShippingOption.price === 19.9900 || 
+                  Math.abs(defaultShippingOption.price - 19.99) < 0.01 ||
+                  defaultShippingOption.label === 'Express Shipping' ||
+                  defaultShippingOption.label.includes('Express')) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                selectedShippingId = 'express';
+                console.log('📦 Using pre-selected Express Shipping (matched by price or label)');
+              } else if (defaultShippingOption.price === 0 || 
+                         defaultShippingOption.price === 0.0 || 
+                         defaultShippingOption.price === 0.00 ||
+                         defaultShippingOption.label === 'Free Shipping' ||
+                         defaultShippingOption.label.includes('Free')) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+                selectedShippingId = 'free';
+                console.log('📦 Using pre-selected Free Shipping (matched by price or label)');
+              } else {
+                defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+                selectedShippingId = 'free';
+                console.log('📦 Could not match pre-selected option, defaulting to Free Shipping');
+              }
             } else {
               defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
-              console.log('📦 Defaulting to Free Shipping');
+              selectedShippingId = 'free';
+              console.log('📦 No pre-selected option, defaulting to Free Shipping');
             }
           ev.updateWith({
             status: 'success',
@@ -1416,7 +1497,7 @@
               shippingOptions: shippingOptions,
             });
             
-            console.log('✅ Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100);
+            console.log('✅ Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
           }
         } else {
           ev.updateWith({ status: 'success' });
