@@ -1122,13 +1122,43 @@
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       console.log('📱 Device type:', isMobile ? 'Mobile' : 'Desktop');
       
+      // Get selected shipping option from dropdown (if any)
+      let selectedShippingOption = null;
+      let selectedShippingCost = 0;
+      const shippingSelect = document.getElementById('shipping_option');
+      if (shippingSelect && shippingSelect.value) {
+        const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+          const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+          const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+          selectedShippingCost = shippingPrice;
+          // Convert shipping cost to current currency
+          const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
+          const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
+          
+          selectedShippingOption = {
+            id: selectedOption.value,
+            label: shippingName,
+            amount: shippingCostInCents,
+          };
+          console.log('📦 Selected shipping option from dropdown:', selectedShippingOption);
+          console.log('📦 Shipping cost in EUR:', shippingPrice);
+          console.log('📦 Shipping cost in', currentCurrency.toUpperCase() + ':', shippingCostInCurrency);
+          console.log('📦 Shipping cost in cents:', shippingCostInCents);
+        }
+      }
+      
+      // Calculate initial total (subtotal + selected shipping if any)
+      const initialTotal = Math.round(totalAmount * 100) + (selectedShippingOption ? selectedShippingOption.amount : 0);
+      console.log('📦 Initial total (subtotal + shipping):', initialTotal / 100);
+      
       // Only create Payment Request if amount is valid
       window.paymentRequest = stripe.paymentRequest({
         country: 'BG', // Bulgaria
         currency: currentCurrency, // Use selected currency (usd, eur, or gbp)
         total: {
           label: 'Total',
-          amount: Math.round(totalAmount * 100), // Convert to cents in selected currency
+          amount: initialTotal, // Include selected shipping if any
         },
         requestPayerName: true,
         requestPayerEmail: true,
@@ -1139,7 +1169,7 @@
           shippingAddressRequired: true,
         }),
       });
-      console.log('✅ Payment Request object created');
+      console.log('✅ Payment Request object created with initial total:', initialTotal / 100);
 
       const paymentRequestButton = elements.create('paymentRequestButton', {
         paymentRequest: window.paymentRequest,
