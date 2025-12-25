@@ -820,12 +820,16 @@
       {% endif %}
     }
 
-    shippingSelect?.addEventListener('change', updateTotal);
+    shippingSelect?.addEventListener('change', function() {
+      updateTotal();
+      updatePaymentRequestShipping();
+    });
     countrySelect?.addEventListener('change', function() {
       filterShippingOptions();
       // Reset selection when country changes
       shippingSelect.value = '';
       updateTotal();
+      updatePaymentRequestShipping();
     });
     
     // Also filter when country field gets focus/blur to handle pre-filled values
@@ -1311,6 +1315,13 @@
           const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
           const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
           
+          // Check if user selected a shipping option from dropdown before clicking Apple Pay
+          let defaultShippingOption = null;
+          if (window.selectedShippingOptionForPayment) {
+            defaultShippingOption = window.selectedShippingOptionForPayment;
+            console.log('📦 Using pre-selected shipping option from dropdown:', defaultShippingOption);
+          }
+          
           // Determine shipping options based on country
           let shippingOptions = [];
           
@@ -1334,8 +1345,18 @@
               }
             ];
             
-            // Default to Standard Shipping
-            const defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+            // Use pre-selected option if available, otherwise default to Standard Shipping
+            let defaultTotal;
+            if (defaultShippingOption && (defaultShippingOption.id === 'standard' || defaultShippingOption.label === 'Standard Shipping')) {
+              defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+              console.log('📦 Using pre-selected Standard Shipping');
+            } else if (defaultShippingOption && (defaultShippingOption.id === 'express' || defaultShippingOption.label === 'Express Shipping')) {
+              defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+              console.log('📦 Using pre-selected Express Shipping');
+            } else {
+              defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+              console.log('📦 Defaulting to Standard Shipping');
+            }
             ev.updateWith({
               status: 'success',
               total: {
@@ -1345,12 +1366,12 @@
               shippingOptions: shippingOptions,
             });
             
-            console.log('✅ Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100);
+            console.log('✅ Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100);
           } else {
             // Other countries: Free Shipping ($0) and Express Shipping ($19.99)
             const freeCostEUR = 0;
             const expressCostEUR = 19.99;
-            const freeCost = Math.round(freeCostEUR * rate * 100);
+            const freeCost = Math.round(freeCostEUR * 100);
             const expressCost = Math.round(expressCostEUR * rate * 100);
             
             shippingOptions = [
@@ -1366,8 +1387,18 @@
               }
             ];
             
-            // Default to Free Shipping
-            const defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+            // Use pre-selected option if available, otherwise default to Free Shipping
+            let defaultTotal;
+            if (defaultShippingOption && (defaultShippingOption.id === 'express' || defaultShippingOption.label === 'Express Shipping')) {
+              defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+              console.log('📦 Using pre-selected Express Shipping');
+            } else if (defaultShippingOption && (defaultShippingOption.id === 'free' || defaultShippingOption.label === 'Free Shipping')) {
+              defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+              console.log('📦 Using pre-selected Free Shipping');
+            } else {
+              defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+              console.log('📦 Defaulting to Free Shipping');
+            }
           ev.updateWith({
             status: 'success',
             total: {
@@ -1377,7 +1408,7 @@
               shippingOptions: shippingOptions,
             });
             
-            console.log('✅ Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100);
+            console.log('✅ Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100);
           }
         } else {
           ev.updateWith({ status: 'success' });
