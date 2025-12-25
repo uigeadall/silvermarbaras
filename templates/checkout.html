@@ -1315,22 +1315,46 @@
         console.log('📦 Current total from event:', ev.total);
         console.log('📦 Original total amount:', originalTotalAmount);
         
-        if (ev.shippingOption && ev.shippingOptions) {
-          const selectedOptionId = ev.shippingOption;
+        if (ev.shippingOption) {
+          // ev.shippingOption can be either an ID (string) or the full option object
+          let shippingOption;
+          let newShippingCost;
           
-          // Find the selected shipping option from the available options
-          const shippingOption = ev.shippingOptions.find(opt => opt.id === selectedOptionId);
+          if (typeof ev.shippingOption === 'string') {
+            // If it's an ID, find the option from ev.shippingOptions
+            if (ev.shippingOptions && ev.shippingOptions.length > 0) {
+              shippingOption = ev.shippingOptions.find(opt => opt.id === ev.shippingOption);
+              if (shippingOption) {
+                newShippingCost = shippingOption.amount;
+              }
+            }
+          } else if (ev.shippingOption && typeof ev.shippingOption === 'object') {
+            // If it's already the option object, use it directly
+            shippingOption = ev.shippingOption;
+            newShippingCost = shippingOption.amount;
+          }
           
-          if (shippingOption) {
-            // Use the amount directly from the shipping option (already in correct currency)
-            const newShippingCost = shippingOption.amount;
+          if (newShippingCost !== undefined) {
+            // Get current total from event (which includes old shipping)
+            const currentTotal = ev.total ? ev.total.amount : Math.round(originalTotalAmount * 100);
             
-            // Calculate base total (without shipping) - this is the original order total
-            const baseTotal = Math.round(originalTotalAmount * 100);
+            // Calculate base total (without shipping) by subtracting old shipping from current total
+            // If we don't have current total, use originalTotalAmount directly
+            let baseTotal;
+            if (ev.total && ev.total.amount) {
+              // Try to find old shipping cost by checking all options
+              // The old shipping is the difference between current total and original total
+              const oldShippingCost = currentTotal - Math.round(originalTotalAmount * 100);
+              baseTotal = currentTotal - oldShippingCost;
+            } else {
+              // Fallback: use originalTotalAmount directly
+              baseTotal = Math.round(originalTotalAmount * 100);
+            }
             
             // Calculate final total: base total + new shipping cost
             const finalTotal = baseTotal + newShippingCost;
             
+            console.log('📦 Current total (with old shipping):', currentTotal / 100);
             console.log('📦 Base total (without shipping):', baseTotal / 100);
             console.log('📦 New shipping cost:', newShippingCost / 100);
             console.log('📦 Final total:', finalTotal / 100);
@@ -1344,7 +1368,7 @@
                 label: 'Total',
                 amount: finalTotal, // Already in cents
               },
-              shippingOptions: ev.shippingOptions, // Keep existing shipping options
+              shippingOptions: ev.shippingOptions || [], // Keep existing shipping options or empty array
             };
             
             console.log('📦 Calling ev.updateWith with:', JSON.stringify(updateData, null, 2));
@@ -1352,7 +1376,7 @@
             // Call updateWith synchronously
             ev.updateWith(updateData);
             
-            console.log('✅ Updated total with shipping option:', shippingOption.label, 'Cost:', newShippingCost / 100, 'Total:', finalTotal / 100);
+            console.log('✅ Updated total with shipping option:', shippingOption ? shippingOption.label : 'Unknown', 'Cost:', newShippingCost / 100, 'Total:', finalTotal / 100);
           } else {
             // Fallback: calculate based on option ID
             // Get exchange rate for currency conversion
