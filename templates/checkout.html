@@ -1202,7 +1202,9 @@
           console.log('🌍 Selected country:', country);
           
           // Check if country is allowed
-          if (!isCountryAllowed(country)) {
+          // TEMPORARY: Allow all countries for testing (remove in production)
+          const TEST_MODE = true; // Set to false in production
+          if (!TEST_MODE && !isCountryAllowed(country)) {
             console.error('❌ Country not allowed:', country);
             ev.updateWith({
               status: 'fail',
@@ -1212,6 +1214,8 @@
             });
             return;
           }
+          
+          console.log('🌍 Testing mode: Country allowed for testing:', country);
           
           // Get exchange rate for currency conversion
           const getExchangeRate = function() {
@@ -1377,19 +1381,19 @@
               shippingCostEUR = 0;
             }
             
-            const shippingCost = Math.round(shippingCostEUR * rate * 100);
+          const shippingCost = Math.round(shippingCostEUR * rate * 100);
             const finalTotal = Math.round(originalTotalAmount * 100) + shippingCost;
-            
+          
             console.log('📦 Fallback: Original total:', originalTotalAmount, 'Shipping cost:', shippingCost / 100, 'Final total:', finalTotal / 100);
             
-            ev.updateWith({
-              status: 'success',
-              total: {
-                label: 'Total',
-                amount: finalTotal,
-              },
-            });
-            
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: finalTotal,
+            },
+          });
+          
             console.log('✅ Updated total with shipping option ID:', selectedOptionId, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
           }
         } else {

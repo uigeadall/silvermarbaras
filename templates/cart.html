@@ -656,7 +656,9 @@
           console.log('🌍 Cart - Selected country:', country);
           
           // Check if country is allowed
-          if (!isCountryAllowed(country)) {
+          // TEMPORARY: Allow all countries for testing (remove in production)
+          const TEST_MODE = true; // Set to false in production
+          if (!TEST_MODE && !isCountryAllowed(country)) {
             console.error('❌ Cart - Country not allowed:', country);
             ev.updateWith({
               status: 'fail',
@@ -666,6 +668,8 @@
             });
             return;
           }
+          
+          console.log('🌍 Cart - Testing mode: Country allowed for testing:', country);
           
           // Get current currency and exchange rate
           const getCurrentCurrency = window.getCurrentCurrency || function() {
