@@ -1375,34 +1375,78 @@
                 newShippingCost = shippingOption.amount;
               }
             }
-          } else if (ev.shippingOption && typeof ev.shippingOption === 'object') {
-            // If it's already the option object, use it directly
+          } else if (ev.shippingOption && typeof ev.shippingOption === 'object' && ev.shippingOption.amount !== undefined) {
+            // If it's already the option object (most common case), use it directly
             shippingOption = ev.shippingOption;
             newShippingCost = shippingOption.amount;
+            console.log('✅ Found shipping option object:', shippingOption);
           }
           
-          if (newShippingCost !== undefined) {
-            // Calculate base total (without shipping) - this is the original subtotal
-            // originalTotalAmount is already the subtotal (without shipping) in the selected currency
-            const baseTotal = Math.round(originalTotalAmount * 100);
+          if (newShippingCost !== undefined && newShippingCost !== null) {
+            // Calculate base total (without shipping) - get subtotal from DOM or use originalTotalAmount
+            let baseTotal;
+            
+            // Try to get subtotal from DOM element first (most reliable)
+            const subtotalDisplay = document.querySelector('.totals .row:first-child span[data-eur-price]');
+            if (subtotalDisplay) {
+              const subtotalAttr = subtotalDisplay.getAttribute('data-eur-price');
+              if (subtotalAttr) {
+                const subtotalValue = parseFloat(subtotalAttr);
+                if (!isNaN(subtotalValue) && subtotalValue > 0) {
+                  // Convert to current currency
+                  const getCurrentCurrency = window.getCurrentCurrency || function() {
+                    return localStorage.getItem('selectedCurrency') || 'EUR';
+                  };
+                  const getExchangeRate = function() {
+                    try {
+                      const cached = localStorage.getItem('exchangeRatesCache');
+                      if (cached) {
+                        const rates = JSON.parse(cached);
+                        return rates;
+                      }
+                    } catch (e) {
+                      console.warn('Could not load exchange rates from cache');
+                    }
+                    return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+                  };
+                  const currentCurrency = getCurrentCurrency().toLowerCase();
+                  const exchangeRates = getExchangeRate();
+                  const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+                  const subtotalInCurrency = subtotalValue * rate;
+                  baseTotal = Math.round(subtotalInCurrency * 100);
+                  console.log('📦 Using subtotal from DOM:', subtotalValue, 'EUR, converted to', subtotalInCurrency, currentCurrency.toUpperCase());
+                }
+              }
+            }
+            
+            // Fallback to originalTotalAmount if DOM value not available
+            if (!baseTotal) {
+              baseTotal = Math.round(originalTotalAmount * 100);
+              console.log('📦 Using originalTotalAmount:', originalTotalAmount);
+            }
             
             // Calculate final total: base total + new shipping cost
             const finalTotal = baseTotal + newShippingCost;
             
             console.log('📦 Base total (without shipping):', baseTotal / 100);
+            console.log('📦 Base total in cents:', baseTotal);
             console.log('📦 New shipping cost:', newShippingCost / 100);
+            console.log('📦 New shipping cost in cents:', newShippingCost);
             console.log('📦 Final total:', finalTotal / 100);
             console.log('📦 Final total in cents:', finalTotal);
             
             // IMPORTANT: Must return shippingOptions as well to keep them available
-            // The amount must be an integer (in cents)
+            // Try to get shippingOptions from the previous shippingaddresschange event
+            // If not available, use empty array (Apple Pay will handle it)
+            const shippingOptionsToReturn = ev.shippingOptions || [];
+            
             const updateData = {
               status: 'success',
               total: {
                 label: 'Total',
                 amount: finalTotal, // Already in cents
               },
-              shippingOptions: ev.shippingOptions || [], // Keep existing shipping options or empty array
+              shippingOptions: shippingOptionsToReturn, // Keep existing shipping options
             };
             
             console.log('📦 Calling ev.updateWith with:', JSON.stringify(updateData, null, 2));
