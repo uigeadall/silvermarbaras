@@ -1875,10 +1875,28 @@
           console.log('Payer Address:', ev.payerAddress);
           console.log('Full event object keys:', Object.keys(ev));
           
-          // Prepare shipping data for Stripe
+          // Prepare shipping data for Stripe and validate country
           let shippingData = null;
+          let shippingCountry = null;
+          
           if (ev.shippingAddress) {
             const addr = ev.shippingAddress;
+            shippingCountry = addr.country;
+            
+            // Validate country before processing payment
+            if (!isCountryAllowed(shippingCountry)) {
+              console.error('❌ Country not allowed for payment:', shippingCountry);
+              ev.complete('fail');
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
+              return;
+            }
+            
             shippingData = {
               name: ev.payerName || '',
               phone: ev.payerPhone || '',
@@ -1890,7 +1908,54 @@
                 country: addr.country || '',
               }
             };
+            console.log('✅ Country validated for payment:', shippingCountry);
             console.log('Shipping data prepared:', shippingData);
+          } else if (ev.payerAddress && ev.payerAddress.country) {
+            // Fallback to payer address if shipping address is not available
+            shippingCountry = ev.payerAddress.country;
+            if (!isCountryAllowed(shippingCountry)) {
+              console.error('❌ Country not allowed for payment:', shippingCountry);
+              ev.complete('fail');
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
+              return;
+            }
+            console.log('✅ Country validated for payment (from payer address):', shippingCountry);
+          } else {
+            // No shipping address available - check country from form
+            const countryField = document.getElementById('country');
+            if (countryField && countryField.value) {
+              shippingCountry = countryField.value;
+              if (!isCountryAllowed(shippingCountry)) {
+                console.error('❌ Country not allowed for payment:', shippingCountry);
+                ev.complete('fail');
+                const cardErrors = document.getElementById('card-errors');
+                if (cardErrors) {
+                  cardErrors.textContent = 'We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.';
+                  cardErrors.style.display = 'block';
+                  cardErrors.style.color = 'red';
+                }
+                alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
+                return;
+              }
+              console.log('✅ Country validated for payment (from form):', shippingCountry);
+            } else {
+              console.error('❌ No country information available for payment validation');
+              ev.complete('fail');
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'Please select a shipping country before completing payment.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('Please select a shipping country before completing payment.');
+              return;
+            }
           }
           
           // Confirm payment with PaymentIntent using the payment method from Apple Pay/Google Pay
@@ -1982,18 +2047,20 @@
             });
             
             // Validate country before proceeding
-            // TEMPORARY: Allow all countries for testing (remove in production)
-            const TEST_MODE_PAYMENT = true; // Set to false in production
-            if (!TEST_MODE_PAYMENT && !isCountryAllowed(country)) {
+            if (!isCountryAllowed(country)) {
               console.error('❌ Country not allowed:', country);
               ev.complete('fail');
-              document.getElementById('card-errors').textContent = 'We do not ship to ' + (country || 'this country') + '. Please select a country from the allowed list.';
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'We do not ship to ' + (country || 'this country') + '. Please select a country from the allowed list.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('We do not ship to ' + (country || 'this country') + '. Please select a country from the allowed list.');
               return;
             }
             
-            if (TEST_MODE_PAYMENT && country) {
-              console.log('🌍 Testing mode: Country allowed for testing:', country);
-            }
+            console.log('✅ Country validated:', country);
             
             if (addr.addressLine && addr.addressLine.length > 0 && addressField) {
               const addressLine = addr.addressLine.join(', ');
