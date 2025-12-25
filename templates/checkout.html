@@ -1387,9 +1387,7 @@
           console.log('🌍 Selected country:', country);
           
           // Check if country is allowed
-          // TEMPORARY: Allow all countries for testing (remove in production)
-          const TEST_MODE = true; // Set to false in production
-          if (!TEST_MODE && !isCountryAllowed(country)) {
+          if (!isCountryAllowed(country)) {
             console.error('❌ Country not allowed:', country);
             ev.updateWith({
               status: 'fail',
@@ -1400,7 +1398,7 @@
             return;
           }
           
-          console.log('🌍 Testing mode: Country allowed for testing:', country);
+          console.log('✅ Country allowed:', country);
           
           // Get exchange rate for currency conversion
           const getExchangeRate = function() {
