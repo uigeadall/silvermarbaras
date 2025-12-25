@@ -1152,9 +1152,17 @@
         }
       }
       
+      // Store selected shipping option globally for use in shippingaddresschange handler
+      if (selectedShippingOption) {
+        window.selectedShippingOptionForPayment = selectedShippingOption;
+        console.log('💾 Stored selected shipping option for Payment Request:', selectedShippingOption);
+      }
+      
       // Calculate initial total (subtotal + selected shipping if any)
       const initialTotal = Math.round(totalAmount * 100) + (selectedShippingOption ? selectedShippingOption.amount : 0);
       console.log('📦 Initial total (subtotal + shipping):', initialTotal / 100);
+      console.log('📦 Subtotal:', totalAmount);
+      console.log('📦 Shipping cost:', selectedShippingOption ? selectedShippingOption.amount / 100 : 0);
       
       // Only create Payment Request if amount is valid
       window.paymentRequest = stripe.paymentRequest({
