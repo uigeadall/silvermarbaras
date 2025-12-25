@@ -1273,6 +1273,26 @@
       console.log('Checking Payment Request availability...');
       console.log('User agent:', navigator.userAgent);
       console.log('Is HTTPS:', window.location.protocol === 'https:');
+      
+      // Add click handler to Apple Pay button to log state before opening
+      setTimeout(function() {
+        const applePayButton = document.querySelector('#payment-request-button-container button');
+        if (applePayButton) {
+          applePayButton.addEventListener('click', function(e) {
+            console.log('🍎 APPLE PAY BUTTON CLICKED - Checking state...');
+            const shippingSelect = document.getElementById('shipping_option');
+            console.log('🍎 Dropdown value:', shippingSelect ? shippingSelect.value : 'N/A');
+            console.log('🍎 Dropdown selectedIndex:', shippingSelect ? shippingSelect.selectedIndex : 'N/A');
+            console.log('🍎 Stored option:', window.selectedShippingOptionForPayment);
+            if (shippingSelect && shippingSelect.selectedIndex >= 0 && shippingSelect.selectedIndex < shippingSelect.options.length) {
+              const selectedOpt = shippingSelect.options[shippingSelect.selectedIndex];
+              console.log('🍎 Selected option text:', selectedOpt ? selectedOpt.textContent : 'N/A');
+              console.log('🍎 Selected option data-price:', selectedOpt ? selectedOpt.getAttribute('data-price') : 'N/A');
+              console.log('🍎 Selected option data-name:', selectedOpt ? selectedOpt.getAttribute('data-name') : 'N/A');
+            }
+          }, true); // Use capture phase to catch before Stripe handles it
+        }
+      }, 1000);
 
       // Check if Payment Request is available (Apple Pay / Google Pay)
       window.paymentRequest.canMakePayment().then(function(result) {
