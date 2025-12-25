@@ -1336,26 +1336,13 @@
           }
           
           if (newShippingCost !== undefined) {
-            // Get current total from event (which includes old shipping)
-            const currentTotal = ev.total ? ev.total.amount : Math.round(originalTotalAmount * 100);
-            
-            // Calculate base total (without shipping) by subtracting old shipping from current total
-            // If we don't have current total, use originalTotalAmount directly
-            let baseTotal;
-            if (ev.total && ev.total.amount) {
-              // Try to find old shipping cost by checking all options
-              // The old shipping is the difference between current total and original total
-              const oldShippingCost = currentTotal - Math.round(originalTotalAmount * 100);
-              baseTotal = currentTotal - oldShippingCost;
-            } else {
-              // Fallback: use originalTotalAmount directly
-              baseTotal = Math.round(originalTotalAmount * 100);
-            }
+            // Calculate base total (without shipping) - this is the original subtotal
+            // originalTotalAmount is already the subtotal (without shipping) in the selected currency
+            const baseTotal = Math.round(originalTotalAmount * 100);
             
             // Calculate final total: base total + new shipping cost
             const finalTotal = baseTotal + newShippingCost;
             
-            console.log('📦 Current total (with old shipping):', currentTotal / 100);
             console.log('📦 Base total (without shipping):', baseTotal / 100);
             console.log('📦 New shipping cost:', newShippingCost / 100);
             console.log('📦 Final total:', finalTotal / 100);
