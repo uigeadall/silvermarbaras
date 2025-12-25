@@ -1520,11 +1520,17 @@
             });
             
             // Validate country before proceeding
-            if (!isCountryAllowed(country)) {
+            // TEMPORARY: Allow all countries for testing (remove in production)
+            const TEST_MODE_PAYMENT = true; // Set to false in production
+            if (!TEST_MODE_PAYMENT && !isCountryAllowed(country)) {
               console.error('❌ Country not allowed:', country);
               ev.complete('fail');
               document.getElementById('card-errors').textContent = 'We do not ship to ' + (country || 'this country') + '. Please select a country from the allowed list.';
               return;
+            }
+            
+            if (TEST_MODE_PAYMENT && country) {
+              console.log('🌍 Testing mode: Country allowed for testing:', country);
             }
             
             if (addr.addressLine && addr.addressLine.length > 0 && addressField) {
