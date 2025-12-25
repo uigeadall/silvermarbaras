@@ -1565,32 +1565,59 @@
             let selectedShippingId = null;
             
             if (defaultShippingOption) {
-              // Check if it's Express Shipping by price (19.99) or label
-              if (defaultShippingOption.price === 19.99 || 
-                  defaultShippingOption.price === 19.9900 || 
-                  Math.abs(defaultShippingOption.price - 19.99) < 0.01 ||
-                  defaultShippingOption.label === 'Express Shipping' ||
-                  defaultShippingOption.label.includes('Express')) {
+              console.log('🔍 Matching defaultShippingOption:', defaultShippingOption);
+              console.log('🔍 Price:', defaultShippingOption.price);
+              console.log('🔍 Label:', defaultShippingOption.label);
+              console.log('🔍 Amount:', defaultShippingOption.amount);
+              console.log('🔍 Express cost to match:', expressCost);
+              
+              // Check if it's Express Shipping by price (19.99) or label or amount
+              const isExpress = defaultShippingOption.price === 19.99 || 
+                                defaultShippingOption.price === 19.9900 || 
+                                Math.abs(defaultShippingOption.price - 19.99) < 0.01 ||
+                                defaultShippingOption.label === 'Express Shipping' ||
+                                defaultShippingOption.label.includes('Express') ||
+                                defaultShippingOption.label.toLowerCase().includes('express') ||
+                                Math.abs(defaultShippingOption.amount - expressCost) < 50; // Match by amount (within 50 cents)
+              
+              const isFree = defaultShippingOption.price === 0 || 
+                             defaultShippingOption.price === 0.0 || 
+                             defaultShippingOption.price === 0.00 ||
+                             defaultShippingOption.label === 'Free Shipping' ||
+                             defaultShippingOption.label.includes('Free') ||
+                             defaultShippingOption.label.toLowerCase().includes('free') ||
+                             defaultShippingOption.amount === 0;
+              
+              console.log('🔍 Is Express?', isExpress);
+              console.log('🔍 Is Free?', isFree);
+              
+              if (isExpress) {
                 defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
                 selectedShippingId = 'express';
-                console.log('📦 Using pre-selected Express Shipping (matched by price or label)');
-              } else if (defaultShippingOption.price === 0 || 
-                         defaultShippingOption.price === 0.0 || 
-                         defaultShippingOption.price === 0.00 ||
-                         defaultShippingOption.label === 'Free Shipping' ||
-                         defaultShippingOption.label.includes('Free')) {
+                console.log('✅ Using pre-selected Express Shipping (matched by price, label, or amount)');
+                console.log('📦 Express cost:', expressCost / 100);
+                console.log('📦 Original total:', originalTotalAmount);
+                console.log('📦 Default total:', defaultTotal / 100);
+              } else if (isFree) {
                 defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
                 selectedShippingId = 'free';
-                console.log('📦 Using pre-selected Free Shipping (matched by price or label)');
+                console.log('✅ Using pre-selected Free Shipping (matched by price or label)');
               } else {
-                defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
-                selectedShippingId = 'free';
-                console.log('📦 Could not match pre-selected option, defaulting to Free Shipping');
+                // If we can't match, default to Express if price is > 0, otherwise Free
+                if (defaultShippingOption.price > 0 || defaultShippingOption.amount > 0) {
+                  defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                  selectedShippingId = 'express';
+                  console.log('✅ Defaulting to Express Shipping (price > 0)');
+                } else {
+                  defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+                  selectedShippingId = 'free';
+                  console.log('⚠️ Could not match pre-selected option, defaulting to Free Shipping');
+                }
               }
             } else {
               defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
               selectedShippingId = 'free';
-              console.log('📦 No pre-selected option, defaulting to Free Shipping');
+              console.log('⚠️ No pre-selected option, defaulting to Free Shipping');
             }
           ev.updateWith({
             status: 'success',
