@@ -89,8 +89,8 @@
   }
   
   /* Show Apple Pay/Google Pay buttons on both desktop and mobile */
-  #cart-payment-section {
-    display: block;
+    #cart-payment-section {
+      display: block;
   }
 </style>
 {% endblock %}
@@ -1008,19 +1008,19 @@
               shippingCostEUR = 0;
             }
             
-            const shippingCost = Math.round(shippingCostEUR * rate * 100);
+          const shippingCost = Math.round(shippingCostEUR * rate * 100);
             const finalTotal = Math.round(originalTotalAmount * 100) + shippingCost;
-            
+          
             console.log('📦 Cart - Fallback: Original total:', originalTotalAmount, 'Shipping cost:', shippingCost / 100, 'Final total:', finalTotal / 100);
             
-            ev.updateWith({
-              status: 'success',
-              total: {
-                label: 'Total',
-                amount: finalTotal,
-              },
-            });
-            
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: finalTotal,
+            },
+          });
+          
             console.log('✅ Cart - Updated total with shipping option ID:', selectedOptionId, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
           }
         } else {
@@ -1093,15 +1093,54 @@
         // Store payment method data in sessionStorage to pass to checkout
         // Check both shippingAddress and payerAddress (for compatibility)
         const shippingAddr = ev.shippingAddress || ev.payerAddress;
-        const country = shippingAddr ? shippingAddr.country : null;
+        let shippingCountry = shippingAddr ? shippingAddr.country : null;
         
         // Validate country before proceeding
-        if (country && !isCountryAllowed(country)) {
-          console.error('❌ Cart - Country not allowed:', country);
+        if (shippingCountry && !isCountryAllowed(shippingCountry)) {
+          console.error('❌ Cart - Country not allowed for payment:', shippingCountry);
           ev.complete('fail');
-          alert('We do not ship to ' + country + '. Please select a country from the allowed list.');
+          const cardErrors = document.getElementById('card-errors');
+          if (cardErrors) {
+            cardErrors.textContent = 'We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.';
+            cardErrors.style.display = 'block';
+            cardErrors.style.color = 'red';
+          }
+          alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
           return;
         }
+        
+        // If no shipping address, check country from form (if available)
+        if (!shippingCountry) {
+          const countryField = document.getElementById('country');
+          if (countryField && countryField.value) {
+            shippingCountry = countryField.value;
+            if (!isCountryAllowed(shippingCountry)) {
+              console.error('❌ Cart - Country not allowed for payment:', shippingCountry);
+              ev.complete('fail');
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
+              return;
+            }
+          } else {
+            console.error('❌ Cart - No country information available for payment validation');
+            ev.complete('fail');
+            const cardErrors = document.getElementById('card-errors');
+            if (cardErrors) {
+              cardErrors.textContent = 'Please select a shipping country before completing payment.';
+              cardErrors.style.display = 'block';
+              cardErrors.style.color = 'red';
+            }
+            alert('Please select a shipping country before completing payment.');
+            return;
+          }
+        }
+        
+        console.log('✅ Cart - Country validated for payment:', shippingCountry);
         
         // Complete payment first (before redirect)
         ev.complete('success');
