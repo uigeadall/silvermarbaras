@@ -745,6 +745,44 @@ def register_view(request: HttpRequest) -> HttpResponse:
             logger.info("CSRF_TRUSTED_ORIGINS: %s", settings.CSRF_TRUSTED_ORIGINS)
             logger.info("CSRF_COOKIE_SECURE: %s", settings.CSRF_COOKIE_SECURE)
             logger.info("CSRF_COOKIE_SAMESITE: %s", settings.CSRF_COOKIE_SAMESITE)
+            
+            # Bot protection: Check honeypot field
+            honeypot = request.POST.get("website", "").strip()
+            if honeypot:
+                logger.warning("Bot detected: honeypot field filled. IP: %s", request.META.get('REMOTE_ADDR', 'Unknown'))
+                messages.error(request, "Registration failed. Please try again.")
+                return render(request, "register.html")
+            
+            # Bot protection: Rate limiting - check IP address
+            ip_address = request.META.get('REMOTE_ADDR', 'Unknown')
+            cache_key = f"register_attempts_{ip_address}"
+            attempts = cache.get(cache_key, 0)
+            
+            # Allow max 3 registrations per IP per hour
+            if attempts >= 3:
+                logger.warning("Rate limit exceeded for IP: %s (attempts: %s)", ip_address, attempts)
+                messages.error(request, "Too many registration attempts. Please try again later.")
+                return render(request, "register.html")
+            
+            # Bot protection: Time-based validation - check if form submitted too quickly
+            import time
+            form_load_time = request.POST.get("form_load_time", "")
+            if form_load_time:
+                try:
+                    load_time = int(form_load_time)
+                    current_time = int(time.time() * 1000)  # Convert to milliseconds
+                    time_spent = current_time - load_time
+                    # If form submitted in less than 3 seconds, likely a bot
+                    if time_spent < 3000:
+                        logger.warning("Bot detected: form submitted too quickly (%s ms). IP: %s", time_spent, ip_address)
+                        messages.error(request, "Registration failed. Please try again.")
+                        return render(request, "register.html")
+                except (ValueError, TypeError):
+                    pass
+            
+            # Increment rate limit counter
+            cache.set(cache_key, attempts + 1, 3600)  # Cache for 1 hour
+            
             username = (request.POST.get("username") or "").strip()
             email = (request.POST.get("email") or "").strip()
             password = request.POST.get("password") or ""
