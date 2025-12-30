@@ -727,7 +727,7 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "selected_category": product.category,
         "is_sale": is_sale,
         "sale_expires_at": sale_expires_at,
-        "stripe_public_key": stripe_public_key or "",
+        "stripe_public_key": stripe_public_key,
     }
     return render(request, "product_detail.html", context)
 

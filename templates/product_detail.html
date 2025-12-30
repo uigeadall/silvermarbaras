@@ -921,7 +921,7 @@
                   </form>
 
                   <!-- Apple Pay / Google Pay Button -->
-                  {% if stripe_public_key %}
+                  {% if stripe_public_key and stripe_public_key|length > 0 %}
                   <div class="mt-3" id="product-payment-section">
                     <div id="product-payment-request-button-container" style="min-height: 48px; text-align: center; padding: 8px;">
                       <!-- Placeholder button that shows immediately -->
@@ -1548,11 +1548,7 @@
     if (!container) return;
     
     // Get product price
-    {% if product.discount_price %}
-    const productPrice = {{ product.discount_price }};
-    {% else %}
-    const productPrice = {{ product.price }};
-    {% endif %}
+    const productPrice = {{ product.get_discounted_price|floatformat:2 }};
     const productId = {{ product.pk }};
     const variantId = document.getElementById('variantInput') ? document.getElementById('variantInput').value : '';
     // Get quantity from quantity input or default to 1
