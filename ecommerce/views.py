@@ -705,6 +705,8 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 is_sale = True
                 sale_expires_at = product.sale_expires_at
 
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
+    
     context = {
         "product": product,
         "product_images": product_images,
@@ -725,6 +727,7 @@ def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
         "selected_category": product.category,
         "is_sale": is_sale,
         "sale_expires_at": sale_expires_at,
+        "stripe_public_key": stripe_public_key,
     }
     return render(request, "product_detail.html", context)
 
