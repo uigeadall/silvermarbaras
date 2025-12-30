@@ -550,3 +550,21 @@ class BlogPost(models.Model):
     def __str__(self) -> str:
         return self.title
 
+
+class BannerImage(models.Model):
+    """Banner images for the home page carousel."""
+    image = models.ImageField(upload_to="banners/", help_text="Banner image for carousel")
+    title = models.CharField(max_length=200, blank=True, help_text="Optional title/alt text")
+    link_url = models.URLField(blank=True, null=True, help_text="Optional link URL when banner is clicked")
+    is_active = models.BooleanField(default=True, help_text="Show this banner in carousel")
+    order = models.IntegerField(default=0, help_text="Display order (lower numbers first)")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "-created_at"]
+        verbose_name = "Banner Image"
+        verbose_name_plural = "Banner Images"
+
+    def __str__(self) -> str:
+        return self.title or f"Banner {self.id}"
+

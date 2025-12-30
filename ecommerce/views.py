@@ -42,6 +42,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import RatingForm
 from .models import (
+    BannerImage,
     BlogPost,
     CartItem,
     Category,
@@ -424,6 +425,9 @@ def home(request: HttpRequest) -> HttpResponse:
         )
         cache.set(cache_key_editors, editors_choice, 3600)
 
+    # Get active banner images for carousel
+    banner_images = BannerImage.objects.filter(is_active=True).order_by("order", "-created_at")[:4]
+
     context = {
         "products": products,
         "recently_viewed_products": list(recently_viewed_qs[:5]),
@@ -437,6 +441,7 @@ def home(request: HttpRequest) -> HttpResponse:
         "popular_products": popular_products,
         "editors_choice": editors_choice,
         "blog_posts": BlogPost.objects.filter(is_published=True)[:3],
+        "banner_images": banner_images,
         "sort": sort,
         "query": query,
         "selected_category": selected_category,
