@@ -3,347 +3,1106 @@
 
 {% block title %}Home - Marbaras{% endblock %}
 
-{% block content %}
+{% block extra_head %}
 <style>
-  .sidebar-fixed {
-    position: fixed;
-    top: 80px;
-    left: 0;
-    width: 200px;
-    height: 100%;
-    overflow-y: auto;
-    background-color: transparent;
-    padding: 16px;
-    z-index: 1000;
+  /* Single-line ellipsis, left-aligned */
+  .name-ellipsis{
+    display:block !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    max-width:100% !important;
   }
 
-  .sidebar-fixed h2 {
-    font-size: 1.2rem;
-    margin-bottom: 16px;
-  }
-
-  .sidebar-fixed ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .sidebar-fixed li {
-    margin-bottom: 8px;
-  }
-
-  .sidebar-fixed a {
-    display: block;
-    padding: 8px 12px;
-    text-decoration: none;
-    color: #333;
-    border-radius: 6px;
-    font-size: 0.9rem;
-  }
-
-  .sidebar-fixed a:hover {
-    background-color: #f0f0f0;
-  }
-
-  .sidebar-fixed .active {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    font-weight: bold;
-  }
-
-  .content-wrapper {
-  margin-left: 150px;
-  padding: 0;
-  width: calc(100% - 150px);
-  box-sizing: border-box;
-}
-
-  .banner-container {
-    width: 100%;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    margin-bottom: 32px;
-      margin-left: -85px;
-  }
-
-  .banner-container img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  }
-
-  .product-section {
-    padding: 0 24px;
-
-    width: 100%;
-    box-sizing: border-box;
-      margin-left: -85px;
-  }
-
+  /* --- Title with side lines (minimal) --- */
   .section-title {
-    text-align: center;
-    font-size: 2.5rem;
-    margin: 32px 0 24px;
-  }
-
-  .product-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 24px;
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .product-card {
-    background: #fff;
-    border-radius: 100px;
-    text-align: center;
-    padding: 1px;
-    overflow: hidden;
-    transition: transform 0.3s ease;
-    width: 100%;
-  }
-
-  .product-card img {
-    width: 100%;
-    max-height: 350px;
-    object-fit: cover;
-    border-radius: 6px;
-  }
-
-  .product-card:hover img {
-    transform: scale(1.05);
-  }
-
-  .product-card h3 {
-    font-size: 1.5rem;
-    margin: 12px 0 6px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    height: 2.8em;
-  }
-
-  .product-card p {
-    color: #555;
-    font-size: 1.05rem;
-    margin-bottom: 12px;
-  }
-
-  /* Updated slider layout to act like a grid (no scrolling) */
-  .slider-container {
-    width: 100%;
-    padding-bottom: 12px;
-  }
-
-  .slider-track {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 20px;
-    width: 100%;
-  }
-
-  .slider-card {
-    width: 100%;
-  }
-
-  .sort-form {
-    display: flex;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-    font-size: 1rem;
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+  }
+  .section-title > span {
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    font-size: clamp(1.25rem, 2.5vw, 1.275rem);
+  }
+  .section-title::before,
+  .section-title::after{
+    content:"";
+    height:1px;
+    background: #e5e7eb;
+    display:block;
+  }
+  @media (prefers-color-scheme: dark){
+    .section-title::before,
+    .section-title::after{ background:#475569; }
   }
 
-  .sort-form label {
-    font-weight: bold;
-  }
-
-  .sort-form select {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    background-color: #f9f9f9;
-    font-size: 1rem;
+  /* === Favorite heart overlay (no circle; red when active) === */
+  .card-rel { position: relative; }
+  .fav-btn {
+    position: absolute; top: 10px; right: 10px;
+    width: 34px; height: 34px;
+    border: 0; background: transparent; box-shadow: none; border-radius: 0;
+    display: inline-flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: border-color 0.3s ease;
+    color: #111;
+    transition: transform .15s ease, color .15s ease;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
+  }
+  .fav-btn:hover { transform: scale(1.05); }
+  .fav-icon { width: 20px; height: 20px; display:block; }
+  .fav-fill, .fav-stroke { transition: opacity .15s ease; }
+  .fav-fill { opacity: 0; }
+  .fav-stroke { opacity: 1; }
+  .fav-btn[aria-pressed="true"] { color: #dc2626; }
+  .fav-btn[aria-pressed="true"] .fav-fill { opacity: 1; }
+  .fav-btn[aria-pressed="true"] .fav-stroke { opacity: 0; }
+
+  /* Inline tooltip bubble for unauthenticated clicks */
+  .fav-tip {
+    position: absolute;
+    top: 44px; right: 10px;
+    background: #0b1220; color: #fff; font-size: 12px;
+    padding: 6px 8px; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    opacity: 0; pointer-events: none; transform: translateY(-4px);
+    transition: opacity .15s ease, transform .15s ease;
+    white-space: nowrap; z-index: 10;
+  }
+  .fav-tip.show { opacity: 1; transform: translateY(0); }
+
+  /* Image loading optimization */
+  img[loading="lazy"], img[loading="eager"] {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+  @keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  img[decoding="async"] {
+    content-visibility: auto;
   }
 
-  .sort-form select:hover {
-    border-color: #888;
+  /* Banner Carousel Styles */
+  .banner-carousel {
+    position: relative;
   }
-
-  .sort-form select:focus {
-    border-color: #333;
-    outline: none;
-    background-color: #fff;
+  .carousel-container {
+    position: relative;
+    overflow: hidden;
+  }
+  .carousel-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.6s ease-in-out;
+    z-index: 1;
+  }
+  .carousel-slide.active {
+    opacity: 1;
+    z-index: 2;
+  }
+  .carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .carousel-dot.active {
+    opacity: 1 !important;
+  }
+  .carousel-prev:hover,
+  .carousel-next:hover {
+    transform: translateY(-50%) scale(1.1);
   }
 </style>
+{% endblock %}
 
-{% if categories %}
-<aside class="sidebar-fixed">
-  <h2>Categories</h2>
-  <ul>
-    <li><a href="{% url 'product_list' %}">All products</a></li>
-    {% for category in categories %}
+{% block mobile_menu_content %}
+  {% if categories %}
+  <div>
+    <h2 class="text-xs font-extrabold tracking-widest text-slate-600 mb-3">CATEGORIES</h2>
+    <ul class="space-y-1">
       <li>
-        <a href="{% url 'products_by_category' category.pk %}"
-           class="{% if selected_category and selected_category.id == category.id %}active{% endif %}">
-          {{ category.name }}
+        <a href="{% url 'home' %}?all=true"
+           class="block px-3 py-2 rounded-md text-sm font-semibold transition
+           {% if not selected_category and request.GET.all %}
+             bg-red-100 text-red-700
+           {% else %}
+             hover:bg-slate-100 text-slate-800
+           {% endif %}">
+          All Products
         </a>
       </li>
-    {% endfor %}
-  </ul>
-</aside>
-{% endif %}
-
-<div class="content-wrapper">
-  {% if not selected_category %}
-    <div class="banner-container">
-      <img src="{% static 'images/banner.jpg' %}" alt="Banner">
-    </div>
-  {% else %}
-    <div style="margin: 32px 0; text-align: center;">
-      <h2 class="section-title">{{ selected_category.name }}</h2>
-    </div>
+      {% for cat in categories %}
+      <li>
+        <a href="{% url 'products_by_category' cat.pk %}"
+           class="block px-3 py-2 rounded-md text-sm font-semibold transition
+           {% if cat.name|lower == 'sale' %}
+             text-red-600 font-bold hover:bg-red-50
+           {% elif selected_category and selected_category.id == cat.id %}
+             bg-red-100 text-red-700
+           {% else %}
+             hover:bg-slate-100 text-slate-800
+           {% endif %}"
+           {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
+          {% if cat.parent %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
   {% endif %}
 
-  <div class="product-section">
-    {% if selected_category and not request.GET.q %}
-      <form method="get" class="sort-form">
-        <label for="sort_by">Sort by:</label>
-        <select name="sort" id="sort_by" onchange="this.form.submit()">
-          <option value="">Default</option>
-          <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
-          <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
-        </select>
-        {% if request.GET.q %}
-          <input type="hidden" name="q" value="{{ request.GET.q }}">
-        {% endif %}
-      </form>
-    {% endif %}
-
-    {% if request.GET.q %}
-      <h2 class="section-title">🔎 Results for "{{ request.GET.q }}"</h2>
-      {% if products %}
-        <div class="product-grid">
-          {% for product in products %}
-            <div class="product-card">
-              <a href="{% url 'product_detail' product.pk %}">
-                {% if product.image %}
-                  <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                {% else %}
-                  <img src="{% static 'images/placeholder.jpg' %}" alt="No Image">
-                {% endif %}
-              </a>
-              <h3>{{ product.name }}</h3>
-              <p>
-                {% if product.has_discount %}
-                  <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
-                  <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
-                    ${{ product.price|floatformat:2 }}
-                  </span>
-                {% else %}
-                  ${{ product.price|floatformat:2 }}
-                {% endif %}
-              </p>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p style="text-align: center;">No products found.</p>
-      {% endif %}
-    {% elif selected_category %}
-      <div class="product-grid">
-        {% for product in products %}
-          <div class="product-card">
-            <a href="{% url 'product_detail' product.pk %}">
-              {% if product.image %}
-                <img src="{{ product.image.url }}" alt="{{ product.name }}">
-              {% else %}
-                <img src="{% static 'images/placeholder.jpg' %}" alt="No Image">
-              {% endif %}
-            </a>
-            <h3>{{ product.name }}</h3>
-            <p>
-              {% if product.has_discount %}
-                <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
-                <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
-                  ${{ product.price|floatformat:2 }}
-                </span>
-              {% else %}
-                ${{ product.price|floatformat:2 }}
-              {% endif %}
-            </p>
-          </div>
-        {% endfor %}
-      </div>
+  <div class="pt-4 border-t border-slate-200">
+    {% if user.is_authenticated %}
+      <a href="{% url 'profile_dashboard' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        👤 Profile
+      </a>
+      <a href="{% url 'profile_favorites' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        ❤️ Favorites
+      </a>
+      <a href="{% url 'account_logout' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Logout
+      </a>
     {% else %}
-      {% if popular_products %}
-        <h2 class="section-title">🔥 Trending Now</h2>
-        <div class="slider-container">
-          <div class="slider-track">
-            {% for product in popular_products|slice:":5" %}
-              <div class="slider-card product-card">
-                <a href="{% url 'product_detail' product.pk %}">
-                  {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                  {% else %}
-                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image">
-                  {% endif %}
-                </a>
-                <h3>{{ product.name }}</h3>
-                <p>
-                  {% if product.has_discount %}
-                    <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
-                    <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
-                      ${{ product.price|floatformat:2 }}
-                    </span>
-                  {% else %}
-                    ${{ product.price|floatformat:2 }}
-                  {% endif %}
-                </p>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endif %}
-
-      {% if recently_viewed %}
-        <h2 class="section-title">🔍 Recently Viewed</h2>
-        <div class="slider-container">
-          <div class="slider-track">
-            {% for product in recently_viewed|slice:":5" %}
-              <div class="slider-card product-card">
-                <a href="{% url 'product_detail' product.pk %}">
-                  {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
-                  {% else %}
-                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image">
-                  {% endif %}
-                </a>
-                <h3>{{ product.name }}</h3>
-                <p>
-                  {% if product.has_discount %}
-                    <span style="color: red;">${{ product.discount_price|floatformat:2 }}</span>
-                    <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-left: 6px;">
-                      ${{ product.price|floatformat:2 }}
-                    </span>
-                  {% else %}
-                    ${{ product.price|floatformat:2 }}
-                  {% endif %}
-                </p>
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endif %}
+      <a href="{% url 'login' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Login
+      </a>
+      <a href="{% url 'register' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Register
+      </a>
     {% endif %}
   </div>
+{% endblock %}
+
+{% block content %}
+<!-- Hidden CSRF token for AJAX requests -->
+{% csrf_token %}
+<div class="mx-auto max-w-site px-4">
+  <!-- ===== 3-column desktop layout: [Left Sidebar | Center | Right] ===== -->
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[180px,minmax(0,1fr),180px]">
+
+    <!-- ===== Left: Brand + Categories (sticky, compact) ===== -->
+    {% if categories %}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <a href="{% url 'home' %}" class="block mb-3 overflow-hidden">
+        <img src="{% static 'images/image2.jpeg' %}" 
+             alt="Marbaras" 
+             class="h-12 w-auto object-contain scale-125 origin-left">
+      </a>
+
+      <div class="rounded-xl bg-white shadow-sm">
+        <div class="px-3 py-2">
+          <h2 class="text-[10px] font-extrabold tracking-widest text-slate-600">
+            CATEGORIES
+          </h2>
+        </div>
+        <ul class="p-2 space-y-1.5">
+          <li>
+            <a href="{% url 'home' %}?all=true"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if not selected_category and request.GET.all %}
+                 bg-red-100 text-red-700
+               {% else %}
+                 hover:bg-slate-100 text-slate-800
+               {% endif %}">
+              All Products
+            </a>
+          </li>
+          {% for cat in categories %}
+          <li>
+            <a href="{% url 'products_by_category' cat.pk %}"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if cat.name|lower == 'sale' %}
+                 text-red-600 font-bold hover:bg-red-50
+               {% elif selected_category and selected_category.id == cat.id %}
+                 bg-red-100 text-red-700
+               {% else %}
+                 hover:bg-slate-100 text-slate-800
+               {% endif %}"
+               {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
+              {% if cat.parent %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+    {% endif %}
+
+    <!-- ===== Center: Banner + Trending (top) + Editors' Choice (bottom) + Sort + Products ===== -->
+    <section class="min-w-0">
+
+      {# ======= HOME ONLY (no filters/search): Banner + TRENDING (TOP) + EDITORS' CHOICE (BOTTOM) ======= #}
+      {% if not selected_category and not request.GET.q and not request.GET.all %}
+
+        <!-- Banner Carousel -->
+        {% if banner_images %}
+        <div class="mt-0 mb-6">
+          <div class="banner-carousel rounded-2xl overflow-hidden bg-white shadow-sm relative">
+            <div class="carousel-container relative" style="height: 600px;">
+              {% for banner in banner_images %}
+              <div class="carousel-slide {% if forloop.first %}active{% endif %}" data-slide-index="{{ forloop.counter0 }}">
+                {% if banner.link_url %}
+                <a href="{{ banner.link_url }}" class="block h-full">
+                {% endif %}
+                  <img
+                    src="{{ banner.image.url }}"
+                    alt="{{ banner.title|default:'Shop Banner' }}"
+                    loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                    class="w-full h-full object-cover"
+                    style="max-height: 600px;"
+                  >
+                {% if banner.link_url %}
+                </a>
+                {% endif %}
+              </div>
+              {% endfor %}
+              
+              <!-- Navigation dots -->
+              {% if banner_images|length > 1 %}
+              <div class="carousel-dots absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
+                {% for banner in banner_images %}
+                <button
+                  class="carousel-dot {% if forloop.first %}active{% endif %} w-2.5 h-2.5 rounded-full bg-white opacity-50 hover:opacity-100 transition-opacity"
+                  data-slide-index="{{ forloop.counter0 }}"
+                  aria-label="Go to slide {{ forloop.counter }}"
+                ></button>
+                {% endfor %}
+              </div>
+              
+              <!-- Navigation arrows -->
+              <button class="carousel-prev absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg transition-all z-10" aria-label="Previous slide">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+              </button>
+              <button class="carousel-next absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg transition-all z-10" aria-label="Next slide">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ======= Trending Now (TOP) ======= #}
+        {% if popular_products %}
+        <div class="mt-8">
+          <h3 class="section-title"><span>Trending Now</span></h3>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+            {% for p in popular_products %}
+            <div>
+              <!-- Image card with favorite heart -->
+              <article class="rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
+                <a href="{% url 'product_detail' p.pk %}" class="block">
+                  {% if p.main_image %}
+                    {% if forloop.counter <= 5 %}
+                      <link rel="preload" as="image" href="{{ p.main_image.url }}">
+                      <img src="{{ p.main_image.url }}" alt="{{ p.name }}" 
+                           loading="eager" fetchpriority="high" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% else %}
+                      <img src="{{ p.main_image.url }}" alt="{{ p.name }}" 
+                           loading="lazy" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% endif %}
+                  {% else %}
+                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy" decoding="async"
+                         class="w-full aspect-square object-cover">
+                  {% endif %}
+                </a>
+
+                <!-- Heart overlay -->
+                <button
+                  class="fav-btn"
+                  type="button"
+                  aria-pressed="{% if user.is_authenticated and p.id in favorite_ids %}true{% else %}false{% endif %}"
+                  aria-label="Add to favorites"
+                  data-url="{% url 'toggle_favorite' p.pk %}"
+                  data-auth="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                >
+                  <!-- outline heart -->
+                  <svg class="fav-icon fav-stroke" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                  <!-- filled heart -->
+                  <svg class="fav-icon fav-fill" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.1 8.64 12 8.77l-.1-.13a5.5 5.5 0 0 0-7.78 0 5.5 5.5 0 0 0 0 7.78L12 22.23l7.88-7.88a5.5 5.5 0 0 0 0-7.78 5.5 5.5 0 0 0-7.78 0z"/>
+                  </svg>
+                </button>
+
+                <div class="fav-tip" role="status" aria-live="polite">Please log in to favorite</div>
+              </article>
+
+              <!-- Name -->
+              <a href="{% url 'product_detail' p.pk %}"
+                 class="mt-2 block w-full px-2 text-sm leading-snug font-semibold text-left hover:underline name-ellipsis">
+                {{ p.name }}
+              </a>
+
+              <!-- Price -->
+              {% if p.has_discount %}
+                <div class="mt-1 px-2 text-xs font-bold text-left">
+                  <span style="color:#dc2626;" data-eur-price="{{ p.discount_price }}">${{ p.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration:line-through; color:#888; margin-left:4px;" data-eur-price="{{ p.price }}">${{ p.price|floatformat:2 }}</span>
+                </div>
+              {% else %}
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-eur-price="{{ p.price }}">
+                  ${{ p.price|floatformat:2 }}
+                </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- View all products button -->
+          <div class="mt-6 flex justify-center">
+            <a href="{% url 'home' %}?all=true"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-sm font-bold hover:brightness-95 transition">
+              View all products
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ======= Editors' Choice (BOTTOM) ======= #}
+        {% if editors_choice %}
+        <div class="mt-8">
+          <h3 class="section-title"><span>Handpicked This Month</span></h3>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+            {% for p in editors_choice %}
+            <div>
+              <article class="rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
+                <a href="{% url 'product_detail' p.pk %}" class="block">
+                  {% if p.main_image %}
+                    {% if forloop.counter <= 5 %}
+                      <link rel="preload" as="image" href="{{ p.main_image.url }}">
+                      <img src="{{ p.main_image.url }}" alt="{{ p.name }}" 
+                           loading="eager" fetchpriority="high" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% else %}
+                      <img src="{{ p.main_image.url }}" alt="{{ p.name }}" 
+                           loading="lazy" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% endif %}
+                  {% else %}
+                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy" decoding="async"
+                         class="w-full aspect-square object-cover">
+                  {% endif %}
+                </a>
+
+                <!-- Heart overlay -->
+                <button
+                  class="fav-btn"
+                  type="button"
+                  aria-pressed="{% if user.is_authenticated and p.id in favorite_ids %}true{% else %}false{% endif %}"
+                  aria-label="Add to favorites"
+                  data-url="{% url 'toggle_favorite' p.pk %}"
+                  data-auth="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                >
+                  <svg class="fav-icon fav-stroke" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                  <svg class="fav-icon fav-fill" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.1 8.64 12 8.77l-.1-.13a5.5 5.5 0 0 0-7.78 0 5.5 5.5 0 0 0 0 7.78L12 22.23l7.88-7.88a5.5 5.5 0 0 0 0-7.78 5.5 5.5 0 0 0-7.78 0z"/>
+                  </svg>
+                </button>
+
+                <div class="fav-tip" role="status" aria-live="polite">Please log in to favorite</div>
+              </article>
+
+              <a href="{% url 'product_detail' p.pk %}"
+                 class="mt-2 block w-full px-2 text-sm leading-snug font-semibold text-left hover:underline name-ellipsis">
+                {{ p.name }}
+              </a>
+
+              {% if p.has_discount %}
+                <div class="mt-1 px-2 text-xs font-bold text-left">
+                  <span style="color:#dc2626;" data-eur-price="{{ p.discount_price }}">${{ p.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration:line-through; color:#888; margin-left:4px;" data-eur-price="{{ p.price }}">${{ p.price|floatformat:2 }}</span>
+                </div>
+              {% else %}
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-eur-price="{{ p.price }}">
+                  ${{ p.price|floatformat:2 }}
+                </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# ======= Blog Posts Section ======= #}
+        {% if blog_posts %}
+        <div class="mt-12">
+          <h3 class="section-title"><span>Blogs</span></h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for post in blog_posts %}
+            <a href="{% url 'blog_detail' post.slug %}" class="block">
+              <article class="rounded-2xl bg-white shadow-sm overflow-hidden hover:shadow-card transition cursor-pointer">
+                {% if post.image %}
+                  <div class="w-full aspect-video overflow-hidden bg-slate-100">
+                    <img src="{{ post.image.url }}" alt="{{ post.title }}" 
+                         class="w-full h-full object-cover">
+                  </div>
+                {% elif post.video_file %}
+                  <div class="w-full aspect-video overflow-hidden bg-slate-100 relative">
+                    <video 
+                      class="w-full h-full object-cover"
+                      muted
+                      preload="metadata"
+                      style="pointer-events: none;">
+                      <source src="{{ post.video_file.url }}" type="video/mp4">
+                      <source src="{{ post.video_file.url }}" type="video/webm">
+                    </video>
+                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                      <svg class="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </div>
+                {% elif post.video_url %}
+                  <div class="w-full aspect-video overflow-hidden bg-slate-100 relative">
+                    <div class="absolute inset-0 flex items-center justify-center bg-slate-200">
+                      <svg class="w-16 h-16 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </div>
+                {% endif %}
+                <div class="p-6">
+                  <h4 class="text-lg font-extrabold mb-3 text-slate-900 hover:text-slate-700 transition">{{ post.title }}</h4>
+                  {% if post.excerpt %}
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">{{ post.excerpt|truncatewords:30 }}</p>
+                  {% else %}
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">{{ post.content|truncatewords:30|striptags }}</p>
+                  {% endif %}
+                  <div class="text-xs text-slate-500">{{ post.created_at|date:"F j, Y" }}</div>
+                </div>
+              </article>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+      {% endif %}
+
+      {# ===== Sort bar: ONLY when user is filtering/searching, not on clean home ===== #}
+      {% if selected_category or request.GET.q or request.GET.all %}
+      <form method="get"
+            class="mt-6 bg-white/90 rounded-xl px-3 py-2 flex flex-wrap items-center gap-3">
+        <label for="sort" class="font-semibold text-sm text-slate-700">Sort by:</label>
+        <select id="sort" name="sort"
+                class="px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                onchange="this.form.submit()">
+          <option value="" {% if not sort %}selected{% endif %}>Default</option>
+          <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+          <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+        </select>
+        {% if request.GET.all %}
+          <input type="hidden" name="all" value="{{ request.GET.all }}">
+        {% endif %}
+        {% if selected_category %}
+          <input type="hidden" name="category" value="{{ selected_category.pk }}">
+        {% endif %}
+      </form>
+      {% endif %}
+
+      <!-- Headings when filtered/searched -->
+      {% if selected_category or request.GET.q or request.GET.sort or request.GET.all %}
+        <div class="text-center">
+          {% if selected_category %}
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-6 mb-4">{{ selected_category.name }}</h2>
+          {% elif request.GET.all %}
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-6 mb-4">All Products</h2>
+          {% elif request.GET.q %}
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-6 mb-4">Results for “{{ request.GET.q }}”</h2>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# ===== Sub-categories display: show when viewing a parent category ===== #}
+      {% if selected_category and subcategories %}
+        <div class="mt-6 mb-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {% for subcat in subcategories %}
+            <a href="{% url 'products_by_category' subcat.pk %}" 
+               class="group block rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition">
+              {% if subcat.image %}
+                <div class="aspect-[4/3] overflow-hidden bg-slate-50 flex items-center justify-center">
+                  <img src="{{ subcat.image.url }}" 
+                       alt="{{ subcat.name }}" 
+                       class="max-w-full max-h-full w-auto h-auto object-contain group-hover:scale-105 transition-transform duration-300"
+                       loading="lazy">
+                </div>
+              {% else %}
+                <div class="aspect-[4/3] bg-slate-100 flex items-center justify-center">
+                  <span class="text-slate-400 text-lg font-semibold">{{ subcat.name|upper }}</span>
+                </div>
+              {% endif %}
+              <div class="p-4">
+                <h4 class="text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                  {{ subcat.name|upper }}
+                </h4>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {# ===== Products grid: only when filtering/searching (WITH hearts) ===== #}
+      {% if selected_category or request.GET.q or request.GET.sort or request.GET.all %}
+        {% if products %}
+          <div id="productsGrid" class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+            {% for product in products %}
+            <div class="product-item" {% if forloop.counter > 15 %}style="display: none;"{% endif %}>
+              <article class="group rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
+                <a href="{% url 'product_detail' product.pk %}" class="block">
+                  {% if product.main_image %}
+                    {% if forloop.counter <= 5 %}
+                      <link rel="preload" as="image" href="{{ product.main_image.url }}">
+                      <img src="{{ product.main_image.url }}" alt="{{ product.name }}" 
+                           loading="eager" fetchpriority="high" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% else %}
+                      <img src="{{ product.main_image.url }}" alt="{{ product.name }}" 
+                           loading="lazy" decoding="async"
+                           class="w-full aspect-square object-cover">
+                    {% endif %}
+                  {% else %}
+                    <img src="{% static 'images/placeholder.jpg' %}" alt="No Image" loading="lazy" decoding="async"
+                         class="w-full aspect-square object-cover">
+                  {% endif %}
+                </a>
+
+                <!-- Heart overlay -->
+                <button
+                  class="fav-btn"
+                  type="button"
+                  aria-pressed="{% if user.is_authenticated and product.id in favorite_ids %}true{% else %}false{% endif %}"
+                  aria-label="Add to favorites"
+                  data-url="{% url 'toggle_favorite' product.pk %}"
+                  data-auth="{% if user.is_authenticated %}1{% else %}0{% endif %}"
+                >
+                  <!-- outline heart -->
+                  <svg class="fav-icon fav-stroke" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                  <!-- filled heart -->
+                  <svg class="fav-icon fav-fill" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.1 8.64 12 8.77l-.1-.13a5.5 5.5 0 0 0-7.78 0 5.5 5.5 0 0 0 0 7.78L12 22.23l7.88-7.88a5.5 5.5 0 0 0 0-7.78 5.5 5.5 0 0 0-7.78 0z"/>
+                  </svg>
+                </button>
+
+                <div class="fav-tip" role="status" aria-live="polite">Please log in to favorite</div>
+              </article>
+
+              <a href="{% url 'product_detail' product.pk %}"
+                 class="mt-2 block w-full px-2 text-sm leading-snug font-semibold text-left hover:underline name-ellipsis">
+                {{ product.name }}
+              </a>
+
+              {% if product.has_discount %}
+                <div class="mt-1 px-2 text-xs font-bold text-left">
+                  <span style="color:#dc2626;" data-eur-price="{{ product.discount_price }}">${{ product.discount_price|floatformat:2 }}</span>
+                  <span style="text-decoration:line-through; color:#888; margin-left:4px;" data-eur-price="{{ product.price }}">${{ product.price|floatformat:2 }}</span>
+                </div>
+              {% else %}
+                <div class="mt-1 px-2 text-xs font-bold text-slate-700 text-left" data-eur-price="{{ product.price }}">
+                  ${{ product.price|floatformat:2 }}
+                </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+
+          {# Show More button - only if there are more than 15 products #}
+          {% if products|length > 15 %}
+          <div id="showMoreContainer" class="mt-8 flex justify-center">
+            <button id="showMoreBtn" 
+                    class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-black text-white text-sm font-bold hover:brightness-95 transition">
+              Show More
+              <span aria-hidden="true">↓</span>
+            </button>
+          </div>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+    </section>
+
+    <!-- ===== Right: Search + Cart + Auth + Profile/Favorites ===== -->
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <div class="rounded-xl bg-white shadow-sm p-3 space-y-3 text-right">
+
+        <!-- Currency Selector -->
+        <div class="currency-selector" style="text-align: right;">
+          <select id="currencySelectorDesktop" aria-label="Select currency" style="width: 100%;">
+            <option value="EUR">€ EUR</option>
+            <option value="USD">$ USD</option>
+            <option value="GBP">£ GBP</option>
+          </select>
+        </div>
+
+        <button id="searchToggle" aria-expanded="false" aria-controls="searchWrap"
+                class="w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+          🔎 Search
+        </button>
+        <form id="searchWrap" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
+          <div class="mt-2 grid gap-2">
+            <input type="text" name="q" placeholder="Search products…"
+                   class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-slate-300">
+            <div>
+              <button type="submit"
+                      class="inline-flex px-2.5 py-1.5 rounded-md bg-brand text-white font-extrabold text-xs hover:brightness-95 transition">
+                Go
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="relative">
+          <a id="cartLink" href="#" aria-describedby="cartTip"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition relative">
+            🛒 Cart
+            {% if cart_count|default:0 > 0 %}
+            <span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {{ cart_count }}
+            </span>
+            {% endif %}
+          </a>
+          <span id="cartTip"
+                class="cart-tip invisible opacity-0 absolute right-0 mt-1
+                       bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg
+                       transition-opacity duration-200">
+            Your cart is empty
+          </span>
+        </div>
+
+        {% if user.is_authenticated %}
+          <a href="{% url 'account_logout' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Logout
+          </a>
+
+          <!-- Profile -->
+          <a href="{% url 'profile_dashboard' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            👤 Profile
+          </a>
+
+          <!-- Favorites (red) -->
+          <a href="{% url 'profile_favorites' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md text-xs font-extrabold text-right
+                    border border-red-200 bg-red-50 text-red-700 shadow-soft hover:bg-red-100 transition">
+            ❤️ Favorites
+          </a>
+        {% else %}
+          <!-- Logged out: ONLY Login + Register -->
+          <a href="{% url 'login' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Login
+          </a>
+          <a href="{% url 'register' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right hover:brightness-95 transition">
+            Register
+          </a>
+        {% endif %}
+      </div>
+    </aside>
+
+
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // CSRF token from Django - extract from hidden input or cookie
+  (function() {
+    // Try to get CSRF token from a hidden input field (if any form exists on page)
+    const csrfInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+    if (csrfInput && csrfInput.value) {
+      window.csrfToken = csrfInput.value;
+    } else {
+      // Fallback: try to get from cookie (may not work if HTTPONLY)
+      function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) === 0) {
+            return decodeURIComponent(c.substring(nameEQ.length, c.length));
+          }
+        }
+        return null;
+      }
+      window.csrfToken = getCookie('csrftoken');
+    }
+  })();
+  
+  /* Search toggles */
+  function wireSearchToggle(btnId, formId){
+    const btn = document.getElementById(btnId);
+    const form = document.getElementById(formId);
+    btn?.addEventListener('click', () => {
+      const isHidden = form.classList.contains('hidden');
+      form.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+      form.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+      if (isHidden) form.querySelector('input')?.focus();
+    });
+  }
+  wireSearchToggle('searchToggle', 'searchWrap');
+
+  /* Cart tip */
+  function wireCart(linkId, tipId){
+    const link = document.getElementById(linkId);
+    const tip = document.getElementById(tipId);
+    let timer = null;
+
+    function showTip(){
+      tip?.classList.remove('invisible', 'opacity-0');
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        tip?.classList.add('opacity-0');
+        setTimeout(()=> tip?.classList.add('invisible'), 200);
+      }, 2000);
+    }
+
+    link?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const count = Number('{{ cart_count|default:"0" }}') || 0;
+      if (count > 0) {
+        window.location.href = "{% url 'cart_view' %}";
+      } else {
+        showTip();
+      }
+    });
+
+    document.addEventListener('scroll', () => tip?.classList.add('invisible', 'opacity-0'));
+    document.addEventListener('click', (ev) => {
+      if (!ev.target.closest('#' + linkId) && !ev.target.closest('#' + tipId)) {
+        tip?.classList.add('invisible', 'opacity-0');
+      }
+    });
+  }
+  wireCart('cartLink', 'cartTip');
+
+  /* === Favorites toggle (AJAX, stays on page; show tooltip if not logged in) === */
+  function getCookie(name) {
+    // Improved cookie reading that handles all cases
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) {
+        return decodeURIComponent(c.substring(nameEQ.length, c.length));
+      }
+    }
+    return null;
+  }
+  
+  // Try multiple methods to get CSRF token
+  function getCSRFToken() {
+    // Method 1: From window.csrfToken (set by Django template)
+    if (window.csrfToken && window.csrfToken.trim()) {
+      console.log('CSRF token found in window.csrfToken');
+      return window.csrfToken.trim();
+    }
+    
+    // Method 2: From hidden input in forms (if any exist)
+    const formInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+    if (formInput && formInput.value) {
+      console.log('CSRF token found in form input');
+      return formInput.value.trim();
+    }
+    
+    // Method 3: From cookie (may not work if HTTPONLY is True)
+    const cookieToken = getCookie('csrftoken');
+    if (cookieToken && cookieToken.trim()) {
+      console.log('CSRF token found in cookie');
+      return cookieToken.trim();
+    }
+    
+    console.error('CSRF token not found!');
+    return null;
+  }
+  
+  const csrftoken = getCSRFToken();
+  
+  // Log token status for debugging
+  if (csrftoken) {
+    console.log('CSRF token loaded successfully, length:', csrftoken.length);
+  } else {
+    console.error('CSRF token not found! This will cause AJAX requests to fail.');
+  }
+
+  function showFavTip(fromButton){
+    const card = fromButton.closest('.card-rel');
+    const tip = card?.querySelector('.fav-tip');
+    if (!tip) return;
+    tip.classList.add('show');
+    clearTimeout(tip._t);
+    tip._t = setTimeout(() => tip.classList.remove('show'), 1600);
+  }
+
+  async function toggleFavorite(btn){
+    const auth = btn.getAttribute('data-auth') === '1';
+    if (!auth) {
+      showFavTip(btn);
+      return;
+    }
+    const url = btn.getAttribute('data-url');
+    if (!url) {
+      console.error('No URL found for favorite button');
+      return;
+    }
+    
+    // Get CSRF token from cookie or meta tag
+    let token = csrftoken;
+    if (!token) {
+      // Try to get from meta tag if available
+      const metaTag = document.querySelector('meta[name=csrf-token]');
+      if (metaTag) {
+        token = metaTag.getAttribute('content');
+      }
+    }
+    
+    if (!token) {
+      console.error('CSRF token not found');
+      alert('CSRF token not found. Please refresh the page.');
+      return;
+    }
+    
+    console.log('Toggling favorite:', url);
+    console.log('CSRF token present:', !!token);
+    
+    // Disable button to prevent double clicks
+    const wasDisabled = btn.disabled;
+    btn.disabled = true;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 
+          'X-CSRFToken': token,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        credentials: 'same-origin',
+        body: 'csrfmiddlewaretoken=' + encodeURIComponent(token)
+      });
+      
+      console.log('Response status:', response.status, response.statusText);
+      
+      // Check if response is a redirect (302) - this means CSRF failed or not AJAX
+      if (response.redirected) {
+        console.warn('Response was redirected. This might indicate CSRF failure or non-AJAX handling.');
+        window.location.href = response.url;
+        return;
+      }
+      
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMsg = `HTTP error! status: ${response.status}`;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorData.message || errorMsg;
+          } else {
+            const text = await response.text();
+            if (text) {
+              errorMsg = text.substring(0, 200); // Limit error message length
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing error response:', e);
+        }
+        throw new Error(errorMsg);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Expected JSON but got:', contentType, text.substring(0, 200));
+        throw new Error('Expected JSON response but got: ' + contentType);
+      }
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (data.success) {
+        // Update UI based on server response
+        btn.setAttribute('aria-pressed', data.is_favorite ? 'true' : 'false');
+        console.log('Favorite toggled successfully. Is favorite:', data.is_favorite);
+      } else {
+        console.error('Favorite toggle failed:', data.error || 'Unknown error');
+        alert('Failed to update favorite: ' + (data.error || 'Unknown error'));
+      }
+    } catch (e) {
+      console.error('Favorite toggle failed', e);
+      console.error('Error details:', {
+        message: e.message,
+        stack: e.stack,
+        url: url,
+        tokenPresent: !!token
+      });
+      alert('Error: ' + e.message + '\n\nCheck console for details.');
+    } finally {
+      btn.disabled = wasDisabled;
+    }
+  }
+
+  // Delegate clicks for all hearts (prevents navigating the image link)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.fav-btn');
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFavorite(btn);
+    }
+  });
+
+  /* === Show More Products === */
+  (function() {
+    const showMoreBtn = document.getElementById('showMoreBtn');
+    if (!showMoreBtn) return;
+
+    const productItems = document.querySelectorAll('.product-item');
+    const itemsPerLoad = 15;
+    let currentlyVisible = 15;
+
+    showMoreBtn.addEventListener('click', () => {
+      const nextBatch = Math.min(currentlyVisible + itemsPerLoad, productItems.length);
+      
+      // Show next batch
+      for (let i = currentlyVisible; i < nextBatch; i++) {
+        if (productItems[i]) {
+          productItems[i].style.display = '';
+        }
+      }
+      
+      currentlyVisible = nextBatch;
+
+      // Hide button if all products are visible
+      if (currentlyVisible >= productItems.length) {
+        showMoreBtn.closest('#showMoreContainer').style.display = 'none';
+      }
+    });
+  })();
+
+  /* === Banner Carousel === */
+  (function() {
+    const carouselContainer = document.querySelector('.carousel-container');
+    if (!carouselContainer) return;
+
+    const slides = carouselContainer.querySelectorAll('.carousel-slide');
+    const dots = carouselContainer.querySelectorAll('.carousel-dot');
+    const prevBtn = carouselContainer.querySelector('.carousel-prev');
+    const nextBtn = carouselContainer.querySelector('.carousel-next');
+    
+    if (slides.length <= 1) return; // No carousel needed for single slide
+
+    let currentSlide = 0;
+    let autoSlideInterval = null;
+    const SLIDE_INTERVAL = 5000; // 5 seconds
+
+    function showSlide(index) {
+      // Remove active class from all slides and dots
+      slides.forEach(slide => slide.classList.remove('active'));
+      dots.forEach(dot => dot.classList.remove('active'));
+      
+      // Add active class to current slide and dot
+      if (slides[index]) {
+        slides[index].classList.add('active');
+      }
+      if (dots[index]) {
+        dots[index].classList.add('active');
+      }
+      
+      currentSlide = index;
+    }
+
+    function nextSlide() {
+      const next = (currentSlide + 1) % slides.length;
+      showSlide(next);
+    }
+
+    function prevSlide() {
+      const prev = (currentSlide - 1 + slides.length) % slides.length;
+      showSlide(prev);
+    }
+
+    function startAutoSlide() {
+      autoSlideInterval = setInterval(nextSlide, SLIDE_INTERVAL);
+    }
+
+    function stopAutoSlide() {
+      if (autoSlideInterval) {
+        clearInterval(autoSlideInterval);
+        autoSlideInterval = null;
+      }
+    }
+
+    // Navigation dots
+    dots.forEach((dot, index) => {
+      dot.addEventListener('click', () => {
+        showSlide(index);
+        stopAutoSlide();
+        startAutoSlide(); // Restart auto-slide after manual navigation
+      });
+    });
+
+    // Previous button
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        prevSlide();
+        stopAutoSlide();
+        startAutoSlide();
+      });
+    }
+
+    // Next button
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        nextSlide();
+        stopAutoSlide();
+        startAutoSlide();
+      });
+    }
+
+    // Pause on hover
+    carouselContainer.addEventListener('mouseenter', stopAutoSlide);
+    carouselContainer.addEventListener('mouseleave', startAutoSlide);
+
+    // Start auto-slide
+    startAutoSlide();
+  })();
+</script>
 {% endblock %}

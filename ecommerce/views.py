@@ -1,228 +1,591 @@
+from __future__ import annotations
 
-from .models import Comment
-from django.db.models import Q
-from django.contrib.auth.models import User
+import logging
+import uuid
+import hashlib
+from decimal import Decimal, ROUND_HALF_UP
+from types import SimpleNamespace
+from typing import Iterable, Optional
+from django.db.models import Max
+import stripe
+from stripe import _error as stripe_error
+from allauth.account.views import LoginView
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-import stripe
-from django.conf import settings
-from django.http import  HttpRequest
-from django.views.decorators.http import require_POST
-import logging
-from django.db.models import Case, When
-from .models import Rating
-from .forms import RatingForm
-from django.db.models import Avg
-from .models import  Order, OrderItem, ShippingOption
-
 from django.contrib.auth.decorators import login_required
-import openai
+from django.contrib.auth.models import User
+from django.core.paginator import Paginator
+from django.core.cache import cache
+from django.db import transaction
+from django.db.models import (
+    Avg,
+    Case,
+    F,
+    IntegerField,
+    Prefetch,
+    Q,
+    Sum,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie, csrf_protect
+from django.middleware.csrf import get_token
+from django.views.decorators.http import require_http_methods, require_POST
 
-
-openai.api_key = "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"
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
+from .forms import RatingForm
+from .models import (
+    BannerImage,
+    BlogPost,
+    CartItem,
+    Category,
+    Comment,
+    Coupon,
+    Favorite,
+    Order,
+    OrderItem,
+    Product,
+    ProductImage,
+    ProductVariant,
+    Rating,
+    ShippingOption, ProductBundleItem,
+    UserProfile,
+)
+from .signals import order_submitted, user_registered
+from .utils.emailing import (
+    send_welcome_email,
+    send_order_confirmation_email,
+)
 
 logger = logging.getLogger(__name__)
 
-def home(request: HttpRequest):
-    query = request.GET.get('q')
-    sort = request.GET.get('sort')
-    category_slug = request.GET.get('category')  # ✅ new
 
-    # Base queryset
-    products = Product.objects.all()
+if settings.STRIPE_SECRET_KEY:
+    try:
 
-    # Apply category filter
-    selected_category = None
-    if category_slug:
-        selected_category = get_object_or_404(Category, slug=category_slug)
-        products = products.filter(category=selected_category)
+        cleaned_key = settings.STRIPE_SECRET_KEY.strip().replace('\n', '').replace('\r', '')
 
-    # Apply search filter
-    if query:
-        products = products.filter(
-            Q(name__icontains=query) | Q(description__icontains=query)
+        cleaned_key.encode('latin-1')
+        stripe.api_key = cleaned_key
+        logger.debug("Stripe API key configured successfully")
+    except UnicodeEncodeError:
+        logger.error("Stripe secret key contains non-ASCII characters - Stripe API calls will fail")
+        stripe.api_key = None
+else:
+    stripe.api_key = None
+
+
+UNLIMITED_STOCK = 10**9
+
+
+def _ensure_session(request: HttpRequest) -> None:
+
+    if not request.session.session_key:
+        request.session.create()
+
+
+def _owner_filter(request: HttpRequest) -> dict:
+
+    if request.user.is_authenticated:
+        return {"user": request.user}
+    _ensure_session(request)
+    return {"session_key": request.session.session_key}
+
+
+def _cart_items_for(request: HttpRequest) -> Iterable[CartItem]:
+    if request.user.is_authenticated:
+        return (
+            CartItem.objects
+            .filter(user=request.user)
+            .select_related("product", "variant")
+            .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.all()))
+        )
+    _ensure_session(request)
+    return (
+        CartItem.objects
+        .filter(session_key=request.session.session_key)
+        .select_related("product", "variant")
+        .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.all()))
+    )
+
+
+def _compute_subtotal(items: Iterable[CartItem]) -> Decimal:
+
+    total = Decimal("0")
+    for it in items:
+        price = it.product.get_discounted_price() or Decimal("0")
+        it.subtotal = price * it.quantity
+        total += it.subtotal
+    return total
+
+
+def _to_cents(amount: Decimal) -> int:
+
+    return int((amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) * 100))
+
+
+def _available_stock(product: Product, variant_id: Optional[int] = None) -> int:
+
+    if variant_id:
+        return int(
+            ProductVariant.objects.filter(id=variant_id, product=product)
+            .values_list("stock", flat=True)
+            .first()
+            or 0
         )
 
-    # Apply sorting
-    if sort == 'price_asc':
-        products = products.order_by('discount_price', 'price')
-    elif sort == 'price_desc':
-        products = products.order_by('-discount_price', '-price')
+    try:
+        if hasattr(product, "variants") and product.variants.exists():
+            agg = product.variants.aggregate(total=Sum("stock"))
+            return int(agg["total"] or 0)
+    except Exception:
+        pass
 
-    # Recently viewed logic
-    recently_viewed_ids = [int(pk) for pk in request.session.get('recently_viewed', [])][::-1]
-    recently_viewed_display = []
-    recently_viewed_full_count = 0
-    if recently_viewed_ids:
-        preserved_order = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(recently_viewed_ids)])
-        recently_viewed_qs = Product.objects.filter(id__in=recently_viewed_ids).order_by(preserved_order)
-        recently_viewed_full_count = recently_viewed_qs.count()
-        recently_viewed_display = list(recently_viewed_qs[:5])
+    for field in ("stock", "quantity", "inventory"):
+        if hasattr(product, field):
+            val = getattr(product, field, None)
+            if val is not None:
+                return int(val or 0)
 
-    popular_products = Product.objects.order_by('-cart_add_count')[:5]
+    return UNLIMITED_STOCK
+
+
+def _cap_quantity(requested_total: int, available: int) -> int:
+    try:
+        requested_total = int(requested_total)
+    except Exception:
+        requested_total = 0
+    try:
+        available = int(available)
+    except Exception:
+        available = 0
+
+    if available < 0:
+        available = 0
+    if requested_total < 0:
+        requested_total = 0
+    return min(requested_total, available)
+
+
+
+def _process_coupon(coupon_code: str, subtotal: Decimal) -> tuple[Decimal, Decimal, Optional[str], Optional[str]]:
+    """Process coupon code and return (new_subtotal, discount, coupon_applied, coupon_error)."""
+    discount = Decimal("0.00")
+    coupon_applied = None
+    coupon_error = None
+    
+    if coupon_code:
+        coupon = Coupon.objects.filter(code=coupon_code).first()
+        if coupon and coupon.is_valid_now():
+            new_subtotal = coupon.apply(subtotal)
+            discount = subtotal - new_subtotal
+            subtotal = new_subtotal
+            coupon.used_count += 1
+            coupon.save(update_fields=["used_count"])
+            coupon_applied = coupon.code
+        else:
+            coupon_error = "Invalid or expired coupon."
+    
+    return subtotal, discount, coupon_applied, coupon_error
+
+
+def _get_shipping_option(shipping_option_id: Optional[str]) -> tuple[Optional[ShippingOption], Decimal]:
+    """Get shipping option and return (shipping_option, shipping_cost)."""
+    shipping_option = None
+    shipping_cost = Decimal("0.00")
+
+    if shipping_option_id:
+        try:
+            shipping_id = int(shipping_option_id)
+            shipping_option = ShippingOption.objects.get(id=shipping_id)
+            shipping_cost = getattr(shipping_option, "price", Decimal("0")) or Decimal("0")
+        except (ValueError, TypeError, ShippingOption.DoesNotExist):
+            shipping_option = None
+            shipping_cost = Decimal("0.00")
+
+    return shipping_option, shipping_cost
+
+
+def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest: bool = False) -> Optional[stripe.PaymentIntent]:
+    """Create Stripe PaymentIntent with error handling."""
+    # Check if Stripe is configured
+    if not settings.STRIPE_SECRET_KEY:
+        logger.error("Stripe secret key is not configured")
+        return None
+    
+    # Validate Stripe API key doesn't contain non-ASCII characters
+    try:
+        settings.STRIPE_SECRET_KEY.encode('latin-1')
+    except UnicodeEncodeError:
+        logger.error("Stripe secret key contains non-ASCII characters")
+        return None
+    
+    try:
+        # Create a safe idempotency key (only ASCII characters, no Cyrillic)
+        # Use hash of session_key to avoid encoding issues
+        if session_key:
+            # Encode session_key to bytes, then hash it to get only ASCII characters
+            try:
+                session_hash = hashlib.md5(session_key.encode('utf-8')).hexdigest()
+            except UnicodeEncodeError:
+                # Fallback: use a hash of the repr if direct encoding fails
+                session_hash = hashlib.md5(repr(session_key).encode('utf-8')).hexdigest()
+        else:
+            session_hash = 'nouser'
+        
+        idempotency_key = f"pi-{'guest' if is_guest else 'user'}-{session_hash}-{uuid.uuid4().hex}"
+        
+        # Ensure idempotency_key is ASCII-safe
+        try:
+            idempotency_key.encode('latin-1')
+        except UnicodeEncodeError:
+            logger.error("Idempotency key contains non-ASCII characters: %s", idempotency_key)
+            # Fallback: use only hash and UUID
+            idempotency_key = f"pi-{session_hash}-{uuid.uuid4().hex}"
+        
+        # Ensure all parameters are ASCII-safe
+        intent = stripe.PaymentIntent.create(
+            amount=int(_to_cents(amount)),
+            currency="eur",  # Changed to EUR as base currency
+            idempotency_key=idempotency_key,
+        )
+        return intent
+    except stripe_error.StripeError as e:
+        logger.error("Stripe PaymentIntent creation failed: %s", str(e), exc_info=True)
+        return None
+    except UnicodeEncodeError as e:
+        logger.error("UnicodeEncodeError creating Stripe PaymentIntent: %s", str(e), exc_info=True)
+        return None
+    except Exception as e:
+        logger.error("Unexpected error creating Stripe PaymentIntent: %s", str(e), exc_info=True)
+        return None
+
+
+def _get_categories():
+    """Get all categories ordered with sub-categories directly under their parent categories (cached for 1 hour)."""
+    cache_key = 'all_categories_ids'
+    cached_ids = cache.get(cache_key)
+    
+    if cached_ids is None:
+        # Get all categories with parent relationship loaded
+        all_categories = list(Category.objects.select_related('parent').all())
+        
+        # Separate parent categories and sub-categories
+        parent_categories = []
+        subcategories_dict = {}
+        sale_category = None
+        
+        for cat in all_categories:
+            # Ensure parent relationship is loaded
+            if hasattr(cat, 'parent_id'):
+                if cat.parent_id is None:
+                    cat.parent = None
+            
+            if cat.name.lower() == 'sale':
+                sale_category = cat
+                # Still initialize subcategories_dict for Sale category
+                if sale_category.id not in subcategories_dict:
+                    subcategories_dict[sale_category.id] = []
+            elif cat.parent is None or (hasattr(cat, 'parent_id') and cat.parent_id is None):
+                parent_categories.append(cat)
+                if cat.id not in subcategories_dict:
+                    subcategories_dict[cat.id] = []
+            else:
+                parent_id = cat.parent.id if cat.parent else (cat.parent_id if hasattr(cat, 'parent_id') else None)
+                if parent_id:
+                    if parent_id not in subcategories_dict:
+                        subcategories_dict[parent_id] = []
+                    subcategories_dict[parent_id].append(cat)
+        
+        # Sort parent categories by name (case-insensitive, stable sort)
+        parent_categories.sort(key=lambda x: (x.name.lower(), x.id))
+        
+        # Sort subcategories within each parent by name (case-insensitive, stable sort)
+        for parent_id in subcategories_dict:
+            subcategories_dict[parent_id].sort(key=lambda x: (x.name.lower(), x.id))
+        
+        # Build final list: parent category followed by its sub-categories
+        categories = []
+        for parent in parent_categories:
+            categories.append(parent)
+            if parent.id in subcategories_dict:
+                categories.extend(subcategories_dict[parent.id])
+        
+        # Add Sale category at the end if it exists
+        if sale_category:
+            categories.append(sale_category)
+            if sale_category.id in subcategories_dict:
+                categories.extend(subcategories_dict[sale_category.id])
+        
+        # Cache only the IDs to avoid Django model instance caching issues
+        category_ids = [cat.id for cat in categories]
+        cache.set(cache_key, category_ids, 3600)
+    else:
+        # Retrieve categories by IDs in the correct order, with parent relationships
+        categories = list(Category.objects.select_related('parent').filter(id__in=cached_ids).all())
+        # Create a dict for quick lookup
+        categories_dict = {cat.id: cat for cat in categories}
+        # Rebuild the list in the correct order, ensuring all categories are included
+        categories = []
+        for cid in cached_ids:
+            if cid in categories_dict:
+                categories.append(categories_dict[cid])
+        # If some categories are missing (maybe deleted), invalidate cache and rebuild
+        if len(categories) != len(cached_ids):
+            cache.delete(cache_key)
+            return _get_categories()  # Recursive call to rebuild cache
+    
+    # Ensure all parent relationships are properly loaded
+    for cat in categories:
+        if hasattr(cat, 'parent_id') and cat.parent_id and not cat.parent:
+            try:
+                cat.parent = Category.objects.get(id=cat.parent_id)
+            except Category.DoesNotExist:
+                cat.parent = None
+    
+    return categories
+
+@ensure_csrf_cookie
+def home(request: HttpRequest) -> HttpResponse:
+    query = request.GET.get("q")
+    sort = request.GET.get("sort")
+    category_slug = request.GET.get("category")
+    products = (
+        Product.objects
+        .all()
+        .select_related("category")
+        .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+    )
+
+    selected_category = None
+    if category_slug:
+
+        selected_category = Category.objects.filter(slug=category_slug).first()
+        if not selected_category:
+            selected_category = get_object_or_404(Category, pk=category_slug)
+        products = products.filter(category=selected_category)
+
+    if query:
+        products = products.filter(Q(name__icontains=query) | Q(description__icontains=query))
+
+
+    products = products.annotate(_eff_price=Coalesce("discount_price", "price"))
+    if sort == "price_asc":
+        products = products.order_by("_eff_price")
+    elif sort == "price_desc":
+        products = products.order_by("-_eff_price")
+
+
+    ids = [int(pk) for pk in request.session.get("recently_viewed", []) if str(pk).isdigit()]
+    recently_viewed_qs = Product.objects.none()
+    if ids:
+        preserved_order = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(ids)], output_field=IntegerField())
+        recently_viewed_qs = (
+            Product.objects
+            .filter(id__in=ids)
+            .select_related("category")
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+            .order_by(preserved_order)
+        )
+
+
+    POPULAR_LIMIT = 15
+    cache_key_popular = 'popular_products'
+    popular_products = cache.get(cache_key_popular)
+    if popular_products is None:
+        popular_products = list(
+            Product.objects
+            .select_related("category")
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+            .annotate(_pop=Coalesce("cart_add_count", Value(0)))
+            .order_by("-_pop", "-id")[:POPULAR_LIMIT]
+        )
+        cache.set(cache_key_popular, popular_products, 1800)
+
+
+    cache_key_editors = 'editors_choice_products'
+    editors_choice = cache.get(cache_key_editors)
+    if editors_choice is None:
+        editors_choice = list(
+            Product.objects.select_related("category")
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+            .annotate(
+                variant_stock=Coalesce(Sum("variants__stock"), Value(0)),
+                base_stock=Coalesce(F("stock"), Value(0)),
+            )
+            .annotate(total_stock=F("base_stock") + F("variant_stock"))
+            .order_by("-total_stock", "name", "-id")[:10]
+        )
+        cache.set(cache_key_editors, editors_choice, 3600)
+
+    # Get active banner images for carousel
+    banner_images = BannerImage.objects.filter(is_active=True).order_by("order", "-created_at")[:4]
 
     context = {
-        'products': products,
-        'recently_viewed': recently_viewed_display,
-        'recently_viewed_full_count': recently_viewed_full_count,
-        'categories': Category.objects.all(),
-        'favorite_ids': [fav.product.id for fav in Favorite.objects.filter(user=request.user)] if request.user.is_authenticated else [],
-        'popular_products': popular_products,
-        'sort': sort,
-        'query': query,
-        'selected_category': selected_category,  # ✅ optional, useful in template
+        "products": products,
+        "recently_viewed_products": list(recently_viewed_qs[:5]),
+        "recently_viewed_full_count": recently_viewed_qs.count(),
+        "categories": _get_categories(),
+        "favorite_ids": (
+            list(Favorite.objects.filter(user=request.user).values_list("product_id", flat=True))
+            if request.user.is_authenticated
+            else []
+        ),
+        "popular_products": popular_products,
+        "editors_choice": editors_choice,
+        "blog_posts": BlogPost.objects.filter(is_published=True)[:3],
+        "banner_images": banner_images,
+        "sort": sort,
+        "query": query,
+        "selected_category": selected_category,
     }
 
-    if request.headers.get('HX-Request') == 'true':
-        return render(request, 'home_partial.html', context)
-
-    return render(request, 'home.html', context)
-
-def register_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
-
-        if not all([username, email, password, confirm_password]):
-            messages.error(request, "All fields are required.")
-        elif password != confirm_password:
-            messages.error(request, "Passwords do not match.")
-        elif User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists.")
-        else:
-            user = User.objects.create_user(username=username, email=email, password=password)
-            user.save()
-            messages.success(request, "Registration successful. You can now log in.")
-            return redirect('login')
-
-    return render(request, 'register.html')
-
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return redirect('home')
-        else:
-            messages.error(request, "Invalid username or password.")
-
-    return render(request, 'login.html')
+    if request.headers.get("HX-Request") == "true":
+        return render(request, "home_partial.html", context)
+    return render(request, "home.html", context)
 
 
-def logout_view(request):
-    logout(request)
-    return redirect('home')
+def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
+    category = get_object_or_404(Category, pk=pk)
+    sort = request.GET.get("sort")
+
+    # Use categories ManyToManyField if available, fallback to category ForeignKey
+    products = Product.objects.filter(
+        Q(categories=category) | Q(category=category)
+    ).select_related("category").distinct()
+    products = products.annotate(_eff_price=Coalesce("discount_price", "price"))
+    if sort == "price_asc":
+        products = products.order_by("_eff_price")
+    elif sort == "price_desc":
+        products = products.order_by("-_eff_price")
+
+    recently_viewed_ids = request.session.get("recently_viewed", [])
+    recently_viewed = Product.objects.filter(id__in=recently_viewed_ids)
 
 
-@login_required
-def favorites_list(request):
-    favorites = Favorite.objects.filter(user=request.user).select_related('product')
-    return render(request, 'favorites.html', {'favorites': favorites})
+    cache_key_popular = 'popular_products'
+    popular_products = cache.get(cache_key_popular)
+    if popular_products is None:
+        popular_products = list(
+            Product.objects
+            .select_related("category")
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.all()))
+            .annotate(_pop=Coalesce("cart_add_count", Value(0)))
+            .order_by("-_pop", "-id")[:15]
+        )
+        cache.set(cache_key_popular, popular_products, 1800)
+    favorite_ids = (
+        list(Favorite.objects.filter(user=request.user).values_list("product_id", flat=True))
+        if request.user.is_authenticated
+        else []
+    )
+
+    # Get sub-categories for the selected category
+    subcategories = category.subcategories.all().order_by('name') if category else []
+    
+    context = {
+        "products": products,
+        "categories": _get_categories(),
+        "selected_category": category,
+        "subcategories": subcategories,
+        "recently_viewed": recently_viewed,
+        "popular_products": popular_products,
+        "favorite_ids": favorite_ids,
+        "sort": sort,
+    }
+
+    return render(request, "home.html", context)
 
 
-
-@login_required
-def remove_from_favorites(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    Favorite.objects.filter(user=request.user, product=product).delete()
-    return redirect('favorites_list')
-
-
-
-
-
-
-
-from django.views.decorators.csrf import csrf_exempt  # if needed
-
-@login_required
-def cart_view(request):
-    print("🛒 CART_VIEW user:", request.user)
-    print("🛒 Authenticated:", request.user.is_authenticated)
-
-    cart_items = CartItem.objects.filter(user=request.user).select_related('product')
-
-    for item in cart_items:
-        item.subtotal = item.product.get_discounted_price() * item.quantity
-
-    subtotal = sum(item.subtotal for item in cart_items)
-
-    print("🛒 Cart items count:", cart_items.count())
-    for item in cart_items:
-        print("🛒", item.product.name, "-", item.quantity)
-
-    return render(request, 'cart.html', {
-        'cart_items': cart_items,
-        'subtotal': subtotal,
-    })
-
-@login_required
-def remove_from_cart(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    CartItem.objects.filter(user=request.user, product=product).delete()
-    return redirect('cart_view')
-
-def product_list(request):
+def product_list(request: HttpRequest) -> HttpResponse:
     selected_category = None
-    category_id = request.GET.get('category')
-    sort = request.GET.get('sort')
+    category_id = request.GET.get("category")
+    sort = request.GET.get("sort")
 
     if category_id:
         selected_category = get_object_or_404(Category, id=category_id)
-        products = list(Product.objects.filter(category=selected_category))
+        products = Product.objects.filter(category=selected_category).select_related("category")
     else:
-        products = list(Product.objects.all())
+        products = Product.objects.all().select_related("category")
 
-    # Sort using discounted price
-    if sort == 'price_asc':
-        products.sort(key=lambda p: p.get_discounted_price())
-    elif sort == 'price_desc':
-        products.sort(key=lambda p: p.get_discounted_price(), reverse=True)
+    products = products.annotate(_eff_price=Coalesce("discount_price", "price"))
+    if sort == "price_asc":
+        products = products.order_by("_eff_price")
+    elif sort == "price_desc":
+        products = products.order_by("-_eff_price")
 
-    categories = Category.objects.all()
-
-    recently_viewed_ids = request.session.get('recently_viewed', [])
+    categories = _get_categories()
+    recently_viewed_ids = request.session.get("recently_viewed", [])
     recently_viewed = Product.objects.filter(id__in=recently_viewed_ids)
+    recently_viewed = sorted(recently_viewed, key=lambda x: recently_viewed_ids.index(x.id))
 
-    # Preserve original viewing order
-    recently_viewed = sorted(
-        recently_viewed,
-        key=lambda x: recently_viewed_ids.index(x.id)
+    return render(
+        request,
+        "product_list.html",
+        {
+            "products": products,
+            "categories": categories,
+            "selected_category": selected_category,
+            "recently_viewed": recently_viewed,
+            "sort": sort,
+        },
     )
 
-    return render(request, 'product_list.html', {
-        'products': products,
-        'categories': categories,
-        'selected_category': selected_category,
-        'recently_viewed': recently_viewed,
-        'sort': sort,
-    })
+
+def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    product_qs = (
+        Product.objects.select_related("category").prefetch_related(
+            Prefetch("images", queryset=ProductImage.objects.all().order_by('id')),
+            Prefetch("variants", queryset=ProductVariant.objects.order_by("size")),
+        )
+    )
+    product = get_object_or_404(product_qs, pk=pk)
+
+    comments = Comment.objects.filter(product=product).order_by("-created_at")
 
 
+    product_images = list(ProductImage.objects.filter(product=product).order_by('id'))
 
-def product_detail(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    comments = Comment.objects.filter(product=product).order_by('-created_at')
-    product_images = product.images.all()
+
+    logger.debug(f"Product {product.pk} ({product.name}): Found {len(product_images)} ProductImage records")
+    for idx, img in enumerate(product_images):
+        logger.debug(f"  Image {idx}: {img.image.name if hasattr(img, 'image') else 'NO IMAGE ATTR'}")
+
+
+    if product.image:
+
+        main_image_path = product.image.name
+        image_exists = any(
+            hasattr(img, 'image') and img.image.name == main_image_path
+            for img in product_images
+        )
+        if not image_exists:
+
+            main_img_obj = SimpleNamespace(image=product.image)
+            product_images.insert(0, main_img_obj)
+            logger.debug(f"Added main image {main_image_path} to product_images list")
+
+
+    product_images = [img for img in product_images if hasattr(img, 'image') and img.image]
+
+    logger.debug(f"Total images for product {product.pk} after filtering: {len(product_images)}")
     rating_form = None
-    categories = Category.objects.all()
-
+    categories = _get_categories()
 
 
     if request.user.is_authenticated:
         existing_rating = Rating.objects.filter(user=request.user, product=product).first()
         rating_form = RatingForm(instance=existing_rating)
 
-        if request.method == 'POST':
-
-            value = request.POST.get('value')
+        if request.method == "POST":
+            value = request.POST.get("value")
             if value:
                 rating_form = RatingForm(request.POST, instance=existing_rating)
                 if rating_form.is_valid():
@@ -231,337 +594,1505 @@ def product_detail(request, pk):
                     rating.product = product
                     rating.save()
 
+            comment_text = (request.POST.get("comment") or "").strip()
+            if comment_text:
+                Comment.objects.create(product=product, user=request.user, text=comment_text)
 
-            comment_text = request.POST.get('comment')
-            if comment_text and comment_text.strip():
-                Comment.objects.create(
-                    product=product,
-                    user=request.user,
-                    text=comment_text.strip()
-                )
+            return redirect("product_detail", pk=pk)
 
-            return redirect('product_detail', pk=pk)
+    average_rating = product.ratings.aggregate(Avg("value"))["value__avg"]
 
 
-    average_rating = product.ratings.aggregate(Avg('value'))['value__avg']
+    rv = [int(i) for i in request.session.get("recently_viewed", []) if str(i).isdigit()]
+    pk_i = int(pk)
+    if pk_i in rv:
+        rv.remove(pk_i)
+    rv.insert(0, pk_i)
+    request.session["recently_viewed"] = rv[:10]
 
-    recently_viewed = request.session.get('recently_viewed', [])
+    preserved = Case(*[When(id=pid, then=pos) for pos, pid in enumerate(rv)], output_field=IntegerField())
+    recently_viewed_products = (
+        Product.objects.filter(pk__in=rv)
+        .exclude(pk=product.pk)
+        .select_related("category")
+        .order_by(preserved)
+    )
 
-    pk = int(pk)  # ensure it's an integer
-    recently_viewed = [int(i) for i in recently_viewed if str(i).isdigit()]
 
-    if pk in recently_viewed:
-        recently_viewed.remove(pk)
-    recently_viewed.insert(0, pk)
+    you_might_like = (
+        Product.objects.filter(category=product.category)
+        .exclude(pk=product.pk)
+        .annotate(_pop=Coalesce("cart_add_count", Value(0, output_field=IntegerField())))
+        .order_by("-_pop", "-id")[:10]
+    )
 
-    # Optional: Limit to last 10 viewed
-    recently_viewed = recently_viewed[:10]
 
-    request.session['recently_viewed'] = recently_viewed
+    manual_links = (
+        ProductBundleItem.objects
+        .filter(product=product, is_active=True)
+        .select_related("item__category")
+        .order_by("position", "id")
+    )
+    bundle_ids = [lnk.item_id for lnk in manual_links]
 
-    recently_viewed_products = Product.objects.filter(pk__in=recently_viewed).exclude(pk=product.pk)
+    bundle_items = []
+    bundle_items_data = []
+    if bundle_ids:
+        preserved_bundle = Case(
+            *[When(id=pid, then=pos) for pos, pid in enumerate(bundle_ids)],
+            output_field=IntegerField()
+        )
+        bundle_qs = (
+            Product.objects
+            .filter(pk__in=bundle_ids)
+            .select_related("category")
+            .prefetch_related(Prefetch("variants", queryset=ProductVariant.objects.order_by("size")))
+            .order_by(preserved_bundle)
+        )
+
+        for p in bundle_qs:
+            qa = {"can": False, "variant_id": None, "needs_size": False, "disabled": False, "reason": ""}
+
+            variants_mgr = getattr(p, "variants", None)
+            variants = list(variants_mgr.all()) if variants_mgr is not None else []
+
+            if variants:
+                in_stock = [v for v in variants if (getattr(v, "stock", 0) or 0) > 0]
+                if len(in_stock) == 1:
+                    qa["can"] = True
+                    qa["variant_id"] = in_stock[0].id
+                elif len(in_stock) == 0:
+                    qa["disabled"] = True
+                    qa["reason"] = "Out of stock"
+                else:
+                    qa["needs_size"] = True
+            else:
+
+                if (p.stock or 0) > 0:
+                    qa["can"] = True
+                else:
+                    qa["disabled"] = True
+                    qa["reason"] = "Out of stock"
+
+            bundle_items.append(p)
+            bundle_items_data.append({"product": p, "qa": qa})
+
+    show_bundle = bool(bundle_items)
+
+    # Check if product is in Sale category and has expiration time
+    # Also automatically remove from Sale if expired
+    is_sale = False
+    sale_expires_at = None
+    if hasattr(product, 'sale_expires_at') and product.sale_expires_at:
+        # Check if sale has expired
+        from django.utils import timezone
+        now = timezone.now()
+        if product.sale_expires_at < now:
+            # Sale has expired - remove from Sale category
+            sale_category = Category.objects.filter(name__iexact='Sale').first()
+            if not sale_category:
+                sale_category = Category.objects.filter(name__icontains='разпродажба').first()
+            if sale_category and sale_category in product.categories.all():
+                product.categories.remove(sale_category)
+                logger.info(f"Automatically removed expired product {product.id} from Sale category")
+        else:
+            # Sale is still active - check if product is in Sale category
+            sale_categories = product.categories.filter(name__iexact='Sale')
+            if not sale_categories.exists():
+                # Try Bulgarian name
+                sale_categories = product.categories.filter(name__icontains='разпродажба')
+            if sale_categories.exists():
+                is_sale = True
+                sale_expires_at = product.sale_expires_at
 
     context = {
-        'product': product,
-        'product_images': product_images,
-        'comments': comments,
-        'favorite_ids': [fav.product.id for fav in Favorite.objects.filter(user=request.user)] if request.user.is_authenticated else [],
-        'rating_form': rating_form,
-        'average_rating': average_rating,
-        'recently_viewed_products': recently_viewed_products,
-        'categories': categories,
-'selected_category': product.category
+        "product": product,
+        "product_images": product_images,
+        "comments": comments,
+        "favorite_ids": (
+            list(Favorite.objects.filter(user=request.user).values_list("product_id", flat=True))
+            if request.user.is_authenticated
+            else []
+        ),
+        "rating_form": rating_form,
+        "average_rating": average_rating,
+        "recently_viewed_products": recently_viewed_products,
+        "you_might_like": you_might_like,
+        "bundle_items": bundle_items,
+        "bundle_items_data": bundle_items_data,
+        "show_bundle": show_bundle,
+        "categories": categories,
+        "selected_category": product.category,
+        "is_sale": is_sale,
+        "sale_expires_at": sale_expires_at,
     }
-
-    return render(request, 'product_detail.html', context)
-
+    return render(request, "product_detail.html", context)
 
 
+@ensure_csrf_cookie
+def register_view(request: HttpRequest) -> HttpResponse:
+    """Simple registration view without email sending to prevent blocking."""
+    logger.info("Register view accessed: method=%s, path=%s", request.method, request.path)
+    
+    # Ensure CSRF token is available in context
+    if request.method == "GET":
+        csrf_token = get_token(request)  # Force CSRF token generation
+        logger.info("CSRF token generated for GET request: %s", csrf_token[:20] + "..." if csrf_token else "NONE")
+    
+    try:
+        if request.method == "POST":
+            logger.info("POST request received for registration")
+            logger.info("CSRF Token in POST: %s", request.POST.get('csrfmiddlewaretoken', 'NOT FOUND'))
+            logger.info("CSRF Token in headers: %s", request.META.get('HTTP_X_CSRFTOKEN', 'NOT FOUND'))
+            logger.info("Origin: %s", request.META.get('HTTP_ORIGIN', 'NOT FOUND'))
+            logger.info("Referer: %s", request.META.get('HTTP_REFERER', 'NOT FOUND'))
+            logger.info("Host: %s", request.get_host())
+            logger.info("CSRF_TRUSTED_ORIGINS: %s", settings.CSRF_TRUSTED_ORIGINS)
+            logger.info("CSRF_COOKIE_SECURE: %s", settings.CSRF_COOKIE_SECURE)
+            logger.info("CSRF_COOKIE_SAMESITE: %s", settings.CSRF_COOKIE_SAMESITE)
+            
+            # Bot protection: Check honeypot field
+            honeypot = request.POST.get("website", "").strip()
+            if honeypot:
+                logger.warning("Bot detected: honeypot field filled. IP: %s", request.META.get('REMOTE_ADDR', 'Unknown'))
+                messages.error(request, "Registration failed. Please try again.")
+                return render(request, "register.html")
+            
+            # Bot protection: Rate limiting - check IP address
+            ip_address = request.META.get('REMOTE_ADDR', 'Unknown')
+            cache_key = f"register_attempts_{ip_address}"
+            attempts = cache.get(cache_key, 0)
+            
+            # Allow max 3 registrations per IP per hour
+            if attempts >= 3:
+                logger.warning("Rate limit exceeded for IP: %s (attempts: %s)", ip_address, attempts)
+                messages.error(request, "Too many registration attempts. Please try again later.")
+                return render(request, "register.html")
+            
+            # Bot protection: Time-based validation - check if form submitted too quickly
+            import time
+            form_load_time = request.POST.get("form_load_time", "")
+            if form_load_time:
+                try:
+                    load_time = int(form_load_time)
+                    current_time = int(time.time() * 1000)  # Convert to milliseconds
+                    time_spent = current_time - load_time
+                    # If form submitted in less than 3 seconds, likely a bot
+                    if time_spent < 3000:
+                        logger.warning("Bot detected: form submitted too quickly (%s ms). IP: %s", time_spent, ip_address)
+                        messages.error(request, "Registration failed. Please try again.")
+                        return render(request, "register.html")
+                except (ValueError, TypeError):
+                    pass
+            
+            # Increment rate limit counter
+            cache.set(cache_key, attempts + 1, 3600)  # Cache for 1 hour
+            
+            username = (request.POST.get("username") or "").strip()
+            email = (request.POST.get("email") or "").strip()
+            password = request.POST.get("password") or ""
+            confirm_password = request.POST.get("confirm_password") or ""
+
+            if not all([username, email, password, confirm_password]):
+                messages.error(request, "All fields are required.")
+            elif password != confirm_password:
+                messages.error(request, "Passwords do not match.")
+            elif len(password) < 8:
+                messages.error(request, "Password must be at least 8 characters long.")
+            elif User.objects.filter(username=username).exists():
+                messages.error(request, "Username already exists.")
+            elif User.objects.filter(email=email).exists():
+                messages.error(request, "Email already exists.")
+            else:
+                try:
+                    validate_email(email)
+                except ValidationError:
+                    messages.error(request, "Invalid email address.")
+                else:
+                    try:
+                        user = User.objects.create_user(username=username, email=email, password=password)
+                        logger.info("User created successfully: %s", username)
+                        
+                        # Reset rate limit on successful registration
+                        cache.delete(cache_key)
+                        
+                        # Send user_registered signal to trigger welcome email (in background thread)
+                        try:
+                            logger.info("Sending user_registered signal for user: %s", username)
+                            user_registered.send(sender=User, user=user, request=request)
+                            logger.info("user_registered signal sent successfully")
+                        except Exception as signal_error:
+                            logger.exception("Error sending user_registered signal: %s", signal_error)
+                            # Continue anyway - email sending is not critical
+                        
+                        # Automatically log in the user after registration
+                        try:
+                            # Set backend explicitly before login
+                            backend = 'django.contrib.auth.backends.ModelBackend'
+                            user.backend = backend
+                            logger.info("Attempting to log in user %s with backend %s", username, backend)
+                            
+                            # Log in the user
+                            login(request, user, backend=backend)
+                            
+                            # Verify login was successful
+                            if request.user.is_authenticated:
+                                logger.info("✅ User %s successfully logged in after registration", username)
+                                logger.info("   Authenticated user: %s", request.user.username)
+                            else:
+                                logger.error("❌ Login failed - user is not authenticated after login() call")
+                                raise Exception("Login failed - user not authenticated")
+                                
+                        except Exception as login_error:
+                            logger.exception("Error logging in user after registration: %s", login_error)
+                            # If login fails, redirect to login page instead
+                            messages.warning(request, "Account created successfully. Please log in.")
+                            return redirect("login")
+                        
+                        messages.success(request, "Registration successful! Welcome to Marbaras!")
+                        logger.info("Redirecting to home page for user: %s", username)
+                        return redirect("home")
+                    except Exception as e:
+                        logger.exception("Error creating user: %s", e)
+                        error_msg = str(e)
+                        logger.error("Registration error details: %s", error_msg)
+                        messages.error(request, f"An error occurred during registration: {error_msg}. Please try again.")
+                        return render(request, "register.html")
+
+        return render(request, "register.html")
+    except Exception as e:
+        logger.exception("Unexpected error in register_view: %s", e)
+        messages.error(request, "An unexpected error occurred. Please try again.")
+        return render(request, "register.html")
 
 
-from django.http import HttpResponse
-from django.shortcuts import redirect
+def login_view(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, username=username, password=password)
+        if user:
+            if user.is_active:
+                login(request, user)
+                return redirect("home")
+            else:
+                messages.error(request, "Your account is disabled.")
+        else:
+            messages.error(request, "Invalid username or password.")
+
+    return render(request, "login.html")
+
+
+def logout_view(request: HttpRequest) -> HttpResponse:
+    logout(request)
+    return redirect("home")
+
+
+class CustomLoginView(LoginView):
+    template_name = "login.html"
+
+
+
+
 
 
 @login_required
-def add_to_cart(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-
-    product.cart_add_count += 1
-    product.save()
+def favorites_list(request: HttpRequest) -> HttpResponse:
+    favorites = Favorite.objects.filter(user=request.user).select_related("product")
+    return render(request, "favorites.html", {"favorites": favorites})
 
 
-    quantity = 1
+@login_required
+def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
+    import logging
+    logger = logging.getLogger(__name__)
+
     if request.method == "POST":
         try:
-            quantity = int(request.POST.get('quantity', 1))
-        except ValueError:
-            quantity = 1
+            logger.info(f"Toggle favorite request: user={request.user.username}, product_id={pk}, is_ajax={request.headers.get('X-Requested-With') == 'XMLHttpRequest'}")
 
-    cart_item, created = CartItem.objects.get_or_create(
-        user=request.user,
-        product=product,
-        defaults={'quantity': quantity}
-    )
+            product = get_object_or_404(Product, pk=pk)
+            favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
 
-    if not created:
-        cart_item.quantity += quantity  # ✅ increment instead of replace
-        cart_item.save()
 
-    messages.success(request, "✅ Product added to cart!")
-    return redirect('product_detail', pk=pk)
+            if not created:
+                favorite.delete()
+                is_favorite = False
+                logger.info(f"Removed favorite: user={request.user.username}, product_id={pk}")
+            else:
+                is_favorite = True
+                logger.info(f"Added favorite: user={request.user.username}, product_id={pk}")
+
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                response_data = {
+                    "success": True,
+                    "is_favorite": is_favorite,
+                    "message": "Added to favorites" if is_favorite else "Removed from favorites"
+                }
+                logger.info(f"Returning JSON response: {response_data}")
+                return JsonResponse(response_data)
+
+            return redirect("product_detail", pk=pk)
+        except Exception as e:
+            logger.error(f"Error toggling favorite: {e}", exc_info=True)
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    "success": False,
+                    "error": str(e)
+                }, status=500)
+
+            return redirect("product_detail", pk=pk)
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+
+
+
+
+
+def cart_view(request: HttpRequest) -> HttpResponse:
+    cart_items = _cart_items_for(request)
+    subtotal = _compute_subtotal(cart_items)
+    cart_count = sum(getattr(it, "quantity", 0) for it in cart_items)
+    categories = _get_categories()
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
+
+    context = {
+        "cart_items": cart_items,
+        "subtotal": subtotal,
+        "is_guest": not request.user.is_authenticated,
+        "categories": categories,
+        "selected_category": None,
+        "cart_count": cart_count,
+        "show_sidebars": True,
+        "stripe_public_key": stripe_public_key,
+    }
+    return render(request, "cart.html", context)
+
+
 @require_POST
-def update_cart_quantity(request, pk):
-    if not request.user.is_authenticated:
-        messages.error(request, "Please login to update your cart.")
-        return redirect('login')
-
+def update_cart_quantity(request: HttpRequest, pk: int) -> HttpResponse:
     try:
-        quantity = int(request.POST.get('quantity'))
-        if quantity < 1:
+        new_qty = int(request.POST.get("quantity"))
+        if new_qty < 1:
             raise ValueError
     except (ValueError, TypeError):
         messages.error(request, "Invalid quantity.")
-        return redirect('cart_view')
+        return redirect("cart_view")
 
-    cart_item = CartItem.objects.filter(user=request.user, product_id=pk).first()
-    if cart_item:
-        cart_item.quantity = quantity
-        cart_item.save()
-        messages.success(request, "Cart updated.")
-    else:
+    owner = _owner_filter(request)
+    try:
+        cart_item = CartItem.objects.filter(pk=pk, **owner).select_related("product", "variant").get()
+    except CartItem.DoesNotExist:
         messages.error(request, "Item not found in cart.")
+        return redirect("cart_view")
 
-    return redirect('cart_view')
+    product = cart_item.product
+    variant_id = cart_item.variant_id if cart_item.variant else None
+    available = _available_stock(product, variant_id=variant_id)
+    capped = _cap_quantity(new_qty, available)
 
+    if capped == 0:
+        cart_item.delete()
+        messages.warning(request, "Item removed (out of stock).")
+        return redirect("cart_view")
 
-@login_required
-def toggle_favorite(request, pk):
-    if request.method == 'POST':
-        product = get_object_or_404(Product, pk=pk)
-        favorite, created = Favorite.objects.get_or_create(user=request.user, product=product)
+    cart_item.quantity = capped
+    cart_item.save(update_fields=["quantity"])
 
-        if not created:
-            favorite.delete()
+    if capped < new_qty:
+        messages.warning(request, f"Only {available} available. Quantity set to {capped}.")
+    else:
+        messages.success(request, "Cart updated.")
 
-        return redirect('product_detail', pk=pk)
-
-
-    return JsonResponse({'error': 'Invalid request'}, status=400)
-
-
-
-
-from .models import  CartItem
-
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpRequest
-from .models import Category, Product, Favorite
-
-def products_by_category(request: HttpRequest, pk):
-    category = get_object_or_404(Category, pk=pk)
-    sort = request.GET.get('sort')
-
-    products = list(Product.objects.filter(category=category))  # Convert to list for Python sorting
-
-    # 🔽 Sort using discounted price method
-    if sort == 'price_asc':
-        products.sort(key=lambda p: p.get_discounted_price())
-    elif sort == 'price_desc':
-        products.sort(key=lambda p: p.get_discounted_price(), reverse=True)
-
-    categories = Category.objects.all()
-
-    recently_viewed_ids = request.session.get('recently_viewed', [])
-    recently_viewed = Product.objects.filter(id__in=recently_viewed_ids)
-
-    popular_products = Product.objects.order_by('-cart_add_count')[:10]
-
-    favorite_ids = []
-    if request.user.is_authenticated:
-        favorite_ids = Favorite.objects.filter(user=request.user).values_list('product_id', flat=True)
-
-    context = {
-        'products': products,
-        'categories': categories,
-        'selected_category': category,
-        'recently_viewed': recently_viewed,
-        'popular_products': popular_products,
-        'favorite_ids': favorite_ids,
-        'sort': sort,
-    }
-
-    return render(request, 'home.html', context)
-@login_required
-def checkout_view(request):
+    return redirect("cart_view")
 
 
-    cart_items = CartItem.objects.filter(user=request.user).select_related('product')
-    print("🛒 Cart items count:", cart_items.count())
-    for item in cart_items:
-        print("🛒", item.product.name, "-", item.quantity)
+@require_POST
+def remove_from_cart(request: HttpRequest, pk: int) -> HttpResponse:
+    owner = _owner_filter(request)
+    try:
+        cart_item = CartItem.objects.filter(pk=pk, **owner).get()
+        cart_item.delete()
+        messages.success(request, "Item removed.")
+    except CartItem.DoesNotExist:
+        messages.error(request, "Item not found in cart.")
+    return redirect("cart_view")
 
+
+@require_POST
+def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
+
+    _ensure_session(request)
+
+    product = get_object_or_404(Product, pk=pk)
+    raw_variant = request.POST.get("variant_id")
+    try:
+        variant_id = int(raw_variant) if raw_variant not in (None, "", "None") else None
+    except (TypeError, ValueError):
+        variant_id = None
+
+    try:
+        quantity = max(1, int(request.POST.get("quantity", 1)))
+    except (TypeError, ValueError):
+        quantity = 1
+
+    owner = _owner_filter(request)
+
+
+    if not request.user.is_authenticated:
+        if not owner.get('session_key') or not request.session.session_key:
+
+            _ensure_session(request)
+            request.session.save()
+            owner = {"session_key": request.session.session_key}
+            logger.debug(f"Session recreated - new session_key: {owner['session_key']}")
+
+
+    logger.debug(f"Adding to cart - owner: {owner}, product: {product.pk}, variant: {variant_id}, quantity: {quantity}")
+
+
+    lookup_filter = {"product": product}
+    if variant_id:
+
+        try:
+            variant_obj = ProductVariant.objects.get(id=variant_id, product=product)
+            lookup_filter["variant"] = variant_obj
+        except ProductVariant.DoesNotExist:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'Invalid variant selected.'}, status=400)
+            messages.error(request, "Invalid variant selected.")
+            return redirect("product_detail", pk=pk)
+    else:
+        lookup_filter["variant"] = None
+
+
+    if not request.user.is_authenticated:
+        request.session.save()
+
+        if not request.session.session_key:
+            logger.error("Session key is None after save!")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'Session error. Please refresh the page.'}, status=500)
+            messages.error(request, "Session error. Please try again.")
+            return redirect("product_detail", pk=pk)
+
+    try:
+        cart_item, created = CartItem.objects.get_or_create(defaults={"quantity": 0}, **owner, **lookup_filter)
+        logger.debug(f"Cart item {'created' if created else 'retrieved'}: {cart_item.id}, owner: {owner}, quantity before: {cart_item.quantity}")
+    except Exception as e:
+        logger.error(f"Error creating cart item: {e}, owner: {owner}, lookup: {lookup_filter}, session_key: {request.session.session_key}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': f'Error adding to cart: {str(e)}'}, status=500)
+        messages.error(request, f"Error adding to cart: {str(e)}")
+        return redirect("product_detail", pk=pk)
+
+    available = _available_stock(product, variant_id=variant_id)
+    current = int(cart_item.quantity or 0)
+
+
+    is_bundle_add = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if is_bundle_add:
+
+
+        quantity_to_add = min(quantity, available - current) if available != UNLIMITED_STOCK else quantity
+        if quantity_to_add <= 0:
+            if is_bundle_add:
+                return JsonResponse({'success': False, 'message': 'This item is out of stock or you already have the maximum in your cart.'}, status=400)
+            messages.error(request, "This item is out of stock.")
+            return redirect("product_detail", pk=pk)
+        requested_total = current + quantity_to_add
+    else:
+
+        requested_total = current + quantity
+
+    capped_total = _cap_quantity(requested_total, available)
+
+    if capped_total == 0:
+        if is_bundle_add:
+            return JsonResponse({'success': False, 'message': 'This item is out of stock.'}, status=400)
+        messages.error(request, "This item is out of stock.")
+        return redirect("product_detail", pk=pk)
+
+
+    cart_item.quantity = capped_total
+    cart_item.save(update_fields=["quantity"])
+
+
+    actually_added = capped_total - current
+    if actually_added > 0:
+        product.cart_add_count = (product.cart_add_count or 0) + actually_added
+        product.save(update_fields=["cart_add_count"])
+
+        cache.delete('popular_products')
+
+
+    if is_bundle_add:
+
+        if actually_added < quantity:
+            return JsonResponse({
+                'success': True,
+                'message': f'Maximum {available} available. Quantity set to {capped_total}.',
+                'warning': True
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'message': '✅ Added to cart.'
+            })
+
+
+    bundle_items = request.POST.getlist('bundle_items')
+    if bundle_items:
+        bundle_added = []
+        bundle_failed = []
+        for bundle_item_str in bundle_items:
+            try:
+
+                parts = bundle_item_str.split(':')
+                bundle_product_id = int(parts[0])
+                bundle_variant_id = int(parts[1]) if len(parts) > 1 and parts[1] else None
+
+                bundle_product = get_object_or_404(Product, pk=bundle_product_id)
+                bundle_owner = _owner_filter(request)
+
+                bundle_lookup = {"product": bundle_product}
+                if bundle_variant_id:
+                    try:
+                        bundle_variant_obj = ProductVariant.objects.get(id=bundle_variant_id, product=bundle_product)
+                        bundle_lookup["variant"] = bundle_variant_obj
+                    except ProductVariant.DoesNotExist:
+                        bundle_failed.append(bundle_product.name)
+                        continue
+                else:
+                    bundle_lookup["variant"] = None
+
+                bundle_cart_item, bundle_created = CartItem.objects.get_or_create(
+                    defaults={"quantity": 0},
+                    **bundle_owner,
+                    **bundle_lookup
+                )
+
+                bundle_available = _available_stock(bundle_product, variant_id=bundle_variant_id)
+                bundle_current = int(bundle_cart_item.quantity or 0)
+                bundle_quantity_to_add = min(1, bundle_available - bundle_current) if bundle_available != UNLIMITED_STOCK else 1
+
+                if bundle_quantity_to_add > 0:
+                    bundle_cart_item.quantity = bundle_current + bundle_quantity_to_add
+                    bundle_cart_item.save(update_fields=["quantity"])
+                    bundle_added.append(bundle_product.name)
+                else:
+                    bundle_failed.append(bundle_product.name)
+            except (ValueError, Product.DoesNotExist) as e:
+                logger.error(f"Error adding bundle item {bundle_item_str}: {e}")
+                continue
+
+        if bundle_added:
+            messages.success(request, f"✅ Added to cart: {', '.join(bundle_added)}")
+        if bundle_failed:
+            messages.warning(request, f"⚠️ Could not add: {', '.join(bundle_failed)}")
+
+
+    if capped_total < requested_total:
+        messages.warning(request, f"Maximum {available} available. Quantity set to {capped_total}.")
+    else:
+        messages.success(request, "✅ Added to cart.")
+
+    return redirect("product_detail", pk=pk)
+
+
+
+
+
+
+@require_http_methods(["GET", "POST"])
+def checkout_view(request: HttpRequest) -> HttpResponse:
+    cart_items = _cart_items_for(request)
     if not cart_items.exists():
         messages.warning(request, "Your cart is empty.")
-        return redirect('cart_view')
+        return redirect("cart_view")
 
-    # Calculate subtotal
-    for item in cart_items:
-        item.subtotal = item.product.get_discounted_price() * item.quantity
-    subtotal = sum(item.subtotal for item in cart_items)
 
-    if request.method == 'POST':
-        print("📦 POST received")
-        full_name = request.POST.get('full_name', '').strip()
-        address = request.POST.get('address', '').strip()
-        city = request.POST.get('city', '').strip()
-        postal_code = request.POST.get('postal_code', '').strip()
-        phone = request.POST.get('phone', '').strip()
-        shipping_option_id = request.POST.get('shipping_option')
-        payment_intent_id = request.POST.get('payment_intent_id')
+    categories = _get_categories()
+    cart_count = sum(getattr(it, "quantity", 0) for it in cart_items)
+    subtotal = _compute_subtotal(cart_items)
+    discount = Decimal("0.00")
+    coupon_applied = None
+    coupon_error = None
+    shipping_cost = Decimal("0.00")
+    total = None
+    coupon_code = ""
 
-        if not all([full_name, address, city, postal_code, phone]):
+    # Allowed shipping countries
+    ALLOWED_COUNTRIES = {
+        "Albania", "Andorra", "Bosnia and Herzegovina", "Vatican", "United Kingdom",
+        "Iceland", "Liechtenstein", "Monaco", "Montenegro", "Norway", "San Marino",
+        "Serbia", "Switzerland", "Bahrain", "Japan", "Qatar", "Saudi Arabia",
+        "United Arab Emirates", "South Africa", "Canada", "Costa Rica", "United States",
+        "Australia", "New Zealand"
+    }
+
+    if request.method == "POST":
+        full_name = (request.POST.get("full_name") or "").strip()
+        address = (request.POST.get("address") or "").strip()
+        city = (request.POST.get("city") or "").strip()
+        postal_code = (request.POST.get("postal_code") or "").strip()
+        phone = (request.POST.get("phone") or "").strip()
+        country = (request.POST.get("country") or "").strip()
+        shipping_option_id = request.POST.get("shipping_option")
+        email = request.user.email if request.user.is_authenticated else (request.POST.get("email") or "").strip()
+        coupon_code = (request.POST.get("coupon") or "").strip().upper()
+
+        if not all([full_name, address, city, postal_code, phone, country]):
             messages.error(request, "All fields are required.")
-            return redirect('checkout')
+            return redirect("checkout")
+        
+        if country not in ALLOWED_COUNTRIES:
+            messages.error(request, "Sorry, we don't ship to this country. Please select a country from the list.")
+            return redirect("checkout")
 
-        # Get shipping option
-        shipping_option = None
-        if shipping_option_id:
+        if not request.user.is_authenticated and not email:
+            messages.error(request, "Email is required for guest checkout.")
+            return redirect("checkout")
+
+        if not request.user.is_authenticated:
             try:
-                shipping_option = ShippingOption.objects.get(id=shipping_option_id)
-            except ShippingOption.DoesNotExist:
-                messages.error(request, "Invalid shipping option.")
-                return redirect('checkout')
+                validate_email(email)
+            except ValidationError:
+                messages.error(request, "Invalid email address.")
+                return redirect("checkout")
 
-        # Create Order
-        order = Order.objects.create(
-            user=request.user,
-            full_name=full_name,
-            address=address,
-            city=city,
-            postal_code=postal_code,
-            phone=phone,
-            shipping_option=shipping_option,
-            total_price=subtotal,
-        )
 
-        # Add items to order
-        for item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                product=item.product,
-                quantity=item.quantity
+        subtotal, discount, coupon_applied, coupon_error = _process_coupon(coupon_code, subtotal)
+
+        # Shipping logic: Canada and Australia require shipping, other countries can have free shipping
+        shipping_option, shipping_cost = _get_shipping_option(shipping_option_id)
+        if shipping_option_id and not shipping_option:
+            messages.error(request, "Invalid shipping option.")
+            return redirect("checkout")
+        
+        # If no shipping option selected:
+        # - Canada, Australia, New Zealand and Norway: default to Standard shipping ($5.99)
+        # - Other countries: free shipping
+        if not shipping_option_id:
+            if country in ["Canada", "Australia", "New Zealand", "Norway"]:
+                # Default to Standard shipping for Canada, Australia, New Zealand and Norway
+                standard_shipping = ShippingOption.objects.filter(price=Decimal("5.99")).first()
+                if standard_shipping:
+                    shipping_option = standard_shipping
+                    shipping_cost = standard_shipping.price
+                else:
+                    shipping_cost = Decimal("5.99")
+            else:
+                # Free shipping for other countries
+                shipping_cost = Decimal("0.00")
+
+        total = (subtotal + shipping_cost).quantize(Decimal("0.01"))
+
+        with transaction.atomic():
+            order = Order.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                email=email,
+                full_name=full_name,
+                address=address,
+                city=city,
+                postal_code=postal_code,
+                phone=phone,
+                shipping_option=shipping_option,
+                total_price=total,
             )
 
-        # Clear cart
-        cart_items.delete()
+            order_items = []
+            for item in cart_items:
+                if item.quantity <= 0:
+                    logger.warning(f"Skipping cart item with invalid quantity: {item.id}")
+                    continue
+                order_items.append(
+                    OrderItem(
+                        order=order,
+                        product=item.product,
+                        variant=item.variant,
+                        quantity=item.quantity
+                    )
+                )
 
-        return redirect('order_success')
+            if order_items:
+                OrderItem.objects.bulk_create(order_items)
+            else:
+                messages.error(request, "No valid items in cart.")
+                return redirect("cart_view")
 
-    # Stripe PaymentIntent
-    intent = stripe.PaymentIntent.create(
-        amount=int(subtotal * 100),
-        currency='usd',
-        metadata={'user_id': request.user.id}
+            cart_items.delete()
+            transaction.on_commit(lambda: order_submitted.send(sender=Order, order=order, request=request))
+
+        return redirect("order_success")
+
+
+    intent = _create_stripe_intent(subtotal, request.session.session_key, is_guest=not request.user.is_authenticated)
+    if not intent:
+        messages.error(request, "Payment system error. Please try again.")
+        return redirect("cart_view")
+
+
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
+    if not stripe_public_key or not stripe_public_key.startswith(('pk_test_', 'pk_live_')):
+        logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}... (length: {len(stripe_public_key) if stripe_public_key else 0})")
+        messages.error(request, "Payment system configuration error. Please contact support.")
+        return redirect("cart_view")
+
+    # Get user profile data for pre-filling checkout form
+    profile_data = {}
+    if request.user.is_authenticated:
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+            profile_data = {
+                "phone": profile.phone or "",
+                "email": profile.email or request.user.email or "",
+                "address": profile.address or "",
+                "city": profile.city or "",
+                "postal_code": profile.postal_code or "",
+                "country": profile.country or "",
+            }
+        except UserProfile.DoesNotExist:
+            profile_data = {
+                "phone": "",
+                "email": request.user.email or "",
+                "address": "",
+                "city": "",
+                "postal_code": "",
+                "country": "",
+            }
+    else:
+        profile_data = {
+            "phone": "",
+            "email": "",
+            "address": "",
+            "city": "",
+            "postal_code": "",
+            "country": "",
+        }
+
+    # Ensure shipping options exist (Standard $5.99, Express $19.99, Free Shipping $0)
+    # Delete all existing shipping options to avoid duplicates
+    ShippingOption.objects.all().delete()
+    
+    # Create the three shipping options with correct names
+    free_shipping = ShippingOption.objects.create(
+        name="Free Shipping",
+        price=Decimal("0.00"),
+        delivery_time="7-10 business days"
+    )
+    express_shipping = ShippingOption.objects.create(
+        name="Express Shipping",
+        price=Decimal("19.99"),
+        delivery_time="2-3 business days"
+    )
+    standard_shipping = ShippingOption.objects.create(
+        name="Standard Shipping",
+        price=Decimal("5.99"),
+        delivery_time="5-7 business days"
     )
 
-    return render(request, 'checkout.html', {
-        'cart_items': cart_items,
-        'subtotal': subtotal,
-        'shipping_options': ShippingOption.objects.all(),
-        'client_secret': intent.client_secret,
-        'stripe_public_key': settings.STRIPE_PUBLISHABLE_KEY,
-    })
+    return render(
+        request,
+        "checkout.html",
+        {
+            "categories": categories,
+            "selected_category": None,
+            "cart_count": cart_count,
+            "cart_items": cart_items,
+            "subtotal": subtotal,
+            "discount": discount,
+            "total": total,
+            "shipping_cost": shipping_cost,
+            "coupon_applied": coupon_applied,
+            "coupon_error": coupon_error,
+            "coupon_code": coupon_code,
+            "shipping_options": list(ShippingOption.objects.all().order_by("price", "name").distinct()),
+            "client_secret": intent.client_secret,
+            "stripe_public_key": stripe_public_key,
+            "is_guest": not request.user.is_authenticated,
+            "profile_data": profile_data,
+        },
+    )
 
 
 
 
+@require_http_methods(["GET", "POST"])
+def guest_checkout_view(request: HttpRequest) -> HttpResponse:
+    _ensure_session(request)
+    cart_qs = CartItem.objects.filter(session_key=request.session.session_key).select_related("product")
+
+    if not cart_qs.exists():
+        messages.warning(request, "Your cart is empty.")
+        return redirect("cart_view")
+
+    subtotal = _compute_subtotal(cart_qs)
+    discount = Decimal("0.00")
+    coupon_applied = None
+    coupon_error = None
+    shipping_cost = Decimal("0.00")
+    total = None
+    coupon_code = ""
+
+    # Allowed shipping countries
+    ALLOWED_COUNTRIES = {
+        "Albania", "Andorra", "Bosnia and Herzegovina", "Vatican", "United Kingdom",
+        "Iceland", "Liechtenstein", "Monaco", "Montenegro", "Norway", "San Marino",
+        "Serbia", "Switzerland", "Bahrain", "Japan", "Qatar", "Saudi Arabia",
+        "United Arab Emirates", "South Africa", "Canada", "Costa Rica", "United States",
+        "Australia", "New Zealand"
+    }
+
+    if request.method == "POST":
+        full_name = (request.POST.get("full_name") or "").strip()
+        email = (request.POST.get("email") or "").strip()
+        address = (request.POST.get("address") or "").strip()
+        city = (request.POST.get("city") or "").strip()
+        postal_code = (request.POST.get("postal_code") or "").strip()
+        phone = (request.POST.get("phone") or "").strip()
+        country = (request.POST.get("country") or "").strip()
+        shipping_option_id = request.POST.get("shipping_option")
+        coupon_code = (request.POST.get("coupon") or "").strip().upper()
+
+        if not all([full_name, email, address, city, postal_code, phone, country]):
+            messages.error(request, "All fields are required.")
+            return redirect("guest_checkout")
+        
+        if country not in ALLOWED_COUNTRIES:
+            messages.error(request, "Sorry, we don't ship to this country. Please select a country from the list.")
+            return redirect("guest_checkout")
+
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Invalid email address.")
+            return redirect("guest_checkout")
+
+
+        subtotal, discount, coupon_applied, coupon_error = _process_coupon(coupon_code, subtotal)
+
+
+        shipping_option, shipping_cost = _get_shipping_option(shipping_option_id)
+        if shipping_option_id and not shipping_option:
+            messages.error(request, "Invalid shipping option.")
+            return redirect("guest_checkout")
+
+        total = (subtotal + shipping_cost).quantize(Decimal("0.01"))
+
+        with transaction.atomic():
+            order = Order.objects.create(
+                user=None,
+                email=email,
+                full_name=full_name,
+                address=address,
+                city=city,
+                postal_code=postal_code,
+                phone=phone,
+                country=country,
+                shipping_option=shipping_option,
+                total_price=total,
+            )
+
+            order_items = []
+            for item in cart_qs:
+                if item.quantity <= 0:
+                    logger.warning(f"Skipping cart item with invalid quantity: {item.id}")
+                    continue
+                order_items.append(
+                    OrderItem(
+                        order=order,
+                        product=item.product,
+                        variant=item.variant,
+                        quantity=item.quantity
+                    )
+                )
+
+            if order_items:
+                OrderItem.objects.bulk_create(order_items)
+            else:
+                messages.error(request, "No valid items in cart.")
+                return redirect("cart_view")
+
+            cart_qs.delete()
+            transaction.on_commit(lambda: order_submitted.send(sender=Order, order=order, request=request))
+
+        return redirect("order_success")
+
+
+    intent = _create_stripe_intent(subtotal, request.session.session_key, is_guest=True)
+    if not intent:
+        messages.error(request, "Payment system error. Please try again.")
+        return redirect("cart_view")
+
+
+    stripe_public_key = settings.STRIPE_PUBLISHABLE_KEY
+    if not stripe_public_key or not stripe_public_key.startswith(('pk_test_', 'pk_live_')):
+        logger.error(f"Invalid Stripe publishable key format: {stripe_public_key[:20] if stripe_public_key else 'empty'}... (length: {len(stripe_public_key) if stripe_public_key else 0})")
+        messages.error(request, "Payment system configuration error. Please contact support.")
+        return redirect("cart_view")
+
+    return render(
+        request,
+        "guest_checkout.html",
+        {
+            "cart_items": cart_qs,
+            "subtotal": subtotal,
+            "discount": discount,
+            "total": total,
+            "shipping_cost": shipping_cost,
+            "coupon_applied": coupon_applied,
+            "coupon_error": coupon_error,
+            "coupon_code": coupon_code,
+            "client_secret": intent.client_secret,
+            "shipping_options": list(ShippingOption.objects.all().order_by("price", "name").distinct()),
+            "stripe_public_key": stripe_public_key,
+        },
+    )
 
 
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 
 @csrf_exempt
-def stripe_webhook(request):
+def stripe_webhook(request: HttpRequest) -> HttpResponse:
+    endpoint_secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", None)
+    if not endpoint_secret:
+        logger.error("STRIPE_WEBHOOK_SECRET not configured")
+        return HttpResponse(status=400)
+
     payload = request.body
-    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-    endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError as e:
         logger.error("Invalid payload: %s", str(e))
         return HttpResponse(status=400)
-    except stripe.error.SignatureVerificationError as e:
+    except stripe_error.SignatureVerificationError as e:
         logger.error("Invalid Stripe signature: %s", str(e))
         return HttpResponse(status=400)
 
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        customer_email = session.get('customer_email')
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        customer_email = session.get("customer_email")
         if not customer_email:
             logger.warning("No customer email in Stripe session.")
-            return HttpResponse(status=400)
+            return HttpResponse(status=200)
 
         user = User.objects.filter(email=customer_email).first()
         if not user:
-            logger.warning(f"No user found with email: {customer_email}")
+            logger.info("Stripe session completed for unknown email %s (guest flow).", customer_email)
             return HttpResponse(status=200)
 
 
-        order = Order.objects.create(
-            user=user,
-            stripe_checkout_id=session['id'],
-            total=session['amount_total'] / 100
+
+
+
+
+
+        logger.warning(
+            "Order created from Stripe webhook without OrderItems for user %s. "
+            "Consider storing cart data in session metadata or using line_items from session.",
+            user.username
         )
 
-
-        cart_items = CartItem.objects.filter(user=user).select_related('product')
-        for item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                product=item.product,
-                quantity=item.quantity
-            )
-        cart_items.delete()
-
-        logger.info(f"✅ Order #{order.id} created for user {user.username}")
+        Order.objects.create(
+            user=user,
+            stripe_checkout_id=session["id"],
+            total_price=Decimal(session["amount_total"]) / Decimal("100"),
+        )
+        logger.info("✅ Order created from Stripe webhook for %s", user.username)
 
     return HttpResponse(status=200)
 
 
 
 
-def payment_success(request):
-    return render(request, 'payment_success.html')
 
-def notify(request, level, msg):
+
+def payment_success(request: HttpRequest) -> HttpResponse:
+    return render(request, "payment_success.html")
+
+
+def notify(request: HttpRequest, level: int, msg: str) -> HttpResponse:
     messages.add_message(request, level, msg)
-
-def order_success(request):
-    if request.method == 'POST':
-        full_name = request.POST.get('full_name')
-        email = request.POST.get('email')
-        phone = request.POST.get('phone')
-        address = request.POST.get('address')
-
-        # You could save this to a model, send a confirmation email, etc.
-        print(full_name, email, phone, address)
-
-        messages.success(request, "Your shipping details have been received!")
-        return redirect('product_list')  # or show a thank-you page
-
-    return render(request, 'order_success.html')
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-import openai
+    return redirect("home")
 
 
+def order_success(request: HttpRequest) -> HttpResponse:
+    return render(request, "order_success.html")
 
 
+def terms(request: HttpRequest) -> HttpResponse:
+    return render(request, "legal/terms.html")
+
+
+def privacy(request: HttpRequest) -> HttpResponse:
+    return render(request, "legal/privacy.html")
+
+
+def contact(request: HttpRequest) -> HttpResponse:
+    return render(request, "legal/contact.html")
+
+@login_required
+def profile_dashboard(request: HttpRequest) -> HttpResponse:
+
+    fav_count = Favorite.objects.filter(user=request.user).count()
+    order_qs = Order.objects.filter(user=request.user).order_by("-created_at")
+    order_count = order_qs.count()
+    total_spent = order_qs.aggregate(s=Sum("total_price"))["s"] or 0
+    recent_orders = (
+        order_qs
+        .select_related("shipping_option", "coupon")
+        [:5]
+    )
+
+
+    categories = _get_categories()
+    cart_items = _cart_items_for(request)
+    cart_count = sum(getattr(it, "quantity", 0) for it in cart_items)
+
+    return render(request, "dashboard.html", {
+        "fav_count": fav_count,
+        "order_count": order_count,
+        "total_spent": total_spent,
+        "recent_orders": recent_orders,
+        "active_tab": "dashboard",
+
+
+        "categories": categories,
+        "cart_count": cart_count,
+    })
+
+@login_required
+def profile_favorites(request: HttpRequest) -> HttpResponse:
+
+    qs = (
+        Product.objects
+        .filter(favorited_by__user=request.user)
+        .select_related("category")
+        .prefetch_related("images")
+        .annotate(last_fav_at=Max("favorited_by__created_at"))
+        .order_by("-last_fav_at", "-id")
+    )
+
+    paginator = Paginator(qs, 12)
+    products_page = paginator.get_page(request.GET.get("page"))
+
+    favorite_ids = set(
+        Favorite.objects.filter(user=request.user)
+        .values_list("product_id", flat=True)
+    )
+
+
+    categories = _get_categories()
+    try:
+        cart_items = _cart_items_for(request)
+        cart_count = sum(getattr(it, "quantity", 0) for it in cart_items)
+    except NameError:
+
+        cart_count = 0
+
+    return render(request, "favorites.html", {
+        "products_page": products_page,
+        "favorite_ids": favorite_ids,
+        "categories": categories,
+        "cart_count": cart_count,
+        "active_tab": "favorites",
+    })
+
+
+@login_required
+def profile_orders(request: HttpRequest) -> HttpResponse:
+    try:
+        orders = (
+            Order.objects
+            .filter(user=request.user)
+            .select_related("shipping_option", "coupon")
+            .order_by("-created_at")
+        )
+        paginator = Paginator(orders, 10)
+        page = request.GET.get("page")
+        orders_page = paginator.get_page(page)
+
+        # Get item counts for orders on current page
+        counts_map = {}
+        if orders_page.object_list:
+            item_counts = (
+                OrderItem.objects
+                .filter(order__in=orders_page.object_list)
+                .values("order_id")
+                .annotate(c=Sum("quantity"))
+            )
+            counts_map = {row["order_id"]: row["c"] for row in item_counts}
+
+        return render(request, "orders.html", {
+            "orders_page": orders_page,
+            "counts_map": counts_map,
+            "active_tab": "orders",
+        })
+    except Exception as e:
+        logger.exception("Error in profile_orders: %s", e)
+        return render(request, "orders.html", {
+            "orders_page": None,
+            "counts_map": {},
+            "active_tab": "orders",
+            "error": "An error occurred while loading your orders.",
+        })
+
+
+@login_required
+@login_required
+def profile_details(request: HttpRequest) -> HttpResponse:
+    """Account details page - allows users to save phone, email, and address."""
+    user = request.user
+    profile, created = UserProfile.objects.get_or_create(user=user)
+    
+    if request.method == "POST":
+        # Update profile with form data
+        profile.phone = request.POST.get("phone", "").strip() or None
+        profile.email = request.POST.get("email", "").strip() or None
+        profile.address = request.POST.get("address", "").strip() or None
+        profile.city = request.POST.get("city", "").strip() or None
+        profile.postal_code = request.POST.get("postal_code", "").strip() or None
+        profile.country = request.POST.get("country", "").strip() or None
+        profile.save()
+        messages.success(request, "Account details updated successfully!")
+        return redirect("profile_details")
+    
+    return render(request, "account_details.html", {
+        "user": user,
+        "profile": profile,
+        "active_tab": "details",
+    })
+
+@login_required
+@require_POST
+def remove_from_favorites(request: HttpRequest, pk: int) -> HttpResponse:
+    product = get_object_or_404(Product, pk=pk)
+    Favorite.objects.filter(user=request.user, product=product).delete()
+
+
+    back = request.META.get("HTTP_REFERER")
+    if back:
+
+        from django.utils.http import url_has_allowed_host_and_scheme
+        if url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}):
+            return redirect(back)
+
+
+    return redirect("profile_favorites")
+
+
+
+
+
+
+def health_check(request: HttpRequest) -> JsonResponse:
+    """Health check endpoint for monitoring."""
+    from django.db import connection
+    from django.core.cache import cache
+    
+    status = {
+        "status": "healthy",
+        "timestamp": timezone.now().isoformat(),
+        "checks": {}
+    }
+    
+    # Database check
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            status["checks"]["database"] = "ok"
+    except Exception as e:
+        status["status"] = "unhealthy"
+        status["checks"]["database"] = f"error: {str(e)}"
+    
+    # Cache check (if Redis/Memcached is configured)
+    try:
+        cache.set("health_check", "ok", 10)
+        if cache.get("health_check") == "ok":
+            status["checks"]["cache"] = "ok"
+        else:
+            status["checks"]["cache"] = "not_configured"
+    except Exception:
+        status["checks"]["cache"] = "not_configured"
+    
+    # Stripe check
+    try:
+        if settings.STRIPE_SECRET_KEY:
+            status["checks"]["stripe"] = "configured"
+        else:
+            status["checks"]["stripe"] = "not_configured"
+    except Exception:
+        status["checks"]["stripe"] = "error"
+    
+    http_status = 200 if status["status"] == "healthy" else 503
+    return JsonResponse(status, status=http_status)
+
+
+# =============================================================================
+# Error Handlers
+# =============================================================================
+
+def handler404(request: HttpRequest, exception) -> HttpResponse:
+    """Custom 404 error handler."""
+
+    logger.warning(f"404 error: {request.path} from {request.get_host()}, allowed hosts: {settings.ALLOWED_HOSTS}")
+    return render(request, '404.html', status=404)
+
+def handler500(request: HttpRequest) -> HttpResponse:
+    """Custom 500 error handler."""
+    return render(request, '500.html', status=500)
+
+
+# =============================================================================
+# Email Testing Endpoint (Temporary - Remove after testing)
+# =============================================================================
+
+def blog_detail(request: HttpRequest, slug: str) -> HttpResponse:
+    """Blog post detail page."""
+    import re
+    from django.utils.safestring import mark_safe
+    
+    post = get_object_or_404(BlogPost, slug=slug, is_published=True)
+    categories = _get_categories()
+    
+    # Format content into paragraphs
+    formatted_content = post.content
+    if formatted_content:
+        value_str = str(formatted_content)
+        
+        # Check if content has HTML tags
+        has_html_tags = bool(re.search(r'<[^>]+>', value_str))
+        
+        if not has_html_tags:
+            # Plain text - convert to HTML paragraphs
+            value_str = re.sub(r'\r\n', '\n', value_str)
+            value_str = re.sub(r'\r', '\n', value_str)
+            value_str = value_str.strip()
+            
+            # Split by double newlines or by sentences
+            if '\n\n' in value_str or value_str.count('\n') >= 3:
+                paragraphs = re.split(r'\n\s*\n+', value_str)
+            else:
+                # Split by sentences
+                parts = re.split(r'([.!?])\s+([A-ZА-ЯЁ])', value_str)
+                
+                if len(parts) > 3:
+                    sentences = []
+                    i = 0
+                    while i < len(parts):
+                        if i + 2 < len(parts):
+                            sentence = parts[i] + parts[i+1] + ' ' + parts[i+2]
+                            sentences.append(sentence.strip())
+                            i += 3
+                        else:
+                            if parts[i].strip():
+                                sentences.append(parts[i].strip())
+                            i += 1
+                    
+                    # Group sentences into paragraphs (2-3 sentences per paragraph)
+                    paragraphs = []
+                    current_para = []
+                    
+                    for sentence in sentences:
+                        sentence = sentence.strip()
+                        if not sentence:
+                            continue
+                        
+                        current_para.append(sentence)
+                        sentence_length = len(sentence)
+                        if len(current_para) >= 3 or (len(current_para) >= 2 and sentence_length > 150):
+                            paragraphs.append(' '.join(current_para))
+                            current_para = []
+                    
+                    if current_para:
+                        paragraphs.append(' '.join(current_para))
+                else:
+                    paragraphs = [value_str]
+            
+            # Format paragraphs
+            formatted_paragraphs = []
+            for para in paragraphs:
+                para = para.strip()
+                if not para:
+                    continue
+                
+                lines = [line.strip() for line in para.split('\n') if line.strip()]
+                if len(lines) > 1:
+                    para_content = '<br>'.join(lines)
+                else:
+                    para_content = lines[0] if lines else para
+                
+                formatted_paragraphs.append(f'<p>{para_content}</p>')
+            
+            formatted_content = mark_safe('\n\n'.join(formatted_paragraphs))
+        else:
+            # Already HTML, just mark as safe
+            formatted_content = mark_safe(formatted_content)
+    
+    # Convert video URL to embed format if needed (only if no video_file is uploaded)
+    video_embed_url = None
+    if not post.video_file and post.video_url:
+        video_url = post.video_url.strip()
+        # YouTube watch URL: https://www.youtube.com/watch?v=VIDEO_ID
+        if 'youtube.com/watch' in video_url:
+            video_id = video_url.split('v=')[1].split('&')[0]
+            video_embed_url = f'https://www.youtube.com/embed/{video_id}'
+        # YouTube short URL: https://youtu.be/VIDEO_ID
+        elif 'youtu.be/' in video_url:
+            video_id = video_url.split('youtu.be/')[1].split('?')[0]
+            video_embed_url = f'https://www.youtube.com/embed/{video_id}'
+        # Vimeo URL: https://vimeo.com/VIDEO_ID
+        elif 'vimeo.com/' in video_url:
+            video_id = video_url.split('vimeo.com/')[1].split('?')[0]
+            video_embed_url = f'https://player.vimeo.com/video/{video_id}'
+        # Already embed format or other platform
+        else:
+            video_embed_url = video_url
+    
+    context = {
+        "post": post,
+        "formatted_content": formatted_content,
+        "video_embed_url": video_embed_url,
+        "categories": categories,
+    }
+    return render(request, "blog_detail.html", context)
+
+
+@require_POST
+def remove_from_sale(request: HttpRequest, pk: int) -> JsonResponse:
+    """Remove product from Sale category when promotion expires."""
+    try:
+        product = get_object_or_404(Product, pk=pk)
+        sale_category = Category.objects.filter(name__iexact='Sale').first()
+        if not sale_category:
+            sale_category = Category.objects.filter(name__icontains='разпродажба').first()
+        
+        if sale_category and sale_category in product.categories.all():
+            product.categories.remove(sale_category)
+            logger.info(f"Removed product {product.id} from Sale category via AJAX")
+            return JsonResponse({'success': True, 'message': 'Product removed from sale'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Product not in sale category'})
+    except Exception as e:
+        logger.exception(f"Error removing product from sale: {e}")
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+def test_emails_view(request: HttpRequest) -> HttpResponse:
+    """Test email sending functionality - accessible from browser."""
+    # Check if user is staff (allow unauthenticated for testing, but check staff if logged in)
+    if request.user.is_authenticated and not request.user.is_staff:
+        messages.error(request, "Трябва да си администратор за да тестваш имейли.")
+        return redirect('home')
+    
+    email = request.GET.get('email', request.user.email)
+    email_type = request.GET.get('type', 'all')
+    
+    if not email:
+        return render(request, 'test_emails.html', {
+            'error': 'Моля, предоставете email адрес: ?email=your@email.com'
+        })
+    
+    results = []
+    base_url = request.build_absolute_uri('/').rstrip('/')
+    
+    # Test Welcome Email
+    if email_type in ['welcome', 'all']:
+        try:
+            user, created = User.objects.get_or_create(
+                username=f'test_user_{uuid.uuid4().hex[:8]}',
+                defaults={'email': email, 'first_name': 'Тест', 'last_name': 'Потребител'}
+            )
+            if not created:
+                user.email = email
+                user.save()
+            
+            if send_welcome_email(user, base_url):
+                results.append({'type': 'Welcome Email', 'status': 'success', 'message': f'Изпратен до {email}'})
+            else:
+                results.append({'type': 'Welcome Email', 'status': 'error', 'message': 'Грешка при изпращане'})
+        except Exception as e:
+            results.append({'type': 'Welcome Email', 'status': 'error', 'message': str(e)})
+    
+    # Test Order Confirmation Email
+    if email_type in ['order', 'all']:
+        try:
+            user, _ = User.objects.get_or_create(
+                username=f'test_user_{uuid.uuid4().hex[:8]}',
+                defaults={'email': email}
+            )
+            if user.email != email:
+                user.email = email
+                user.save()
+            
+            shipping, _ = ShippingOption.objects.get_or_create(
+                name='Standard',
+                defaults={'price': Decimal('5.00'), 'delivery_time': '3-5 дни'}
+            )
+            
+            product = Product.objects.first()
+            if not product:
+                results.append({'type': 'Order Confirmation', 'status': 'error', 'message': 'Няма продукти в базата данни'})
+            else:
+                order = Order.objects.create(
+                    user=user,
+                    email=email,
+                    full_name='Тест Потребител',
+                    address='Тестова Адрес 123',
+                    city='София',
+                    postal_code='1000',
+                    phone='+359888123456',
+                    shipping_option=shipping,
+                    total_price=Decimal('99.99'),
+                )
+                
+                variant = product.variants.first()
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    variant=variant,
+                    quantity=2,
+                )
+                
+                if send_order_confirmation_email(order, base_url, notify_admin=False):
+                    results.append({'type': 'Order Confirmation', 'status': 'success', 'message': f'Изпратен до {email}'})
+                else:
+                    results.append({'type': 'Order Confirmation', 'status': 'error', 'message': 'Грешка при изпращане'})
+        except Exception as e:
+            results.append({'type': 'Order Confirmation', 'status': 'error', 'message': str(e)})
+    
+    # Test Simple Email
+    if email_type in ['simple', 'all']:
+        try:
+            send_mail(
+                'Test Email от Marbaras',
+                'Това е тестов email. Ако го получиш, email настройките работят!',
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False
+            )
+            results.append({'type': 'Simple Test Email', 'status': 'success', 'message': f'Изпратен до {email}'})
+        except Exception as e:
+            results.append({'type': 'Simple Test Email', 'status': 'error', 'message': str(e)})
+    
+    return render(request, 'test_emails.html', {
+        'results': results,
+        'email': email,
+        'email_type': email_type,
+        'email_settings': {
+            'EMAIL_HOST': settings.EMAIL_HOST,
+            'EMAIL_PORT': settings.EMAIL_PORT,
+            'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
+            'DEFAULT_FROM_EMAIL': settings.DEFAULT_FROM_EMAIL,
+        }
+    })
