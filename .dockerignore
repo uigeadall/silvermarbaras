@@ -1,0 +1,90 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv310/
+ENV/
+env/
+.venv
+
+# Django
+*.log
+*.pot
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Large files
+*.zip
+*.tar.gz
+*.rar
+МагазинСребро.zip
+silvershop_*.sql.gz
+
+# Documentation (not needed in production)
+*.md
+CHECK_*.md
+DEBUG_*.md
+DEPLOY_*.md
+FIX_*.md
+HOW_*.md
+IMPORT_*.md
+RAILWAY_*.md
+RENDER_*.md
+SETUP_*.md
+STRIPE_*.md
+TESTING_*.md
+UPDATE_*.md
+UPLOAD_*.md
+WORKING_*.md
+PRODUCTION_*.md
+QUICK_*.md
+NEXT_*.md
+MIGRATE_*.md
+PASSENGER_*.md
+HOSTING_*.md
+CONNECT_*.md
+EXPORT_*.md
+FIND_*.md
+VOLUME_*.md
+SUCCESS_*.md
+
+# Scripts (not needed in production)
+scripts/
+remove_comments.py
+QUICK_SETUP_STRIPE_EMAIL.sh
+RENDER_DEPLOY_NOW.sh
+
+# Config files not needed
+docker-compose.yml
+nginx.conf
+passenger_wsgi.py
+render.yaml
+
+# Duplicate directories
+magazinsrebro/

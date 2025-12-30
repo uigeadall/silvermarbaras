@@ -7,7 +7,7 @@ from django.utils.html import format_html
 import csv
 
 from .models import (
-    BlogPost, BannerImage,
+    BlogPost,
     Category, Product, ProductImage, ProductVariant,
     CartItem, Order, OrderItem, Favorite, Discount, ShippingOption, Coupon, ProductBundleItem
 )
@@ -335,22 +335,4 @@ class CouponAdmin(admin.ModelAdmin):
     list_display = ("code", "percent_off", "amount_off", "active", "starts_at", "ends_at", "used_count", "usage_limit")
     search_fields = ("code",)
     list_filter = ("active",)
-
-
-@admin.register(BannerImage)
-class BannerImageAdmin(admin.ModelAdmin):
-    list_display = ("title", "order", "is_active", "has_image", "created_at")
-    list_filter = ("is_active", "created_at")
-    search_fields = ("title",)
-    ordering = ("order", "-created_at")
-    fieldsets = (
-        ("Basic Information", {
-            "fields": ("image", "title", "link_url", "order", "is_active")
-        }),
-    )
-    
-    def has_image(self, obj):
-        return bool(obj.image)
-    has_image.boolean = True
-    has_image.short_description = "Has Image"
 

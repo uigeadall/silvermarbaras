@@ -1,319 +1,716 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bg">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>{% block title %}Marbaras{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="{% block meta_description %}Marbaras - Premium Silver Jewelry Shop{% endblock %}" />
+
+  {% comment %}Meta Pixel (Facebook Pixel){% endcomment %}
+  {% if META_PIXEL_ID %}
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '{{ META_PIXEL_ID }}');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id={{ META_PIXEL_ID }}&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+  {% endif %}
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: '#111827' },
+          boxShadow: {
+            card: '0 8px 24px rgba(15,23,42,.08)',
+            soft: '0 1px 2px rgba(0,0,0,.05)'
+          },
+          borderRadius: { xl2: '1rem' },
+          maxWidth: { site: '1600px' }
+        }
+      }
+    }
+  </script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    .cart-tip::after{
+      content:""; position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+      border:6px solid transparent; border-bottom-color:#0b1220;
     }
-
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #ffffff;
-      color: #333;
-      line-height: 1.6;
+    /* Currency selector */
+    .currency-selector {
+      position: relative;
+      display: inline-block;
     }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 16px;
-    }
-
-    nav {
-      background: transparent;
-      padding: 16px 0;
-    }
-
-    .navbar-inner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .logo {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #111;
-      text-decoration: none;
-      padding: 8px 16px;
-    }
-
-    .hamburger {
-      font-size: 1.8rem;
-      background: none;
-      border: none;
+    .currency-selector select {
+      padding: 4px 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      font-size: 0.875rem;
       cursor: pointer;
-      padding: 8px 16px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 6px center;
+      padding-right: 24px;
     }
-
-    .main-content {
-      padding: 32px 0;
+    .currency-selector select:hover {
+      border-color: #999;
     }
-
-    .alert {
-      padding: 12px;
-      background: #e6f0ff;
-      border: 1px solid #b3d1ff;
-      border-radius: 6px;
-      margin-bottom: 10px;
-      transition: opacity 0.5s ease;
-    }
-
-    .breadcrumbs {
-      font-size: 0.95rem;
-      margin: 24px 0 10px;
-      color: #555;
-    }
-
-    .breadcrumbs a {
-      color: black;
-      text-decoration: none;
-    }
-
-    .breadcrumbs a:hover {
-      text-decoration: underline;
-    }
-
-    .floating-menu {
-      position: fixed;
-      right: -40px;
-      top: 100px;
-      background: transparent;
-      padding: 16px;
-      z-index: 999;
-      width: 220px;
-    }
-
-    .floating-menu a,
-    .search-toggle {
-      text-decoration: none;
-      font-weight: bold;
-      color: #333;
-      padding: 10px 14px;
-      display: block;
-      border-radius: 6px;
-      background-color: transparent;
-      margin-bottom: 10px;
-      transition: background 0.3s;
-    }
-
-    .floating-menu a:hover,
-    .search-toggle:hover {
-      background-color: #f0f0f0;
-    }
-
-    .search-form {
-      display: none;
-      flex-direction: column;
-      width: 100%;
-    }
-
-    .search-input {
-      padding: 8px;
-      border: none;
+    .currency-selector select:focus {
       outline: none;
-      border-radius: 6px;
-      width: 100%;
-      margin-bottom: 6px;
-      background-color: transparent;
-      font-size: 0.95rem;
+      border-color: #333;
     }
-
-    .search-go {
-      padding: 8px;
-      background: transparent;
-      color: #333;
-      border: 1px solid #333;
-      border-radius: 6px;
+    /* Mobile menu overlay */
+    .mobile-menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .mobile-menu-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    /* Mobile menu sidebar */
+    .mobile-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 280px;
+      max-width: 85vw;
+      background: white;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    }
+    .mobile-menu.open {
+      transform: translateX(0);
+    }
+    /* Scroll to top button (mobile only) */
+    .scroll-to-top-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 40;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #000;
+      color: #fff;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       cursor: pointer;
-      font-size: 0.95rem;
+      transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s ease;
+      opacity: 0;
+      transform: translateY(20px);
+      pointer-events: none;
     }
-
-    .search-go:hover {
-      text-decoration: underline;
+    .scroll-to-top-btn.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
     }
-
-    /* Category sidebar hidden by default */
-    .sidebar-categories {
-      display: none;
-      background: #f8f8f8;
-      padding: 16px;
-      border-top: 1px solid #ddd;
+    .scroll-to-top-btn:hover {
+      background: #111;
     }
-
-    .sidebar-categories.show {
-      display: block;
+    .scroll-to-top-btn:active {
+      transform: translateY(0) scale(0.95);
     }
-
-    .sidebar-categories ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
+    .scroll-to-top-btn svg {
+      width: 24px;
+      height: 24px;
     }
-
-    .sidebar-categories li {
-      margin-bottom: 10px;
-    }
-
-    .sidebar-categories a {
-      text-decoration: none;
-      color: #333;
-      font-weight: 500;
-    }
-
-    /* Responsive adjustments */
-    @media (min-width: 769px) {
-      .hamburger {
+    @media (min-width: 1024px) {
+      .scroll-to-top-btn {
         display: none;
-      }
-
-      .sidebar-categories {
-        display: none !important;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .navbar-inner {
-        justify-content: space-between;
-      }
-
-      .floating-menu {
-        position: relative;
-        top: 0;
-        right: 0;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        padding: 10px 16px;
-      }
-
-      .floating-menu a,
-      .search-toggle {
-        font-size: 1rem;
-        width: 100%;
-        text-align: center;
-        margin: 4px 0;
-      }
-
-      .search-form {
-        width: 100%;
-      }
-
-      .search-input,
-      .search-go {
-        font-size: 1rem;
-        width: 100%;
       }
     }
   </style>
 
   {% block extra_head %}{% endblock %}
 </head>
-<body>
 
-  <nav>
-    <div class="navbar-inner container">
-      <a href="/" class="logo">Marbaras</a>
-      <button class="hamburger" id="hamburger">&#9776;</button>
+<!-- Make page a flex column so footer is tight at bottom -->
+<body class="min-h-screen flex flex-col bg-white text-slate-900 antialiased">
+
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileMenuOverlay" class="mobile-menu-overlay lg:hidden" aria-hidden="true"></div>
+
+  <!-- Mobile Menu Sidebar -->
+  <nav id="mobileMenu" class="mobile-menu lg:hidden" aria-label="Mobile navigation" aria-hidden="true">
+    <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+      <a href="{% url 'home' %}" class="block font-extrabold text-xl text-slate-900">
+        MARBARAS
+      </a>
+      <button id="mobileMenuClose" aria-label="Close menu" class="p-2 hover:bg-slate-100 rounded-lg">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="p-4 space-y-4">
+      {% block mobile_menu_content %}
+      <!-- Categories will be added by child templates -->
+      {% endblock %}
     </div>
   </nav>
 
-  <!-- Mobile-only category menu -->
-  <div class="sidebar-categories" id="mobileSidebar">
-    <h2>Categories</h2>
-    <ul>
-      <li><a href="#">Rings</a></li>
-      <li><a href="#">Bracelets</a></li>
-      <li><a href="#">Earrings</a></li>
-    </ul>
-  </div>
+  <!-- Scroll to Top Button (Mobile Only) -->
+  <button id="scrollToTopBtn" class="scroll-to-top-btn lg:hidden" aria-label="Scroll to top">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+    </svg>
+  </button>
 
-  <!-- Floating Menu / Search & User Links -->
-  <div class="floating-menu">
-    <div class="search-container">
-      <button id="searchToggleBtn" class="search-toggle">🔍 Search</button>
-      <form id="searchForm" method="get" action="{% url 'home' %}" class="search-form">
-        <input type="text" name="q" placeholder="Search products..." class="search-input">
-        <button type="submit" class="search-go">Go</button>
-      </form>
-    </div>
-
-    <div class="user-links">
-      {% if user.is_authenticated %}
-        <a href="{% url 'cart_view' %}">🛒 Cart</a>
-        <a href="{% url 'logout' %}">Logout</a>
-      {% else %}
-        <a href="{% url 'login' %}">Login</a>
-        <a href="{% url 'register' %}">Register</a>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Main content -->
-  <main class="container main-content">
-    {% if messages %}
-      <div style="margin-bottom: 20px;">
-        {% for message in messages %}
-          <div class="alert {{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {% if breadcrumbs and request.path != '/' %}
-      <div class="breadcrumbs">
-        {% for crumb in breadcrumbs %}
-          {% if not forloop.last %}
-            <a href="{{ crumb.url }}">{{ crumb.name }}</a> /
-          {% else %}
-            <span>{{ crumb.name }}</span>
+  <!-- Mobile Header with Hamburger -->
+  <header class="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200">
+    <div class="px-4 py-3 flex items-center justify-between">
+      <button id="mobileMenuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu"
+              class="p-2 hover:bg-slate-100 rounded-lg">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <a href="{% url 'home' %}" class="block font-extrabold text-xl text-slate-900">
+        MARBARAS
+      </a>
+      <div class="flex items-center gap-2">
+        <!-- Currency Selector -->
+        <div class="currency-selector">
+          <select id="currencySelector" aria-label="Select currency">
+            <option value="EUR">€ EUR</option>
+            <option value="USD">$ USD</option>
+            <option value="GBP">£ GBP</option>
+          </select>
+        </div>
+        <!-- Mobile Search Button -->
+        <button id="mobileHeaderSearchToggle" aria-expanded="false" aria-controls="mobileHeaderSearchWrap"
+                class="p-2 hover:bg-slate-100 rounded-lg">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </button>
+        <!-- Mobile Favorites Button -->
+        <a href="{% if user.is_authenticated %}{% url 'profile_favorites' %}{% else %}{% url 'login' %}{% endif %}" 
+           aria-label="Favorites"
+           class="p-2 hover:bg-slate-100 rounded-lg">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+        </a>
+        <!-- Mobile Cart Button -->
+        <a id="mobileHeaderCartLink" href="#" aria-describedby="mobileHeaderCartTip"
+           class="p-2 hover:bg-slate-100 rounded-lg relative">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          {% if cart_count|default:0 > 0 %}
+          <span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+            {{ cart_count }}
+          </span>
           {% endif %}
-        {% endfor %}
+          <span id="mobileHeaderCartTip"
+                class="cart-tip invisible opacity-0 absolute right-0 top-full mt-1
+                       bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg
+                       transition-opacity duration-200"
+                role="status" aria-live="polite">
+            Your cart is empty
+          </span>
+        </a>
       </div>
-    {% endif %}
+    </div>
+    <!-- Mobile Header Search Form -->
+    <form id="mobileHeaderSearchWrap" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden px-4 pb-3">
+      <div class="flex gap-2">
+        <input type="text" name="q" placeholder="Search products…"
+               class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300">
+        <button type="submit"
+                class="px-3 py-2 rounded-xl bg-brand text-white font-extrabold text-sm hover:brightness-95 transition">
+          Go
+        </button>
+      </div>
+    </form>
+  </header>
 
-    {% block content %}{% endblock %}
+  <!-- Reduce bottom padding so there isn't a big band above the footer -->
+  <main class="flex-1 pt-6 pb-2">
+    <div class="mx-auto max-w-site px-4 space-y-4">
+      {% if messages %}
+        <div class="space-y-2">
+          {% for message in messages %}
+            <div class="rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 px-4 py-3 text-sm shadow-soft transition-opacity duration-500">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Breadcrumbs -->
+      {% if breadcrumbs|length > 1 %}
+      <nav aria-label="Breadcrumb" class="mb-4 flex justify-center">
+        <ol class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+          {% for crumb in breadcrumbs %}
+            {% if forloop.last %}
+              <li class="font-semibold text-slate-900" aria-current="page">
+                {{ crumb.name }}
+              </li>
+            {% else %}
+              <li class="flex items-center">
+                <a href="{{ crumb.url }}" class="hover:text-slate-900 transition-colors">
+                  {{ crumb.name }}
+                </a>
+                <span class="mx-2 text-slate-400" aria-hidden="true">/</span>
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ol>
+      </nav>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
   </main>
+
+  <footer class="border-t border-slate-200">
+  <div class="mx-auto max-w-site px-4 py-3 text-[11px] leading-tight">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-600">
+      <nav class="flex flex-wrap gap-4 justify-center sm:justify-start">
+        <a href="{% url 'terms' %}" class="hover:text-slate-900">Terms</a>
+        <a href="{% url 'privacy' %}" class="hover:text-slate-900">Privacy</a>
+        <a href="{% url 'contact' %}" class="hover:text-slate-900">Contact</a>
+      </nav>
+      
+      <!-- Payment Methods -->
+      <div class="flex items-center justify-center">
+        {% load static %}
+        <img src="{% static 'images/image3.jpg' %}" 
+             alt="Accepted payment methods: Apple Pay, Google Pay, VISA, American Express, Mastercard" 
+             class="h-12 sm:h-16 object-contain opacity-90 hover:opacity-100 transition-opacity"
+             loading="lazy"
+             onerror="console.error('Payment methods image failed to load:', this.src); this.style.display='none';">
+      </div>
+      
+      <span class="text-center sm:text-left">© {% now "Y" %} Marbaras</span>
+    </div>
+  </div>
+</footer>
+
 
   <script>
     setTimeout(() => {
-      const messages = document.querySelectorAll('.alert');
-      messages.forEach(msg => {
-        msg.style.opacity = '0';
-        setTimeout(() => msg.remove(), 500);
+      document.querySelectorAll('.bg-indigo-50:not(.empty-cart-message)').forEach(el => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 500);
       });
-    }, 1000);
+    }, 2200);
 
-    // Toggle mobile search form
-    const toggleBtn = document.getElementById('searchToggleBtn');
-    const searchForm = document.getElementById('searchForm');
+    /* === Currency Converter with API === */
+    (function() {
+      // Currency symbols
+      const currencySymbols = {
+        USD: '$',
+        EUR: '€',
+        GBP: '£'
+      };
 
-    toggleBtn?.addEventListener('click', function () {
-      if (searchForm.style.display === 'flex') {
-        searchForm.style.display = 'none';
-      } else {
-        searchForm.style.display = 'flex';
-        searchForm.querySelector('input')?.focus();
+      // Exchange rates cache (will be loaded from API)
+      // EUR is now the base currency (1.0)
+      let exchangeRates = {
+        EUR: 1.0,
+        USD: 1.09,  // Fallback rates (EUR to USD)
+        GBP: 0.86   // Fallback rates (EUR to GBP)
+      };
+
+      // API endpoint - using exchangerate-api.com (free, no API key needed)
+      // Using EUR as base currency
+      const EXCHANGE_RATE_API = 'https://api.exchangerate-api.com/v4/latest/EUR';
+      const CACHE_KEY = 'exchangeRatesCache';
+      const CACHE_TIMESTAMP_KEY = 'exchangeRatesTimestamp';
+      const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+      // Get current currency from localStorage or default to EUR
+      function getCurrentCurrency() {
+        return localStorage.getItem('selectedCurrency') || 'EUR';
       }
-    });
 
-    // Toggle mobile categories
-    const hamburgerBtn = document.getElementById('hamburger');
-    const mobileSidebar = document.getElementById('mobileSidebar');
+      // Save currency to localStorage
+      function setCurrentCurrency(currency) {
+        localStorage.setItem('selectedCurrency', currency);
+      }
 
-    hamburgerBtn?.addEventListener('click', () => {
-      mobileSidebar?.classList.toggle('show');
-    });
+      // Check if cache is still valid
+      function isCacheValid() {
+        const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+        if (!timestamp) return false;
+        const age = Date.now() - parseInt(timestamp);
+        return age < CACHE_DURATION;
+      }
+
+      // Load exchange rates from API
+      async function loadExchangeRates() {
+        try {
+          // Check cache first
+          if (isCacheValid()) {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+              exchangeRates = JSON.parse(cached);
+              console.log('Using cached exchange rates');
+              return;
+            }
+          }
+
+          // Fetch from API
+          console.log('Fetching exchange rates from API...');
+          const response = await fetch(EXCHANGE_RATE_API);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // Extract rates for USD and GBP (EUR is always 1.0 as base)
+          exchangeRates = {
+            EUR: 1.0,
+            USD: data.rates.USD || 1.09,
+            GBP: data.rates.GBP || 0.86
+          };
+
+          // Cache the rates
+          localStorage.setItem(CACHE_KEY, JSON.stringify(exchangeRates));
+          localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+          
+          console.log('Exchange rates updated:', exchangeRates);
+        } catch (error) {
+          console.error('Error loading exchange rates:', error);
+          // Use fallback rates if API fails
+          console.log('Using fallback exchange rates');
+        }
+      }
+
+      // Convert price from EUR (base) to selected currency
+      function convertPrice(eurPrice, currency) {
+        const rate = exchangeRates[currency] || 1.0;
+        return parseFloat(eurPrice) * rate;
+      }
+
+      // Format price with currency symbol
+      function formatPrice(price, currency) {
+        const symbol = currencySymbols[currency] || '$';
+        return symbol + parseFloat(price).toFixed(2);
+      }
+
+      // Update all prices on the page
+      function updateAllPrices() {
+        const currency = getCurrentCurrency();
+
+        // Find all elements with data-eur-price attribute (EUR is base currency)
+        // But skip shipping options - they handle their own display
+        document.querySelectorAll('[data-eur-price]').forEach(element => {
+          // Skip shipping options - they handle their own display
+          if (element.hasAttribute('data-shipping-option') || 
+              element.tagName === 'OPTION' && element.closest('select') && element.closest('select').id === 'shipping_option') {
+            return;
+          }
+          const eurPrice = parseFloat(element.getAttribute('data-eur-price'));
+          if (!isNaN(eurPrice)) {
+            const convertedPrice = convertPrice(eurPrice, currency);
+            element.textContent = formatPrice(convertedPrice, currency);
+          }
+        });
+        
+        // Also support legacy data-eur-price for backward compatibility (convert USD to EUR first)
+        // But skip shipping options - they handle their own display
+        document.querySelectorAll('[data-eur-price]:not([data-shipping-option]):not([data-eur-price])').forEach(element => {
+          const usdPrice = parseFloat(element.getAttribute('data-eur-price'));
+          if (!isNaN(usdPrice)) {
+            // Convert USD to EUR first, then to selected currency
+            const eurPrice = usdPrice / (exchangeRates.USD || 1.09);
+            const convertedPrice = convertPrice(eurPrice, currency);
+            element.textContent = formatPrice(convertedPrice, currency);
+          }
+        });
+
+        // Update currency selector values
+        document.querySelectorAll('#currencySelector, #currencySelectorDesktop').forEach(select => {
+          if (select) {
+            select.value = currency;
+          }
+        });
+      }
+
+      // Initialize currency selector
+      async function initCurrencySelector() {
+        // Load exchange rates first
+        await loadExchangeRates();
+        
+        const currentCurrency = getCurrentCurrency();
+        
+        // Setup mobile selector
+        const mobileSelector = document.getElementById('currencySelector');
+        if (mobileSelector) {
+          mobileSelector.value = currentCurrency;
+          // Remove existing listeners to avoid duplicates
+          const newMobileSelector = mobileSelector.cloneNode(true);
+          mobileSelector.parentNode.replaceChild(newMobileSelector, mobileSelector);
+          newMobileSelector.addEventListener('change', function() {
+            setCurrentCurrency(this.value);
+            updateAllPrices();
+          });
+        }
+        
+        // Setup desktop selector(s) - there might be multiple on different pages
+        const desktopSelectors = document.querySelectorAll('#currencySelectorDesktop');
+        desktopSelectors.forEach(desktopSelector => {
+          if (desktopSelector) {
+            desktopSelector.value = currentCurrency;
+            // Remove existing listeners to avoid duplicates
+            const newDesktopSelector = desktopSelector.cloneNode(true);
+            desktopSelector.parentNode.replaceChild(newDesktopSelector, desktopSelector);
+            newDesktopSelector.addEventListener('change', function() {
+              setCurrentCurrency(this.value);
+              updateAllPrices();
+            });
+          }
+        });
+
+        // Update prices on page load
+        updateAllPrices();
+      }
+
+      // Initialize when DOM is ready
+      function startCurrencyConverter() {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initCurrencySelector);
+        } else {
+          // DOM already loaded, but wait a bit for dynamic content
+          setTimeout(initCurrencySelector, 100);
+        }
+      }
+
+      // Start immediately
+      startCurrencyConverter();
+
+      // Also listen for dynamic content changes (for AJAX-loaded content)
+      const observer = new MutationObserver(function(mutations) {
+        let shouldUpdate = false;
+        mutations.forEach(function(mutation) {
+          if (mutation.addedNodes.length > 0) {
+            mutation.addedNodes.forEach(function(node) {
+              // Skip shipping options - they handle their own display
+              if (node.nodeType === 1 && !node.hasAttribute('data-shipping-option') && 
+                  (node.hasAttribute('data-eur-price') || node.querySelector('[data-eur-price]:not([data-shipping-option])'))) {
+                shouldUpdate = true;
+              }
+            });
+          }
+        });
+        if (shouldUpdate) {
+          updateAllPrices();
+        }
+      });
+
+      // Observe the document body for changes
+      if (document.body) {
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      } else {
+        document.addEventListener('DOMContentLoaded', function() {
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+        });
+      }
+
+      // Expose functions globally for dynamic content
+      window.updateAllPrices = updateAllPrices;
+      window.getCurrentCurrency = getCurrentCurrency;
+      window.convertPrice = convertPrice;
+      window.formatPrice = formatPrice;
+      window.loadExchangeRates = loadExchangeRates;
+    })();
+
+    // Mobile menu toggle
+    (function() {
+      const menuToggle = document.getElementById('mobileMenuToggle');
+      const menuClose = document.getElementById('mobileMenuClose');
+      const menuOverlay = document.getElementById('mobileMenuOverlay');
+      const mobileMenu = document.getElementById('mobileMenu');
+      
+      if (!menuToggle || !menuClose || !menuOverlay || !mobileMenu) return;
+
+      function openMenu() {
+        mobileMenu.classList.add('open');
+        menuOverlay.classList.add('open');
+        menuToggle.setAttribute('aria-expanded', 'true');
+        mobileMenu.setAttribute('aria-hidden', 'false');
+        menuOverlay.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeMenu() {
+        mobileMenu.classList.remove('open');
+        menuOverlay.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        mobileMenu.setAttribute('aria-hidden', 'true');
+        menuOverlay.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+
+      menuToggle.addEventListener('click', openMenu);
+      menuClose.addEventListener('click', closeMenu);
+      menuOverlay.addEventListener('click', closeMenu);
+
+      // Close on escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+          closeMenu();
+        }
+      });
+    })();
+
+    // Mobile header search toggle
+    (function() {
+      const searchToggle = document.getElementById('mobileHeaderSearchToggle');
+      const searchWrap = document.getElementById('mobileHeaderSearchWrap');
+      if (!searchToggle || !searchWrap) return;
+
+      searchToggle.addEventListener('click', () => {
+        const isHidden = searchWrap.classList.contains('hidden');
+        searchWrap.classList.toggle('hidden');
+        searchToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        searchWrap.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+        if (isHidden) searchWrap.querySelector('input')?.focus();
+      });
+    })();
+
+    // Mobile header cart
+    (function() {
+      const cartLink = document.getElementById('mobileHeaderCartLink');
+      const cartTip = document.getElementById('mobileHeaderCartTip');
+      if (!cartLink || !cartTip) return;
+
+      let timer = null;
+      function showTip() {
+        cartTip.classList.remove('invisible', 'opacity-0');
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          cartTip.classList.add('opacity-0');
+          setTimeout(() => cartTip.classList.add('invisible'), 200);
+        }, 2000);
+      }
+
+      cartLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const count = Number('{{ cart_count|default:"0" }}') || 0;
+        if (count > 0) {
+          window.location.href = "{% url 'cart_view' %}";
+        } else {
+          showTip();
+        }
+      });
+    })();
+
+    // Scroll to top button - show/hide on scroll
+    (function() {
+      const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+      if (!scrollToTopBtn) return;
+
+      let scrollTimeout = null;
+      const scrollThreshold = 300; // Show button after scrolling 300px
+
+      function handleScroll() {
+        const currentScrollY = window.scrollY;
+
+        if (currentScrollY > scrollThreshold) {
+          // Scrolled down - show button
+          scrollToTopBtn.classList.add('visible');
+        } else {
+          // Near top - hide button
+          scrollToTopBtn.classList.remove('visible');
+        }
+      }
+
+      // Throttle scroll events
+      window.addEventListener('scroll', () => {
+        if (scrollTimeout) return;
+        scrollTimeout = setTimeout(() => {
+          handleScroll();
+          scrollTimeout = null;
+        }, 100);
+      });
+
+      // Initial check
+      handleScroll();
+
+      // Scroll to top on click
+      scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    })();
+
+    // Image loading optimization - Intersection Observer for lazy images
+    (function() {
+      if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              if (img.dataset.src) {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+                img.classList.add('loaded');
+              }
+              observer.unobserve(img);
+            }
+          });
+        }, {
+          rootMargin: '50px' // Start loading 50px before image enters viewport
+        });
+
+        // Observe all lazy-loaded images
+        document.querySelectorAll('img[loading="lazy"]').forEach(img => {
+          imageObserver.observe(img);
+        });
+      }
+
+      // Preload critical images
+      const criticalImages = document.querySelectorAll('link[rel="preload"][as="image"]');
+      criticalImages.forEach(link => {
+        const img = new Image();
+        img.src = link.href;
+      });
+    })();
   </script>
 
   {% block extra_js %}{% endblock %}
 </body>
 </html>
+

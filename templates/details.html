@@ -1,0 +1,53 @@
+
+{% extends "account/_profile_base.html" %}
+
+{% block title %}Your Account - Dashboard{% endblock %}
+
+{% block account_body %}
+<h1 class="text-2xl font-extrabold mb-4">Welcome back 👋</h1>
+
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+  <div class="rounded-xl bg-white shadow-sm p-4">
+    <p class="text-xs text-slate-500">Favorites</p>
+    <p class="text-2xl font-extrabold">{{ fav_count }}</p>
+  </div>
+  <div class="rounded-xl bg-white shadow-sm p-4">
+    <p class="text-xs text-slate-500">Orders</p>
+    <p class="text-2xl font-extrabold">{{ order_count }}</p>
+  </div>
+  <div class="rounded-xl bg-white shadow-sm p-4">
+    <p class="text-xs text-slate-500">Total Spent</p>
+    <p class="text-2xl font-extrabold">${{ total_spent|floatformat:2 }}</p>
+  </div>
+</div>
+
+<h2 class="text-lg font-extrabold mb-2">Recent Orders</h2>
+{% if recent_orders %}
+  <div class="overflow-x-auto rounded-xl bg-white shadow-sm">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 text-slate-600">
+        <tr>
+          <th class="text-left p-3">#</th>
+          <th class="text-left p-3">Date</th>
+          <th class="text-left p-3">Total</th>
+          <th class="text-left p-3">Shipping</th>
+          <th class="text-left p-3">Coupon</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr class="border-t">
+          <td class="p-3 font-semibold">#{{ o.id }}</td>
+          <td class="p-3">{{ o.created_at|date:"Y-m-d H:i" }}</td>
+          <td class="p-3">${{ o.total_price|floatformat:2 }}</td>
+          <td class="p-3">{{ o.shipping_option.name if o.shipping_option }}</td>
+          <td class="p-3">{{ o.coupon.code if o.coupon }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-slate-600">No orders yet.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ post.title }} - Marbaras{% endblock %}
+
+{% block mobile_menu_content %}
+  {% if categories %}
+  <div>
+    <h2 class="text-xs font-extrabold tracking-widest text-slate-600 mb-3">CATEGORIES</h2>
+    <ul class="space-y-1">
+      <li>
+        <a href="{% url 'home' %}?all=true"
+           class="block px-3 py-2 rounded-md text-sm font-semibold transition hover:bg-slate-100 text-slate-800">
+          All Products
+        </a>
+      </li>
+      {% for cat in categories %}
+      <li>
+        <a href="{% url 'products_by_category' cat.pk %}"
+           class="block px-3 py-2 rounded-md text-sm font-semibold transition
+           {% if cat.name|lower == 'sale' %}
+             text-red-600 font-bold hover:bg-red-50
+           {% else %}
+             hover:bg-slate-100 text-slate-800
+           {% endif %}"
+           {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
+          {{ cat.name }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="pt-4 border-t border-slate-200">
+    {% if user.is_authenticated %}
+      <a href="{% url 'profile_dashboard' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        👤 Profile
+      </a>
+      <a href="{% url 'profile_favorites' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        ❤️ Favorites
+      </a>
+      <a href="{% url 'account_logout' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Logout
+      </a>
+    {% else %}
+      <a href="{% url 'login' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Login
+      </a>
+      <a href="{% url 'register' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Register
+      </a>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-site px-4 py-8">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[180px,minmax(0,1fr),180px]">
+    
+    {% if categories %}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <a href="{% url 'home' %}" class="block mb-3 overflow-hidden">
+        <img src="{% static 'images/image2.jpeg' %}" 
+             alt="Marbaras" 
+             class="h-12 w-auto object-contain scale-125 origin-left">
+      </a>
+      <div class="rounded-xl bg-white shadow-sm">
+        <div class="px-3 py-2">
+          <h2 class="text-[10px] font-extrabold tracking-widest text-slate-600">CATEGORIES</h2>
+        </div>
+        <ul class="p-2 space-y-1.5">
+          <li>
+            <a href="{% url 'home' %}?all=true"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition hover:bg-slate-100 text-slate-800">
+              All Products
+            </a>
+          </li>
+          {% for cat in categories %}
+          <li>
+            <a href="{% url 'products_by_category' cat.pk %}"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if cat.name|lower == 'sale' %}
+                 text-red-600 font-bold hover:bg-red-50
+               {% else %}
+                 hover:bg-slate-100 text-slate-800
+               {% endif %}"
+               {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
+              {% if cat.parent %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+    {% endif %}
+
+    <section class="min-w-0">
+      <div class="mb-6">
+        <a href="{% url 'home' %}" class="text-sm text-slate-600 hover:text-slate-900 transition">
+          ← Back to Home
+        </a>
+      </div>
+
+      <article class="bg-white rounded-2xl shadow-sm overflow-hidden">
+        {% if post.image %}
+          <div class="w-full aspect-video overflow-hidden bg-slate-100">
+            <img src="{{ post.image.url }}" alt="{{ post.title }}" 
+                 class="w-full h-full object-cover">
+          </div>
+        {% endif %}
+        
+        {% if post.video_file %}
+          <div class="w-full aspect-video bg-slate-900">
+            <video 
+              controls 
+              class="w-full h-full"
+              preload="metadata"
+              style="outline: none;">
+              <source src="{{ post.video_file.url }}" type="video/mp4">
+              <source src="{{ post.video_file.url }}" type="video/webm">
+              <source src="{{ post.video_file.url }}" type="video/ogg">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        {% elif video_embed_url %}
+          <div class="w-full aspect-video bg-slate-900">
+            <iframe 
+              src="{{ video_embed_url }}" 
+              class="w-full h-full"
+              frameborder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen>
+            </iframe>
+          </div>
+        {% endif %}
+        
+        <div class="p-8 md:p-12">
+          <header class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">{{ post.title }}</h1>
+            <div class="text-sm text-slate-500">
+              Published on {{ post.created_at|date:"F j, Y" }}
+            </div>
+          </header>
+
+          <div class="blog-content">
+            {{ formatted_content|safe }}
+          </div>
+        </div>
+
+        <div class="mt-12 pt-8 border-t border-slate-200">
+          <a href="{% url 'home' %}" 
+             class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition">
+            ← Back to Home
+          </a>
+        </div>
+      </article>
+    </section>
+
+    <aside class="hidden lg:block w-[180px]"></aside>
+  </div>
+</div>
+
+<style>
+  /* Blog Content Styling - Beautiful and Readable */
+  .blog-content {
+    max-width: 65ch; /* Optimal reading width */
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    font-size: 1.125rem; /* 18px - comfortable reading size */
+    line-height: 1.8; /* Better line spacing for readability */
+    color: #1e293b;
+    letter-spacing: 0.01em;
+  }
+
+  /* Headings */
+  .blog-content h1 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-top: 2.5rem;
+    margin-bottom: 1.5rem;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+
+  .blog-content h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    color: #1e293b;
+    letter-spacing: -0.01em;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .blog-content h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: #334155;
+  }
+
+  .blog-content h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #475569;
+  }
+
+  /* Paragraphs */
+  .blog-content p {
+    margin-bottom: 1.5rem;
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #334155;
+    text-align: justify;
+    text-justify: inter-word;
+  }
+
+  /* First paragraph - larger and more prominent */
+  .blog-content p:first-of-type {
+    font-size: 1.25rem;
+    line-height: 1.9;
+    color: #1e293b;
+    font-weight: 400;
+    margin-bottom: 2rem;
+  }
+
+  /* Lists */
+  .blog-content ul,
+  .blog-content ol {
+    margin: 1.5rem 0;
+    padding-left: 2rem;
+    line-height: 1.8;
+  }
+
+  .blog-content ul {
+    list-style-type: disc;
+  }
+
+  .blog-content ol {
+    list-style-type: decimal;
+  }
+
+  .blog-content li {
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+    color: #334155;
+    line-height: 1.8;
+  }
+
+  .blog-content li::marker {
+    color: #64748b;
+  }
+
+  /* Nested lists */
+  .blog-content ul ul,
+  .blog-content ol ol,
+  .blog-content ul ol,
+  .blog-content ol ul {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Links */
+  .blog-content a {
+    color: #2563eb;
+    text-decoration: underline;
+    text-decoration-color: #93c5fd;
+    text-underline-offset: 2px;
+    transition: all 0.2s ease;
+  }
+
+  .blog-content a:hover {
+    color: #1d4ed8;
+    text-decoration-color: #2563eb;
+  }
+
+  /* Strong/Bold text */
+  .blog-content strong,
+  .blog-content b {
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  /* Italic text */
+  .blog-content em,
+  .blog-content i {
+    font-style: italic;
+    color: #475569;
+  }
+
+  /* Blockquotes */
+  .blog-content blockquote {
+    margin: 2rem 0;
+    padding: 1.5rem 1.5rem 1.5rem 2rem;
+    border-left: 4px solid #3b82f6;
+    background-color: #f8fafc;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: #475569;
+  }
+
+  .blog-content blockquote p {
+    margin-bottom: 0;
+  }
+
+  /* Code */
+  .blog-content code {
+    background-color: #f1f5f9;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    color: #dc2626;
+  }
+
+  .blog-content pre {
+    background-color: #1e293b;
+    color: #e2e8f0;
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .blog-content pre code {
+    background-color: transparent;
+    padding: 0;
+    color: inherit;
+  }
+
+  /* Images */
+  .blog-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    margin: 2rem auto;
+    display: block;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Videos/Iframes */
+  .blog-content iframe,
+  .blog-content video {
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 2rem auto;
+    display: block;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Horizontal rules */
+  .blog-content hr {
+    border: none;
+    border-top: 2px solid #e2e8f0;
+    margin: 2.5rem 0;
+  }
+
+  /* Tables */
+  .blog-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 1rem;
+  }
+
+  .blog-content th,
+  .blog-content td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .blog-content th {
+    font-weight: 600;
+    background-color: #f8fafc;
+    color: #1e293b;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .blog-content {
+      font-size: 1rem;
+      max-width: 100%;
+    }
+
+    .blog-content h1 {
+      font-size: 1.875rem;
+    }
+
+    .blog-content h2 {
+      font-size: 1.5rem;
+    }
+
+    .blog-content h3 {
+      font-size: 1.25rem;
+    }
+
+    .blog-content p:first-of-type {
+      font-size: 1.125rem;
+    }
+
+    .blog-content p {
+      text-align: left;
+    }
+  }
+
+  /* Video styling */
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+
+  video::-webkit-media-controls-panel {
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+</style>
+
+<script>
+  // Additional formatting for blog content - ensures all text is properly wrapped in paragraphs
+  (function() {
+    const blogContent = document.querySelector('.blog-content');
+    if (!blogContent) return;
+    
+    // Find all text nodes that are direct children (not inside other elements)
+    function formatTextNodes(element) {
+      const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: function(node) {
+            // Skip if parent is already a block element
+            const parent = node.parentElement;
+            if (!parent) return NodeFilter.FILTER_REJECT;
+            
+            const blockTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'DIV', 'BLOCKQUOTE', 'LI', 'PRE'];
+            if (blockTags.includes(parent.tagName)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            
+            // Only process text nodes with actual content
+            if (node.textContent.trim().length > 0) {
+              return NodeFilter.FILTER_ACCEPT;
+            }
+            return NodeFilter.FILTER_REJECT;
+          }
+        }
+      );
+      
+      const textNodes = [];
+      let node;
+      while (node = walker.nextNode()) {
+        textNodes.push(node);
+      }
+      
+      // Wrap orphaned text nodes in paragraphs
+      textNodes.forEach(textNode => {
+        const text = textNode.textContent.trim();
+        if (text.length > 0) {
+          const p = document.createElement('p');
+          p.textContent = text;
+          textNode.parentNode.replaceChild(p, textNode);
+        }
+      });
+    }
+    
+    // Run formatting after page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => formatTextNodes(blogContent));
+    } else {
+      formatTextNodes(blogContent);
+    }
+  })();
+</script>
+{% endblock %}
+

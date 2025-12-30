@@ -1,0 +1,136 @@
+{% extends "profile_base.html" %}
+
+{% block title %}Account Details{% endblock %}
+
+{% block account_body %}
+<h1 class="text-2xl font-extrabold mb-4">👤 Account Details</h1>
+
+<div class="rounded-xl bg-white shadow-sm p-6">
+  <p class="text-sm text-slate-600 mb-6">
+    Save your contact and shipping information to speed up checkout. These details will be automatically filled when you make a purchase.
+  </p>
+
+  <form method="POST" action="{% url 'profile_details' %}" class="space-y-4">
+    {% csrf_token %}
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="phone" class="block text-sm font-semibold text-slate-700 mb-1">Phone Number</label>
+        <input 
+          type="tel" 
+          id="phone" 
+          name="phone" 
+          value="{{ profile.phone|default:'' }}"
+          placeholder="+359 888 123 456"
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+        >
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          value="{{ profile.email|default:user.email|default:'' }}"
+          placeholder="your@email.com"
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+        >
+        <p class="text-xs text-slate-500 mt-1">Account email: {{ user.email }}</p>
+      </div>
+    </div>
+
+    <div>
+      <label for="address" class="block text-sm font-semibold text-slate-700 mb-1">Address</label>
+      <input 
+        type="text" 
+        id="address" 
+        name="address" 
+        value="{{ profile.address|default:'' }}"
+        placeholder="Street address, apartment, suite, etc."
+        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+      >
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div>
+        <label for="city" class="block text-sm font-semibold text-slate-700 mb-1">City</label>
+        <input 
+          type="text" 
+          id="city" 
+          name="city" 
+          value="{{ profile.city|default:'' }}"
+          placeholder="Sofia"
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+        >
+  </div>
+
+  <div>
+        <label for="postal_code" class="block text-sm font-semibold text-slate-700 mb-1">Postal Code</label>
+        <input 
+          type="text" 
+          id="postal_code" 
+          name="postal_code" 
+          value="{{ profile.postal_code|default:'' }}"
+          placeholder="1000"
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+        >
+  </div>
+
+  <div>
+        <label for="country" class="block text-sm font-semibold text-slate-700 mb-1">Country</label>
+        <select 
+          id="country" 
+          name="country" 
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+        >
+          <option value="">-- Select Country --</option>
+          <optgroup label="Europe">
+            <option value="Albania" {% if profile.country == "Albania" %}selected{% endif %}>Albania</option>
+            <option value="Andorra" {% if profile.country == "Andorra" %}selected{% endif %}>Andorra</option>
+            <option value="Bosnia and Herzegovina" {% if profile.country == "Bosnia and Herzegovina" %}selected{% endif %}>Bosnia and Herzegovina</option>
+            <option value="Vatican" {% if profile.country == "Vatican" %}selected{% endif %}>Vatican</option>
+            <option value="United Kingdom" {% if profile.country == "United Kingdom" %}selected{% endif %}>United Kingdom</option>
+            <option value="Iceland" {% if profile.country == "Iceland" %}selected{% endif %}>Iceland</option>
+            <option value="Liechtenstein" {% if profile.country == "Liechtenstein" %}selected{% endif %}>Liechtenstein</option>
+            <option value="Monaco" {% if profile.country == "Monaco" %}selected{% endif %}>Monaco</option>
+            <option value="Montenegro" {% if profile.country == "Montenegro" %}selected{% endif %}>Montenegro</option>
+            <option value="Norway" {% if profile.country == "Norway" %}selected{% endif %}>Norway</option>
+            <option value="San Marino" {% if profile.country == "San Marino" %}selected{% endif %}>San Marino</option>
+            <option value="Serbia" {% if profile.country == "Serbia" %}selected{% endif %}>Serbia</option>
+            <option value="Switzerland" {% if profile.country == "Switzerland" %}selected{% endif %}>Switzerland</option>
+          </optgroup>
+          <optgroup label="Asia">
+            <option value="Bahrain" {% if profile.country == "Bahrain" %}selected{% endif %}>Bahrain</option>
+            <option value="Japan" {% if profile.country == "Japan" %}selected{% endif %}>Japan</option>
+            <option value="Qatar" {% if profile.country == "Qatar" %}selected{% endif %}>Qatar</option>
+            <option value="Saudi Arabia" {% if profile.country == "Saudi Arabia" %}selected{% endif %}>Saudi Arabia</option>
+            <option value="United Arab Emirates" {% if profile.country == "United Arab Emirates" %}selected{% endif %}>United Arab Emirates</option>
+          </optgroup>
+          <optgroup label="Africa">
+            <option value="South Africa" {% if profile.country == "South Africa" %}selected{% endif %}>South Africa</option>
+          </optgroup>
+          <optgroup label="North America">
+            <option value="Canada" {% if profile.country == "Canada" %}selected{% endif %}>Canada</option>
+            <option value="Costa Rica" {% if profile.country == "Costa Rica" %}selected{% endif %}>Costa Rica</option>
+            <option value="United States" {% if profile.country == "United States" %}selected{% endif %}>United States</option>
+          </optgroup>
+          <optgroup label="Oceania">
+            <option value="Australia" {% if profile.country == "Australia" %}selected{% endif %}>Australia</option>
+            <option value="New Zealand" {% if profile.country == "New Zealand" %}selected{% endif %}>New Zealand</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+
+    <div class="pt-4 border-t border-slate-200">
+      <button 
+        type="submit" 
+        class="px-6 py-2 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+      >
+        Save Details
+      </button>
+  </div>
+  </form>
+</div>
+{% endblock %}

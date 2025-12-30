@@ -1,5 +1,62 @@
 {% extends 'base.html' %}
+
 {% block title %}Register{% endblock %}
+
+{% block mobile_menu_content %}
+  {% if categories %}
+  <div>
+    <h2 class="text-xs font-extrabold tracking-widest text-slate-600 mb-3">CATEGORIES</h2>
+    <ul class="space-y-1">
+      <li>
+        <a href="{% url 'home' %}?all=true"
+           class="block px-3 py-2 rounded-md text-sm font-semibold transition hover:bg-slate-100 text-slate-800">
+          All Products
+        </a>
+      </li>
+      {% for cat in categories %}
+      <li>
+        <a href="{% url 'products_by_category' cat.pk %}"
+           class="block px-3 py-2 rounded-md text-sm font-semibold transition
+           {% if cat.name|lower == 'sale' %}
+             text-red-600 font-bold hover:bg-red-50
+           {% else %}
+             hover:bg-slate-100 text-slate-800
+           {% endif %}"
+              {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
+              {% if cat.parent %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="pt-4 border-t border-slate-200">
+    {% if user.is_authenticated %}
+      <a href="{% url 'profile_dashboard' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Profile
+      </a>
+      <a href="{% url 'profile_favorites' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Favorites
+      </a>
+      <a href="{% url 'account_logout' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Logout
+      </a>
+    {% else %}
+      <a href="{% url 'login' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Login
+      </a>
+      <a href="{% url 'register' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Register
+      </a>
+    {% endif %}
+  </div>
+{% endblock %}
 
 {% block content %}
 <style>
@@ -63,25 +120,104 @@
 
 <div class="register-container">
   <h2>Register</h2>
-  <form method="POST">
+  
+  {% if messages %}
+    <div style="margin-bottom: 20px;">
+      {% for message in messages %}
+        <div style="padding: 12px; margin-bottom: 10px; border-radius: 6px; 
+                    {% if message.tags == 'error' %}background-color: #fee; border: 1px solid #fcc; color: #c33;
+                    {% elif message.tags == 'success' %}background-color: #efe; border: 1px solid #cfc; color: #3c3;
+                    {% else %}background-color: #eef; border: 1px solid #ccf; color: #33c;{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <form method="POST" action="{% url 'register' %}" id="register-form">
     {% csrf_token %}
+    <!-- Honeypot field - hidden from users but bots will fill it -->
+    <div style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;" aria-hidden="true">
+      <label for="website">Website (leave blank)</label>
+      <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+    </div>
+    <!-- Time-based validation - store form load time -->
+    <input type="hidden" name="form_load_time" id="form_load_time" value="">
     <div class="form-group">
       <label>Username</label>
-      <input type="text" name="username" required>
+      <input type="text" name="username" required autocomplete="username">
     </div>
     <div class="form-group">
       <label>Email</label>
-      <input type="email" name="email" required>
+      <input type="email" name="email" required autocomplete="email">
     </div>
     <div class="form-group">
       <label>Password</label>
-      <input type="password" name="password" required>
+      <input type="password" name="password" required autocomplete="new-password">
     </div>
     <div class="form-group">
       <label>Confirm Password</label>
-      <input type="password" name="confirm_password" required>
+      <input type="password" name="confirm_password" required autocomplete="new-password">
     </div>
-    <button type="submit" class="submit-btn">Register</button>
+    <button type="submit" class="submit-btn" id="register-submit">Register</button>
   </form>
+  
+  <script>
+    // Set form load time for bot detection
+    document.addEventListener('DOMContentLoaded', function() {
+      const formLoadTime = Date.now();
+      const formLoadTimeInput = document.getElementById('form_load_time');
+      if (formLoadTimeInput) {
+        formLoadTimeInput.value = formLoadTime;
+      }
+    });
+    
+    // Ensure CSRF token is available
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+    if (csrftoken) {
+      // Add CSRF token to form if missing
+      const form = document.getElementById('register-form');
+      if (form) {
+        const existingToken = form.querySelector('[name="csrfmiddlewaretoken"]');
+        if (!existingToken) {
+          const hiddenInput = document.createElement('input');
+          hiddenInput.type = 'hidden';
+          hiddenInput.name = 'csrfmiddlewaretoken';
+          hiddenInput.value = csrftoken;
+          form.appendChild(hiddenInput);
+        }
+      }
+    }
+    
+    // Debug: Log form submission
+    document.getElementById('register-form')?.addEventListener('submit', function(e) {
+      console.log('Form submitting...');
+      console.log('CSRF Token:', getCookie('csrftoken'));
+      const formData = new FormData(this);
+      console.log('Form data:', Object.fromEntries(formData));
+    });
+  </script>
+  
+  <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+    <p style="color: #666; font-size: 0.9rem;">
+      Already have an account? 
+      <a href="{% url 'login' %}" style="color: #333; font-weight: 600; text-decoration: none;">Login here</a>
+    </p>
+  </div>
 </div>
 {% endblock %}

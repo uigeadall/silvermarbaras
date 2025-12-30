@@ -3,215 +3,2251 @@
 
 {% block title %}Checkout{% endblock %}
 
+{% block mobile_menu_content %}
+  {% if categories %}
+  <div>
+    <h2 class="text-xs font-extrabold tracking-widest text-slate-600 mb-3">CATEGORIES</h2>
+    <ul class="space-y-1">
+      <li>
+        <a href="{% url 'home' %}?all=true"
+           class="block px-3 py-2 rounded-md text-sm font-semibold transition hover:bg-slate-100 text-slate-800">
+          All Products
+        </a>
+      </li>
+      {% for cat in categories %}
+      <li>
+        <a href="{% url 'products_by_category' cat.pk %}"
+           class="block px-3 py-2 rounded-md text-sm font-semibold transition
+           {% if cat.name|lower == 'sale' %}
+             text-red-600 font-bold hover:bg-red-50
+           {% else %}
+             hover:bg-slate-100 text-slate-800
+           {% endif %}"
+           {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
+          {{ cat.name }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="pt-4 border-t border-slate-200">
+    {% if user.is_authenticated %}
+      <a href="{% url 'profile_dashboard' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        👤 Profile
+      </a>
+      <a href="{% url 'profile_favorites' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        ❤️ Favorites
+      </a>
+      <a href="{% url 'account_logout' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Logout
+      </a>
+    {% else %}
+      <a href="{% url 'login' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Login
+      </a>
+      <a href="{% url 'register' %}"
+         class="block px-3 py-2 rounded-md text-sm font-semibold hover:bg-slate-100 text-slate-800">
+        Register
+      </a>
+    {% endif %}
+  </div>
+{% endblock %}
+
 {% block content %}
 <script src="https://js.stripe.com/v3/"></script>
 
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f9f9f9;
-    color: #222;
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background:#f9f9f9; color:#222; }
+
+  /* 3-col page grid (Left | Center | Right) — SAME AS cart.html */
+  .page-wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+  .page-grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
+  @media (min-width: 1024px){
+    .page-grid { grid-template-columns: 180px minmax(0,1fr) 180px; }
   }
 
-  .checkout-container {
-    max-width: 960px;
-    margin: 40px auto;
-    padding: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 30px;
+  /* Sidebars match cart.html */
+  .rounded-xl { border-radius: 0.75rem; }
+  .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+
+  /* Center: filled panel */
+  .checkout-panel{
+    background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    width:100%; padding:16px;
   }
 
-  .cart-summary, .form-section {
-    flex: 1;
-    min-width: 300px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
-    padding: 25px;
+  /* Toolbar */
+  .panel-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .btn{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; font-weight:800; text-decoration:none; border:1px solid transparent; cursor:pointer; }
+  .btn-dark{ background:#111; color:#fff; border-color:#111; }
+  .btn-ghost{ background:#fff; color:#111; border-color:#e5e7eb; }
+  .btn-ghost:hover{ background:#f5f5f7; }
+
+  /* Inner two-column (equal height) */
+  .checkout-inner{
+    display: grid; gap: 18px; grid-template-columns: 1fr; align-items: stretch;
+  }
+  @media (min-width: 980px){
+    .checkout-inner{ grid-template-columns: minmax(0,1fr) 380px; }
   }
 
-  .cart-summary h3, .form-section h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    font-size: 1.6rem;
+  /* Equal-height cards */
+  .equal-card{
+    display:flex; flex-direction:column; height:100%;
+    background:#fff; border:1px solid #eee; border-radius:14px; padding:12px;
+  }
+  .equal-card h2, .equal-card h3{ text-align:center; margin:2px 0 10px; font-weight:800; }
+  .equal-card h2{ font-size:1.05rem; }
+  .equal-card h3{ font-size:1.02rem; }
+
+  /* Shipping & Payment */
+  .form-card .form-row{ display:grid; grid-template-columns: 1fr; gap:10px; }
+  @media (min-width: 640px){ .form-card .form-row--2{ grid-template-columns: 1fr 1fr; } }
+  .form-group{ margin-bottom:10px; }
+  .form-group label{ font-weight:600; display:block; margin-bottom:5px; font-size:.95rem; }
+  .form-group input, .form-group select, .StripeElement{
+    width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:8px; font-size:.95rem; line-height:1.25rem; background:#fff;
+  }
+  #card-errors{ color:#c00; font-size:.9rem; min-height:1.2em; margin-top:6px; }
+  .coupon-row{ display:flex; gap:8px; }
+  .coupon-row input{ flex:1; }
+  .submit-btn{ width:100%; height:40px; border-radius:10px; border:1px solid #111; background:#111; color:#fff; font-weight:800; cursor:pointer; font-size:.96rem; }
+  .submit-btn:hover{ filter:brightness(1.05); }
+  
+  /* Payment Request Button styling */
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Ensure Payment Request Button is visible */
+  #payment-request-button-container {
+    position: relative;
+  }
+  
+  /* Style for when button is mounted */
+  #payment-request-button-container > div[role="button"] {
+    width: 100% !important;
   }
 
-  .cart-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    font-size: 0.95rem;
-  }
-
-  .cart-item-name {
-    flex: 1;
-    display: flex;
-    align-items: center;
-  }
-
-  .cart-item-name strong {
-    font-size: 1.05rem;
-    font-weight: 600;
-  }
-
-  .cart-item img {
-    width: 40px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-right: 10px;
-  }
-
-  .cart-total {
-    margin-top: 16px;
-    text-align: right;
-    font-weight: bold;
-    font-size: 1.1rem;
-  }
-
-  .form-group {
-    margin-bottom: 16px;
-  }
-
-  .form-group label {
-    font-weight: bold;
-    display: block;
-    margin-bottom: 6px;
-  }
-
-  .form-group input,
-  .StripeElement {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-
-  #card-errors {
-    color: red;
-    font-size: 0.9rem;
-    margin-top: 8px;
-  }
-
-  .submit-btn {
-    width: 100%;
-    padding: 12px;
-    background-color: #222;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-
-  .submit-btn:hover {
-    background-color: #444;
-  }
+  /* Your Order */
+  .order-card .list{ flex:1; }
+  .item{ display:grid; grid-template-columns:56px 1fr auto; gap:12px; align-items:center; padding:8px 0; border-bottom:1px solid #f0f0f0; }
+  .item:last-child{ border-bottom:0; }
+  .thumb{ display:block; width:56px; height:56px; border-radius:10px; overflow:hidden; border:1px solid #eee; }
+  .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .name-line{ min-width:0; }
+  .name{ display:block; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#111; text-decoration:none; }
+  .mini{ font-size:.9rem; color:#444; }
+  .line-subtotal{ font-weight:700; font-size:.96rem; }
+  .totals{ padding-top:10px; border-top:1px dashed #e6e6e6; margin-top:10px; }
+  .row{ display:flex; justify-content:space-between; align-items:center; margin:5px 0; font-size:.96rem; }
+  .row.total{ font-weight:800; }
 </style>
 
-<div class="checkout-container">
-  <div class="cart-summary">
-    <h3>Your Order</h3>
+<div class="mx-auto max-w-site px-4">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[180px,minmax(0,1fr),180px]">
 
-    {% for item in cart_items %}
-      <div class="cart-item">
-        <div class="cart-item-name">
-          {% if item.product.image %}
-            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
-          {% else %}
-            <img src="{% static 'images/no-image.png' %}" alt="No image">
-          {% endif %}
-          <strong>{{ item.product.name }}</strong> — ${{ item.product.get_discounted_price|floatformat:2 }} × {{ item.quantity }}
+    {# Left: Categories (same as cart.html) #}
+    {% if categories %}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <a href="{% url 'home' %}" class="block mb-3 overflow-hidden">
+        <img src="{% static 'images/image2.jpeg' %}" 
+             alt="Marbaras" 
+             class="h-12 w-auto object-contain scale-125 origin-left">
+      </a>
+      <div class="rounded-xl bg-white shadow-sm">
+        <div class="px-3 py-2">
+          <h2 class="text-[10px] font-extrabold tracking-widest text-slate-600">CATEGORIES</h2>
         </div>
-        <div>
-          ${{ item.subtotal|floatformat:2 }}
+        <ul class="p-2 space-y-1.5">
+          <li>
+            <a href="{% url 'home' %}?all=true"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if not selected_category and request.GET.all %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}">
+              All Products
+            </a>
+          </li>
+          {% for cat in categories %}
+          <li>
+            <a href="{% url 'products_by_category' cat.pk %}"
+               class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
+               {% if cat.name|lower == 'sale' %}
+                 text-red-600 font-bold hover:bg-red-50
+               {% elif selected_category and selected_category.id == cat.id %} bg-red-100 text-red-700 {% else %} hover:bg-slate-100 text-slate-800 {% endif %}"
+               {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
+              {% if cat.parent %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+    {% endif %}
+
+    {# Center: filled panel with equal-height columns #}
+    <section class="min-w-0">
+      <div class="checkout-panel">
+
+        <div class="panel-bar">
+          <a href="{% url 'cart_view' %}" class="btn btn-ghost">← Back to Cart</a>
+          <span></span>
+        </div>
+
+        <div class="checkout-inner">
+
+          <!-- Shipping & Payment (equal height) -->
+          <section class="equal-card form-card">
+            <h2>Shipping &amp; Payment</h2>
+
+            <form id="payment-form" method="post" style="display:flex; flex-direction:column; gap:10px; flex:1;">
+              {% csrf_token %}
+
+              {# Row 1: Full Name | Email #}
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label for="full_name">Full Name</label>
+                  <input id="full_name" name="full_name" type="text" value="{{ request.user.get_full_name|default:request.user.username|default:'' }}" required>
+                </div>
+                <div class="form-group">
+                  <label for="email">Email</label>
+                  {% if user.is_authenticated %}
+                    <input id="email" name="email" type="email" value="{{ profile_data.email|default:request.user.email }}" {% if not profile_data.email %}readonly{% endif %}>
+                  {% else %}
+                    <input id="email" name="email" type="email" value="{{ profile_data.email|default:'' }}" required>
+                  {% endif %}
+                </div>
+              </div>
+
+              {# Row 2: Phone | Country #}
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label for="phone">Phone Number</label>
+                  <input id="phone" name="phone" type="tel" value="{{ profile_data.phone|default:'' }}" required>
+                </div>
+                <div class="form-group">
+                  <label for="country">Country</label>
+                  <select id="country" name="country" required>
+                    <option value="">-- Select Country --</option>
+                    <optgroup label="Europe">
+                      <option value="Albania" {% if profile_data.country == "Albania" %}selected{% endif %}>Albania</option>
+                      <option value="Andorra" {% if profile_data.country == "Andorra" %}selected{% endif %}>Andorra</option>
+                      <option value="Bosnia and Herzegovina" {% if profile_data.country == "Bosnia and Herzegovina" %}selected{% endif %}>Bosnia and Herzegovina</option>
+                      <option value="Vatican" {% if profile_data.country == "Vatican" %}selected{% endif %}>Vatican</option>
+                      <option value="United Kingdom" {% if profile_data.country == "United Kingdom" %}selected{% endif %}>United Kingdom</option>
+                      <option value="Iceland" {% if profile_data.country == "Iceland" %}selected{% endif %}>Iceland</option>
+                      <option value="Liechtenstein" {% if profile_data.country == "Liechtenstein" %}selected{% endif %}>Liechtenstein</option>
+                      <option value="Monaco" {% if profile_data.country == "Monaco" %}selected{% endif %}>Monaco</option>
+                      <option value="Montenegro" {% if profile_data.country == "Montenegro" %}selected{% endif %}>Montenegro</option>
+                      <option value="Norway" {% if profile_data.country == "Norway" %}selected{% endif %}>Norway</option>
+                      <option value="San Marino" {% if profile_data.country == "San Marino" %}selected{% endif %}>San Marino</option>
+                      <option value="Serbia" {% if profile_data.country == "Serbia" %}selected{% endif %}>Serbia</option>
+                      <option value="Switzerland" {% if profile_data.country == "Switzerland" %}selected{% endif %}>Switzerland</option>
+                    </optgroup>
+                    <optgroup label="Asia">
+                      <option value="Bahrain" {% if profile_data.country == "Bahrain" %}selected{% endif %}>Bahrain</option>
+                      <option value="Japan" {% if profile_data.country == "Japan" %}selected{% endif %}>Japan</option>
+                      <option value="Qatar" {% if profile_data.country == "Qatar" %}selected{% endif %}>Qatar</option>
+                      <option value="Saudi Arabia" {% if profile_data.country == "Saudi Arabia" %}selected{% endif %}>Saudi Arabia</option>
+                      <option value="United Arab Emirates" {% if profile_data.country == "United Arab Emirates" %}selected{% endif %}>United Arab Emirates</option>
+                    </optgroup>
+                    <optgroup label="Africa">
+                      <option value="South Africa" {% if profile_data.country == "South Africa" %}selected{% endif %}>South Africa</option>
+                    </optgroup>
+                    <optgroup label="North America">
+                      <option value="Canada" {% if profile_data.country == "Canada" %}selected{% endif %}>Canada</option>
+                      <option value="Costa Rica" {% if profile_data.country == "Costa Rica" %}selected{% endif %}>Costa Rica</option>
+                      <option value="United States" {% if profile_data.country == "United States" %}selected{% endif %}>United States</option>
+                    </optgroup>
+                    <optgroup label="Oceania">
+                      <option value="Australia" {% if profile_data.country == "Australia" %}selected{% endif %}>Australia</option>
+                      <option value="New Zealand" {% if profile_data.country == "New Zealand" %}selected{% endif %}>New Zealand</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              {# Address #}
+              <div class="form-group">
+                <label for="address">Address</label>
+                <input id="address" name="address" type="text" value="{{ profile_data.address|default:'' }}" required>
+              </div>
+
+              {# Row 3: City | Postal Code #}
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label for="city">City</label>
+                  <input id="city" name="city" type="text" value="{{ profile_data.city|default:'' }}" required>
+                </div>
+                <div class="form-group">
+                  <label for="postal_code">Postal Code</label>
+                  <input id="postal_code" name="postal_code" type="text" value="{{ profile_data.postal_code|default:'' }}" required>
+                </div>
+              </div>
+
+              {% if shipping_options %}
+                <div class="form-group">
+                  <label for="shipping_option">Shipping Option</label>
+                  <select id="shipping_option" name="shipping_option">
+                    <option value="">-- Select --</option>
+                    {% for opt in shipping_options %}
+                      {% if opt.price == 0 or opt.price == 0.0 or opt.price|floatformat:2 == "0.00" %}
+                        <option value="{{ opt.id }}" 
+                                data-price="{{ opt.price }}" 
+                                data-eur-price="{{ opt.price }}" 
+                                data-name="Free Shipping" 
+                                data-shipping-type="free"
+                                data-shipping-option="true">
+                          Free Shipping (€{{ opt.price|floatformat:2 }})
+                      </option>
+                      {% elif opt.price == 19.99 or opt.price|floatformat:2 == "19.99" %}
+                        <option value="{{ opt.id }}" 
+                                data-price="{{ opt.price }}" 
+                                data-eur-price="{{ opt.price }}" 
+                                data-name="Express Shipping" 
+                                data-shipping-type="express"
+                                data-shipping-option="true">
+                          Express Shipping (€{{ opt.price|floatformat:2 }})
+                        </option>
+                      {% else %}
+                        <option value="{{ opt.id }}" 
+                                data-price="{{ opt.price }}" 
+                                data-eur-price="{{ opt.price }}" 
+                                data-name="{{ opt.name }}" 
+                                data-shipping-type="standard"
+                                data-shipping-option="true">
+                          {{ opt.name }} (€{{ opt.price|floatformat:2 }})
+                        </option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                </div>
+              {% endif %}
+
+              <div class="form-group">
+                <label for="coupon">Promo code</label>
+                <div class="coupon-row">
+                  <input id="coupon" name="coupon" type="text" placeholder="Enter promo code" value="{{ coupon_code|default:'' }}">
+                </div>
+                {% if coupon_error %}<div style="color:#c00; margin-top:6px;">{{ coupon_error }}</div>{% endif %}
+                {% if coupon_applied %}<div style="color:#0a0; margin-top:6px;">Coupon {{ coupon_applied }} applied.</div>{% endif %}
+              </div>
+
+
+              <div class="form-group" style="flex:1;"></div> {# spacer to push payment to bottom for symmetry #}
+
+              {# Apple Pay / Google Pay Button #}
+              <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 8px; font-size: 0.95rem;">Quick Payment</label>
+                <div id="payment-request-button-container" style="min-height: 48px; border: 1px solid #e5e7eb; padding: 8px; border-radius: 10px; background: #fafafa;">
+                  <!-- Payment Request Button will be inserted here -->
+                  <div id="payment-request-loading" style="display: none; text-align: center; color: #666; font-size: 0.9em; padding: 12px;">
+                    <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #333; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;"></div>
+                    Checking payment options...
+                  </div>
+                  <div id="payment-request-unavailable" style="display: none; text-align: center; color: #999; font-size: 0.85em; padding: 12px;">
+                    Apple Pay / Google Pay not available on this device
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group" id="payment-divider" style="text-align: center; margin: 15px 0; display: none;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
+                  <span style="color: #666; font-size: 0.9em; font-weight: 500;">or pay with card</span>
+                  <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="card-element">Card Information</label>
+                <div id="card-element" class="StripeElement"></div>
+                <div id="card-errors" role="alert"></div>
+              </div>
+
+              <input type="hidden" id="payment_intent_id" name="payment_intent_id">
+              <button type="submit" class="submit-btn">💳 Pay</button>
+            </form>
+          </section>
+
+          <!-- Your Order (equal height) -->
+          <aside class="equal-card order-card">
+            <h3>Your Order</h3>
+
+            <div class="list">
+              {% if cart_items %}
+                {% for item in cart_items %}
+                  <div class="item">
+                    <a class="thumb" href="{% url 'product_detail' item.product.pk %}">
+                      {% if item.product.main_image %}
+                        <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}">
+                      {% else %}
+                        <img src="{% static 'images/placeholder.jpg' %}" alt="{{ item.product.name }}">
+                      {% endif %}
+                    </a>
+
+                    <div class="name-line">
+                      <a class="name" href="{% url 'product_detail' item.product.pk %}">
+                        {{ item.product.name|slice:":20" }}{% if item.product.name|length > 20 %}…{% endif %}
+                      </a>
+                      <div class="mini">
+                        <span data-eur-price="{{ item.product.get_discounted_price }}">${{ item.product.get_discounted_price|floatformat:2 }}</span> × {{ item.quantity }}
+                        {% if item.variant %}
+                          <span class="text-xs text-slate-600">(Size: {{ item.variant.size }})</span>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <div class="line-subtotal">
+                      <span data-eur-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</span>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p>Your cart is empty.</p>
+              {% endif %}
+            </div>
+
+            <div class="totals">
+              <div class="row">
+                <span>Subtotal</span>
+                <span data-eur-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
+              </div>
+
+              {% if discount %}
+                <div class="row">
+                  <span>Discount</span>
+                  <span data-eur-price="{{ discount }}">- ${{ discount|floatformat:2 }}</span>
+                </div>
+              {% endif %}
+
+              <div class="row" id="shipping-row" style="display: none;">
+                  <span id="shipping-label">Shipping</span>
+                <span id="shipping-cost-display" data-eur-price="0">$0.00</span>
+                </div>
+
+              <div class="row total">
+                <span>Total</span>
+                <span>
+                  <span id="total-display" data-eur-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
+                </span>
+              </div>
+            </div>
+          </aside>
+
         </div>
       </div>
-    {% empty %}
-      <p>Your cart is empty.</p>
-    {% endfor %}
-    <div class="cart-total">
-      Total: ${{ subtotal|floatformat:2 }}
-    </div>
-  </div>
+    </section>
 
-  <div class="form-section">
-    <h2>Shipping & Payment</h2>
-    <form id="payment-form" method="post">
-      {% csrf_token %}
+    {# Right: Search / Cart / Auth (same as cart.html) #}
+    <aside class="hidden lg:block sticky top-6 self-start w-[180px]">
+      <div class="rounded-xl bg-white shadow-sm p-3 space-y-3 text-right">
+        <button id="searchToggle" aria-expanded="false" aria-controls="searchWrap"
+                class="w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+          🔎 Search
+        </button>
+        <form id="searchWrap" method="get" action="{% url 'home' %}" aria-hidden="true" class="hidden">
+          <div class="mt-2 grid gap-2">
+            <input type="text" name="q" placeholder="Search products…"
+                   class="w-full px-2.5 py-1.5 rounded-md border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-slate-300">
+            <div>
+              <button type="submit"
+                      class="inline-flex px-2.5 py-1.5 rounded-md bg-brand text-white font-extrabold text-xs hover:brightness-95 transition">
+                Go
+              </button>
+            </div>
+          </div>
+        </form>
 
-      <div class="form-group">
-        <label for="full_name">Full Name</label>
-        <input type="text" id="full_name" name="full_name" required>
+        <div class="relative">
+          <a id="cartLink" href="#" aria-describedby="cartTip"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            🛒 Cart
+          </a>
+          <span id="cartTip"
+                class="cart-tip invisible opacity-0 absolute right-0 mt-1
+                       bg-[#0b1220] text-white text-xs px-3 py-2 rounded-lg
+                       transition-opacity duration-200">
+            Your cart is empty
+          </span>
+        </div>
+
+        {% if user.is_authenticated %}
+          <a href="{% url 'account_logout' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Logout
+          </a>
+        {% else %}
+          <a href="{% url 'login' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right shadow-soft hover:shadow-card hover:bg-slate-50 transition">
+            Login
+          </a>
+          <a href="{% url 'register' %}"
+             class="block w-full px-2.5 py-1.5 rounded-md bg-white text-xs font-extrabold text-right hover:brightness-95 transition">
+            Register
+          </a>
+        {% endif %}
       </div>
+    </aside>
 
-      <div class="form-group">
-        <label for="address">Address</label>
-        <input type="text" id="address" name="address" required>
-      </div>
-
-      <div class="form-group">
-        <label for="city">City</label>
-        <input type="text" id="city" name="city" required>
-      </div>
-
-      <div class="form-group">
-        <label for="postal_code">Postal Code</label>
-        <input type="text" id="postal_code" name="postal_code" required>
-      </div>
-
-      <div class="form-group">
-        <label for="phone">Phone Number</label>
-        <input type="tel" id="phone" name="phone" required>
-      </div>
-
-      <div class="form-group">
-        <label for="card-element">Card Information</label>
-        <div id="card-element" class="StripeElement"></div>
-        <div id="card-errors" role="alert"></div>
-      </div>
-
-      <input type="hidden" name="payment_intent_id" id="payment_intent_id">
-      <button type="submit" class="submit-btn">💳 Pay</button>
-    </form>
   </div>
 </div>
 
 <script>
-  const stripe = Stripe('{{ stripe_public_key }}');
-  const elements = stripe.elements();
-  const card = elements.create('card');
-  card.mount('#card-element');
+  // Search toggle (like cart.html)
+  (function(){
+    const btn=document.getElementById('searchToggle');
+    const form=document.getElementById('searchWrap');
+    btn?.addEventListener('click', ()=>{
+      const hidden=form.classList.contains('hidden');
+      form.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded', hidden ? 'true' : 'false');
+      form.setAttribute('aria-hidden', hidden ? 'false' : 'true');
+      if(hidden) form.querySelector('input')?.focus();
+    });
+  })();
 
-  const form = document.getElementById('payment-form');
+  // Cart tip (like cart.html)
+  (function(){
+    const link=document.getElementById('cartLink');
+    const tip=document.getElementById('cartTip');
+    let t=null;
+    function show(){ tip?.classList.remove('invisible','opacity-0'); clearTimeout(t);
+      t=setTimeout(()=>{ tip?.classList.add('opacity-0'); setTimeout(()=>tip?.classList.add('invisible'),200); },2000);
+    }
+    link?.addEventListener('click',(e)=>{
+      e.preventDefault();
+      const count=Number('{{ cart_count|default:"0" }}')||0;
+      if(count>0){ window.location.href="{% url 'cart_view' %}"; } else { show(); }
+    });
+    document.addEventListener('scroll',()=>tip?.classList.add('invisible','opacity-0'));
+  })();
 
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault();
+  // Update total when shipping option is selected
+  (function(){
+    // eslint-disable-next-line
+    const subtotal = {{ subtotal|default:0 }};
+    // eslint-disable-next-line
+    const discount = {{ discount|default:0 }};
+    const shippingSelect = document.getElementById('shipping_option');
+    const shippingRow = document.getElementById('shipping-row');
+    const shippingCostDisplay = document.getElementById('shipping-cost-display');
+    const totalDisplay = document.getElementById('total-display');
+    const countrySelect = document.getElementById('country');
 
-    const fullName = document.getElementById('full_name').value;
+    // Store original options for restoration
+    let originalOptions = null;
+    
+    // Filter shipping options based on country
+    function filterShippingOptions() {
+      const country = countrySelect?.value;
+      if (!shippingSelect) return;
+      
+      // Store original options on first call if not already stored
+      if (!originalOptions || originalOptions.length === 0) {
+        originalOptions = Array.from(shippingSelect.options).map(opt => ({
+          value: opt.value,
+          text: opt.textContent,
+          dataName: opt.getAttribute('data-name'),
+          dataPrice: opt.getAttribute('data-price')
+        }));
+      }
+      
+      // Clear all options except the first one
+      while (shippingSelect.options.length > 1) {
+        shippingSelect.remove(1);
+      }
+      
+      // If no country selected, show all options with their names
+      if (!country) {
+        originalOptions.forEach((optData, index) => {
+          if (index === 0) return; // Skip -- Select -- option
+          
+          const option = document.createElement('option');
+          option.value = optData.value;
+          const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+          const formatPrice = window.formatPrice || function(price, curr) {
+            const symbols = { USD: '$', EUR: '€', GBP: '£' };
+            return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+          };
+          const price = parseFloat(optData.dataPrice) || 0;
+          
+          // Always determine name from price first (most reliable)
+          let optionName;
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            optionName = 'Free Shipping';
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            optionName = 'Express Shipping';
+          } else {
+            // For other prices, try to use dataName or extract from text
+            optionName = optData.dataName || '';
+            if (!optionName || optionName.trim() === '') {
+              if (optData.text) {
+                const match = optData.text.match(/^([^(]+)/);
+                if (match) {
+                  optionName = match[1].trim();
+                }
+              }
+              optionName = optionName || 'Standard Shipping';
+            }
+          }
+          
+          // Convert price to current currency for display
+          const convertedPrice = window.convertPrice ? window.convertPrice(price, currency) : price;
+          
+          // Always show the option name with price
+          option.textContent = optionName + ' (' + formatPrice(convertedPrice, currency) + ')';
+          option.setAttribute('data-name', optionName);
+          option.setAttribute('data-price', optData.dataPrice || '0');
+          option.setAttribute('data-eur-price', optData.dataPrice || '0');
+          // Don't let updateAllPrices() overwrite this - remove data-eur-price or use a different approach
+          option.setAttribute('data-shipping-option', 'true');
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            option.setAttribute('data-shipping-type', 'free');
+          } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+            option.setAttribute('data-shipping-type', 'standard');
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            option.setAttribute('data-shipping-type', 'express');
+          } else {
+            option.setAttribute('data-shipping-type', 'standard');
+          }
+          shippingSelect.appendChild(option);
+        });
+        return;
+      }
+      
+      // Add filtered options based on country
+      originalOptions.forEach((optData, index) => {
+        if (index === 0) return; // Skip -- Select -- option
+        
+        const price = parseFloat(optData.dataPrice) || 0;
+        // Extract option name properly for filtering
+        // First try to use dataName from template (set by display_label method)
+        let optionNameForFilter = optData.dataName || '';
+        
+        // If dataName is empty, try to extract from text
+        if (!optionNameForFilter || optionNameForFilter.trim() === '') {
+          if (optData.text) {
+            const match = optData.text.match(/^([^(]+)/);
+            if (match) {
+              optionNameForFilter = match[1].trim();
+            }
+          }
+        }
+        
+        // Fallback: determine from price if still empty
+        if (!optionNameForFilter || optionNameForFilter.trim() === '') {
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            optionNameForFilter = 'Free Shipping';
+          } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+            optionNameForFilter = 'Standard Shipping';
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            optionNameForFilter = 'Express Shipping';
+          } else {
+            optionNameForFilter = 'Standard Shipping';
+          }
+        }
+        
+        let shouldShow = false;
+        
+        if (country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
+          // Canada, Australia, New Zealand and Norway: Standard Shipping ($5.99) and Express Shipping ($19.99)
+          if (optionNameForFilter.includes('Standard Shipping') || optionNameForFilter.includes('Standard Delivery') || optionNameForFilter.includes('Standard')) {
+            shouldShow = true;
+          } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+            shouldShow = true;
+          } else if (optionNameForFilter.includes('Express Shipping') || optionNameForFilter.includes('Express Delivery') || optionNameForFilter.includes('Express')) {
+            shouldShow = true;
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            shouldShow = true;
+          }
+        } else {
+          // Other countries: Free Shipping ($0) and Express Shipping ($19.99)
+          if (optionNameForFilter.includes('Free Shipping') || optionNameForFilter.includes('Free Delivery') || optionNameForFilter.includes('Free')) {
+            shouldShow = true;
+          } else if (price === 0 && !optionNameForFilter.includes('Standard')) {
+            shouldShow = true;
+          } else if (optionNameForFilter.includes('Express Shipping') || optionNameForFilter.includes('Express Delivery') || optionNameForFilter.includes('Express')) {
+            shouldShow = true;
+          } else if (price === 19.99) {
+            shouldShow = true;
+          }
+        }
+        
+        if (shouldShow) {
+          const option = document.createElement('option');
+          option.value = optData.value;
+          // Update option text with current currency
+          const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+          const formatPrice = window.formatPrice || function(price, curr) {
+            const symbols = { USD: '$', EUR: '€', GBP: '£' };
+            return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+          };
+          // Always determine name from price first (most reliable)
+          let optionName;
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            optionName = 'Free Shipping';
+          } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+            optionName = 'Standard Shipping';
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            optionName = 'Express Shipping';
+          } else {
+            // For other prices, try to use dataName or extract from text
+            optionName = optData.dataName || '';
+            if (!optionName || optionName.trim() === '') {
+              if (optData.text) {
+                const match = optData.text.match(/^([^(]+)/);
+                if (match) {
+                  optionName = match[1].trim();
+                }
+              }
+              optionName = optionName || 'Standard Shipping';
+            }
+          }
+          
+          // Convert price to current currency for display
+          const convertedPrice = window.convertPrice ? window.convertPrice(price, currency) : price;
+          
+          // Always show the option name with price
+          option.textContent = optionName + ' (' + formatPrice(convertedPrice, currency) + ')';
+          // Set shipping type based on price for other logic
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            option.setAttribute('data-shipping-type', 'free');
+          } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+            option.setAttribute('data-shipping-type', 'standard');
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            option.setAttribute('data-shipping-type', 'express');
+          } else {
+            option.setAttribute('data-shipping-type', 'standard');
+          }
+          option.setAttribute('data-name', optionName);
+          option.setAttribute('data-price', optData.dataPrice || '0');
+          option.setAttribute('data-eur-price', optData.dataPrice || '0');
+          // Don't let updateAllPrices() overwrite this
+          option.setAttribute('data-shipping-option', 'true');
+          shippingSelect.appendChild(option);
+        }
+      });
+    }
 
-    const { error, paymentIntent } = await stripe.confirmCardPayment(
-      '{{ client_secret }}',
-      {
-        payment_method: {
-          card: card,
-          billing_details: {
-            name: fullName
+    function updateTotal() {
+      let shippingCost = 0;
+      let shippingType = null;
+      const selectedOption = shippingSelect?.options[shippingSelect?.selectedIndex];
+      const shippingLabel = document.getElementById('shipping-label');
+      
+      if (selectedOption && selectedOption.value) {
+        shippingCost = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+        shippingType = selectedOption.getAttribute('data-shipping-type');
+      } else {
+        // If no option selected, check country
+        const country = countrySelect?.value;
+        if (country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
+          shippingCost = 5.99; // Default to Standard Shipping for Canada, Australia, New Zealand and Norway
+          shippingType = 'standard';
+        } else {
+          shippingCost = 0.00; // Free for other countries
+          shippingType = 'free';
+        }
+      }
+
+      const finalSubtotal = subtotal - discount;
+      const total = finalSubtotal + shippingCost;
+
+      // Use currency converter functions from base.html
+      const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+      const formatPrice = window.formatPrice || function(price, curr) {
+        const symbols = { USD: '$', EUR: '€', GBP: '£' };
+        return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+      };
+
+      // Always show shipping row, but with appropriate text
+      shippingRow.style.display = 'flex';
+      
+      // Update shipping label based on type
+      if (shippingType === 'free') {
+        shippingLabel.textContent = 'Free Shipping';
+        shippingCostDisplay.textContent = formatPrice(0, currency);
+        shippingCostDisplay.setAttribute('data-eur-price', 0);
+      } else if (shippingType === 'express') {
+        shippingLabel.textContent = 'Express Shipping';
+        shippingCostDisplay.setAttribute('data-eur-price', shippingCost);
+        if (window.updateAllPrices) {
+          window.updateAllPrices();
+        } else {
+          shippingCostDisplay.textContent = formatPrice(shippingCost, currency);
+        }
+      } else {
+        shippingLabel.textContent = 'Shipping';
+        shippingCostDisplay.setAttribute('data-eur-price', shippingCost);
+        if (window.updateAllPrices) {
+          window.updateAllPrices();
+        } else {
+          shippingCostDisplay.textContent = formatPrice(shippingCost, currency);
+        }
+      }
+
+      totalDisplay.setAttribute('data-eur-price', total);
+      // Let the currency converter update the display
+      if (window.updateAllPrices) {
+        window.updateAllPrices();
+      } else {
+        totalDisplay.textContent = formatPrice(total, currency);
+      }
+      
+      // Update Stripe Payment Intent if it exists
+      // eslint-disable-next-line
+      {% if stripe_public_key %}
+      if (typeof stripe !== 'undefined' && window.paymentRequest) {
+        try {
+          window.paymentRequest.update({
+            total: {
+              label: 'Total',
+              amount: Math.round(total * 100), // Convert to cents
+            }
+          });
+        } catch (e) {
+          console.log('Could not update payment request:', e);
+        }
+      }
+      // eslint-disable-next-line
+      {% endif %}
+    }
+
+    shippingSelect?.addEventListener('change', function() {
+      updateTotal();
+      updatePaymentRequestShipping();
+    });
+    countrySelect?.addEventListener('change', function() {
+      filterShippingOptions();
+      // Reset selection when country changes
+      shippingSelect.value = '';
+      updateTotal();
+      updatePaymentRequestShipping();
+    });
+    
+    // Also filter when country field gets focus/blur to handle pre-filled values
+    countrySelect?.addEventListener('input', function() {
+      filterShippingOptions();
+    });
+    
+    // Function to update Payment Request when shipping option changes
+    function updatePaymentRequestShipping() {
+      if (!window.paymentRequest) return;
+      
+      const selectedOption = shippingSelect?.options[shippingSelect?.selectedIndex];
+      if (selectedOption && selectedOption.value) {
+        const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+        const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+        
+        // Get current currency
+        const getCurrentCurrency = window.getCurrentCurrency || function() {
+          return localStorage.getItem('selectedCurrency') || 'EUR';
+        };
+        const currentCurrency = getCurrentCurrency().toLowerCase();
+        
+        // Convert shipping cost to current currency
+        const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
+        const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
+        
+        // Store selected shipping option globally for use in shippingaddresschange handler
+        window.selectedShippingOptionForPayment = {
+          id: selectedOption.value,
+          label: shippingName,
+          amount: shippingCostInCents,
+          price: shippingPrice, // Store original EUR price for comparison
+        };
+        
+        console.log('🔄 Updated Payment Request shipping option:', window.selectedShippingOptionForPayment);
+      } else {
+        // Clear selection if no option selected
+        window.selectedShippingOptionForPayment = null;
+        console.log('🔄 Cleared Payment Request shipping option');
+      }
+    }
+    
+    // Function to update shipping options display with current currency
+    function updateShippingOptionsCurrency() {
+      if (!shippingSelect) return;
+      const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+      const formatPrice = window.formatPrice || function(price, curr) {
+        const symbols = { USD: '$', EUR: '€', GBP: '£' };
+        return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+      };
+      // Update all shipping option text - always use price-based names
+      for (let i = 1; i < shippingSelect.options.length; i++) {
+        const option = shippingSelect.options[i];
+        const price = parseFloat(option.getAttribute('data-price')) || 0;
+        
+        // Always determine name from price first (most reliable)
+        let name;
+        if (price === 0 || price === 0.0 || price === 0.00) {
+          name = 'Free Shipping';
+        } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+          name = 'Standard Shipping';
+        } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+          name = 'Express Shipping';
+        } else {
+          // For other prices, try to use existing name or default to Standard Shipping
+          name = option.getAttribute('data-name') || '';
+          if (!name || name.trim() === '' || name.match(/^[£$€]\d+\.?\d*$/)) {
+            const currentText = option.textContent;
+            const match = currentText.match(/^([^(]+)/);
+            if (match) {
+              const extracted = match[1].trim();
+              if (!extracted.match(/^[£$€]\d+\.?\d*$/)) {
+                name = extracted;
+              }
+            }
+          }
+          name = name || 'Standard Shipping';
+        }
+        
+        // Convert price to current currency for display
+        const convertedPrice = window.convertPrice ? window.convertPrice(price, currency) : price;
+        
+        // Always show the option name with price
+        option.textContent = name + ' (' + formatPrice(convertedPrice, currency) + ')';
+        // Always update data-name to ensure consistency
+        option.setAttribute('data-name', name);
+        // Don't let updateAllPrices() overwrite this
+        option.setAttribute('data-shipping-option', 'true');
+      }
+    }
+    
+    // Update shipping options when currency changes
+    const currencySelectors = document.querySelectorAll('#currencySelector, #currencySelectorDesktop');
+    currencySelectors.forEach(selector => {
+      selector?.addEventListener('change', function() {
+        updateShippingOptionsCurrency();
+        updateTotal();
+      });
+    });
+
+    // Initialize on page load
+    // Use setTimeout to ensure DOM is fully ready and updateAllPrices() has run
+    setTimeout(function() {
+      // First, ensure all options have correct names based on price
+      if (shippingSelect) {
+        const currency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+        const formatPrice = window.formatPrice || function(price, curr) {
+          const symbols = { USD: '$', EUR: '€', GBP: '£' };
+          return (symbols[curr] || '€') + parseFloat(price).toFixed(2);
+        };
+        for (let i = 1; i < shippingSelect.options.length; i++) {
+          const option = shippingSelect.options[i];
+          const price = parseFloat(option.getAttribute('data-price')) || 0;
+          // Always determine name from price first (most reliable)
+          let optionName;
+          if (price === 0 || price === 0.0 || price === 0.00) {
+            optionName = 'Free Shipping';
+          } else if (price === 5.99 || price === 5.9900 || Math.abs(price - 5.99) < 0.01) {
+            optionName = 'Standard Shipping';
+          } else if (price === 19.99 || price === 19.9900 || Math.abs(price - 19.99) < 0.01) {
+            optionName = 'Express Shipping';
+          } else {
+            // For other prices, try to use data-name attribute or extract from text
+            optionName = option.getAttribute('data-name') || '';
+            if (!optionName || optionName.trim() === '' || optionName.match(/^[£$€]\d+\.?\d*$/)) {
+              const currentText = option.textContent;
+              const match = currentText.match(/^([^(]+)/);
+              if (match) {
+                const extractedName = match[1].trim();
+                if (!extractedName.match(/^[£$€]\d+\.?\d*$/)) {
+                  optionName = extractedName;
+                }
+              }
+              optionName = optionName || 'Standard Shipping';
+            }
+          }
+          
+          // Convert price to current currency for display
+          const convertedPrice = window.convertPrice ? window.convertPrice(price, currency) : price;
+          
+          // Always update the option text with name and price
+          option.textContent = optionName + ' (' + formatPrice(convertedPrice, currency) + ')';
+          option.setAttribute('data-name', optionName);
+          // Don't let updateAllPrices() overwrite this
+          option.setAttribute('data-shipping-option', 'true');
+        }
+        
+        // Store original options AFTER updating names
+        originalOptions = Array.from(shippingSelect.options).map(opt => ({
+          value: opt.value,
+          text: opt.textContent,
+          dataName: opt.getAttribute('data-name'),
+          dataPrice: opt.getAttribute('data-price')
+        }));
+      }
+      
+      // Only filter if country is selected, otherwise show all options with names
+      if (countrySelect?.value) {
+        filterShippingOptions();
+      }
+      // Names are already set above, no need to call updateShippingOptionsCurrency()
+      updateTotal();
+    }, 100);
+  })();
+
+  // Stripe
+  // eslint-disable-next-line
+  {% if stripe_public_key %}
+  // Load Apple Pay / Google Pay data from sessionStorage (if coming from cart)
+  (function() {
+    try {
+      const applePayData = sessionStorage.getItem('applePayData');
+      if (applePayData) {
+        const data = JSON.parse(applePayData);
+        if (data.payerName) {
+          const nameField = document.getElementById('full_name');
+          if (nameField && !nameField.value) nameField.value = data.payerName;
+        }
+        if (data.payerEmail) {
+          const emailField = document.getElementById('email');
+          if (emailField && !emailField.value) emailField.value = data.payerEmail;
+        }
+        if (data.payerPhone) {
+          const phoneField = document.getElementById('phone');
+          if (phoneField && !phoneField.value) phoneField.value = data.payerPhone;
+        }
+        if (data.shippingAddress) {
+          const addr = data.shippingAddress;
+          if (addr.addressLine && addr.addressLine.length > 0) {
+            const addressField = document.getElementById('address');
+            if (addressField && !addressField.value) addressField.value = addr.addressLine.join(', ');
+          }
+          if (addr.city) {
+            const cityField = document.getElementById('city');
+            if (cityField && !cityField.value) cityField.value = addr.city;
+          }
+          if (addr.postalCode) {
+            const postalField = document.getElementById('postal_code');
+            if (postalField && !postalField.value) postalField.value = addr.postalCode;
+          }
+          if (addr.country) {
+            const countryField = document.getElementById('country');
+            if (countryField && !countryField.value) countryField.value = addr.country;
+          }
+        }
+        // Clear the data after using it
+        sessionStorage.removeItem('applePayData');
+      }
+    } catch (e) {
+      console.error('Error loading Apple Pay data:', e);
+    }
+  })();
+  
+  console.log('Initializing Stripe...');
+  console.log('Stripe public key:', '{{ stripe_public_key }}'.substring(0, 20) + '...');
+  
+  try {
+    const stripe = Stripe('{{ stripe_public_key }}');
+    console.log('Stripe initialized successfully');
+    
+    const elements = stripe.elements();
+    console.log('Stripe Elements created');
+    
+    const card = elements.create('card');
+    card.mount('#card-element');
+    console.log('Card element mounted');
+
+    // Payment Request Button (Apple Pay / Google Pay)
+    console.log('=== Creating Payment Request ===');
+    
+    // Get container elements first
+    const loadingDiv = document.getElementById('payment-request-loading');
+    const unavailableDiv = document.getElementById('payment-request-unavailable');
+    const container = document.getElementById('payment-request-button-container');
+    
+    // eslint-disable-next-line
+    // IMPORTANT: Use subtotal (without shipping) for Apple Pay base calculation
+    // Get subtotal directly from Django template - this should be the base amount without shipping
+    // Also try to get it from the DOM element to ensure we have the correct value
+    const subtotalFromTemplate = {{ subtotal|default:0 }};
+    
+    // Wait for DOM to be ready, then get subtotal from the page display
+    let totalAmountEUR = subtotalFromTemplate;
+    
+    // Try to get subtotal from the page display (more reliable)
+    setTimeout(function() {
+      const subtotalDisplay = document.querySelector('.totals .row:first-child span[data-eur-price]');
+      if (subtotalDisplay) {
+        const subtotalAttr = subtotalDisplay.getAttribute('data-eur-price');
+        if (subtotalAttr) {
+          const subtotalValue = parseFloat(subtotalAttr);
+          if (!isNaN(subtotalValue) && subtotalValue > 0) {
+            totalAmountEUR = subtotalValue;
+            console.log('📊 Using subtotal from DOM element:', totalAmountEUR);
+            // Update originalTotalAmount if Payment Request is already created
+            if (window.paymentRequest && typeof originalTotalAmount !== 'undefined') {
+              const getCurrentCurrency = window.getCurrentCurrency || function() {
+                return localStorage.getItem('selectedCurrency') || 'EUR';
+              };
+              const getExchangeRate = function() {
+                try {
+                  const cached = localStorage.getItem('exchangeRatesCache');
+                  if (cached) {
+                    const rates = JSON.parse(cached);
+                    return rates;
+                  }
+                } catch (e) {
+                  console.warn('Could not load exchange rates from cache');
+                }
+                return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+              };
+              const currentCurrency = getCurrentCurrency().toLowerCase();
+              const exchangeRates = getExchangeRate();
+              const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+              originalTotalAmount = totalAmountEUR * rate;
+              console.log('📊 Updated originalTotalAmount from DOM:', originalTotalAmount);
+            }
           }
         }
       }
-    );
-
-    if (error) {
-      document.getElementById('card-errors').textContent = error.message;
+    }, 100);
+    
+    console.log('📊 Subtotal from template:', subtotalFromTemplate);
+    console.log('📊 Subtotal amount (EUR, without shipping):', totalAmountEUR);
+    
+    // Get current currency from localStorage (EUR, USD, or GBP)
+    const getCurrentCurrency = window.getCurrentCurrency || function() {
+      return localStorage.getItem('selectedCurrency') || 'EUR';
+    };
+    
+    // Get exchange rates (if available)
+    const getExchangeRate = function() {
+      try {
+        const cached = localStorage.getItem('exchangeRatesCache');
+        if (cached) {
+          const rates = JSON.parse(cached);
+          return rates;
+        }
+      } catch (e) {
+        console.warn('Could not load exchange rates from cache');
+      }
+      // Fallback rates
+      return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+    };
+    
+    const currentCurrency = getCurrentCurrency().toLowerCase();
+    const exchangeRates = getExchangeRate();
+    const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+    const totalAmount = totalAmountEUR * rate;
+    // Store original total amount (without shipping) for use in shipping handlers
+    // Use 'let' instead of 'const' so we can update it later
+    let originalTotalAmount = totalAmount;
+    
+    console.log('Current currency:', currentCurrency.toUpperCase());
+    console.log('Exchange rate:', rate);
+    console.log('Subtotal amount (converted):', totalAmount);
+    console.log('Subtotal in cents:', Math.round(totalAmount * 100));
+    console.log('Country: BG (Bulgaria)');
+    
+    if (!totalAmountEUR || totalAmountEUR <= 0 || isNaN(totalAmountEUR)) {
+      console.error('❌ Invalid total amount:', totalAmountEUR);
+      if (unavailableDiv) {
+        unavailableDiv.style.display = 'block';
+        unavailableDiv.textContent = 'Invalid order total. Please refresh the page.';
+      }
+      if (loadingDiv) loadingDiv.style.display = 'none';
     } else {
-      document.getElementById('payment_intent_id').value = paymentIntent.id;
-      form.submit();
+      // Detect if mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      console.log('📱 Device type:', isMobile ? 'Mobile' : 'Desktop');
+      
+      // Get selected shipping option from dropdown (if any)
+      let selectedShippingOption = null;
+      let selectedShippingCost = 0;
+      const shippingSelect = document.getElementById('shipping_option');
+      if (shippingSelect && shippingSelect.value) {
+        const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+          const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+          const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+          selectedShippingCost = shippingPrice;
+          // Convert shipping cost to current currency
+          const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
+          const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
+          
+          selectedShippingOption = {
+            id: selectedOption.value,
+            label: shippingName,
+            amount: shippingCostInCents,
+          };
+          console.log('📦 Selected shipping option from dropdown:', selectedShippingOption);
+          console.log('📦 Shipping cost in EUR:', shippingPrice);
+          console.log('📦 Shipping cost in', currentCurrency.toUpperCase() + ':', shippingCostInCurrency);
+          console.log('📦 Shipping cost in cents:', shippingCostInCents);
+        }
+      }
+      
+      // Store selected shipping option globally for use in shippingaddresschange handler
+      if (selectedShippingOption) {
+        window.selectedShippingOptionForPayment = {
+          ...selectedShippingOption,
+          price: selectedShippingCost, // Store original EUR price for comparison
+        };
+        console.log('💾 Stored selected shipping option for Payment Request:', window.selectedShippingOptionForPayment);
+      } else {
+        // Try to get selected option from dropdown if not already set
+        const shippingSelect = document.getElementById('shipping_option');
+        if (shippingSelect && shippingSelect.value) {
+          const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+          if (selectedOption && selectedOption.value) {
+            const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+            const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+            const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
+            const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
+            
+            window.selectedShippingOptionForPayment = {
+              id: selectedOption.value,
+              label: shippingName,
+              amount: shippingCostInCents,
+              price: shippingPrice,
+            };
+            console.log('💾 Stored selected shipping option from dropdown:', window.selectedShippingOptionForPayment);
+          }
+        }
+      }
+      
+      // Calculate initial total (subtotal + selected shipping if any)
+      const initialTotal = Math.round(totalAmount * 100) + (selectedShippingOption ? selectedShippingOption.amount : 0);
+      console.log('📦 Initial total (subtotal + shipping):', initialTotal / 100);
+      console.log('📦 Subtotal:', totalAmount);
+      console.log('📦 Shipping cost:', selectedShippingOption ? selectedShippingOption.amount / 100 : 0);
+      console.log('📦 Selected shipping option before Payment Request:', window.selectedShippingOptionForPayment);
+      
+      // DEBUG: Log dropdown state before creating Payment Request
+      const shippingSelectDebug = document.getElementById('shipping_option');
+      if (shippingSelectDebug) {
+        console.log('🔍 DEBUG - Dropdown value:', shippingSelectDebug.value);
+        console.log('🔍 DEBUG - Dropdown selectedIndex:', shippingSelectDebug.selectedIndex);
+        if (shippingSelectDebug.selectedIndex >= 0 && shippingSelectDebug.options[shippingSelectDebug.selectedIndex]) {
+          const selectedOpt = shippingSelectDebug.options[shippingSelectDebug.selectedIndex];
+          console.log('🔍 DEBUG - Selected option text:', selectedOpt.textContent);
+          console.log('🔍 DEBUG - Selected option data-price:', selectedOpt.getAttribute('data-price'));
+          console.log('🔍 DEBUG - Selected option data-name:', selectedOpt.getAttribute('data-name'));
+        }
+      }
+      
+      // Only create Payment Request if amount is valid
+      window.paymentRequest = stripe.paymentRequest({
+        country: 'BG', // Bulgaria
+        currency: currentCurrency, // Use selected currency (usd, eur, or gbp)
+        total: {
+          label: 'Total',
+          amount: initialTotal, // Include selected shipping if any
+        },
+        requestPayerName: true,
+        requestPayerEmail: true,
+        requestPayerPhone: true,
+        requestShipping: true, // Request shipping address
+        // For mobile devices, explicitly request shipping address
+        ...(isMobile && {
+          shippingAddressRequired: true,
+        }),
+      });
+      console.log('✅ Payment Request object created with initial total:', initialTotal / 100);
+      console.log('✅ Payment Request initial total includes shipping:', selectedShippingOption ? 'YES (' + selectedShippingOption.label + ')' : 'NO');
+
+      const paymentRequestButton = elements.create('paymentRequestButton', {
+        paymentRequest: window.paymentRequest,
+        style: {
+          paymentRequestButton: {
+            theme: 'dark',
+            height: '48px',
+            type: 'default',
+          },
+        },
+      });
+      console.log('Payment Request Button element created');
+
+      // Show loading state
+      if (loadingDiv) loadingDiv.style.display = 'block';
+      console.log('Checking Payment Request availability...');
+      console.log('User agent:', navigator.userAgent);
+      console.log('Is HTTPS:', window.location.protocol === 'https:');
+      
+      // Add click handler to Apple Pay button to log state before opening
+      setTimeout(function() {
+        const applePayButton = document.querySelector('#payment-request-button-container button');
+        if (applePayButton) {
+          applePayButton.addEventListener('click', function(e) {
+            console.log('🍎 APPLE PAY BUTTON CLICKED - Checking state...');
+            const shippingSelect = document.getElementById('shipping_option');
+            console.log('🍎 Dropdown value:', shippingSelect ? shippingSelect.value : 'N/A');
+            console.log('🍎 Dropdown selectedIndex:', shippingSelect ? shippingSelect.selectedIndex : 'N/A');
+            console.log('🍎 Stored option:', window.selectedShippingOptionForPayment);
+            if (shippingSelect && shippingSelect.selectedIndex >= 0 && shippingSelect.selectedIndex < shippingSelect.options.length) {
+              const selectedOpt = shippingSelect.options[shippingSelect.selectedIndex];
+              console.log('🍎 Selected option text:', selectedOpt ? selectedOpt.textContent : 'N/A');
+              console.log('🍎 Selected option data-price:', selectedOpt ? selectedOpt.getAttribute('data-price') : 'N/A');
+              console.log('🍎 Selected option data-name:', selectedOpt ? selectedOpt.getAttribute('data-name') : 'N/A');
+            }
+          }, true); // Use capture phase to catch before Stripe handles it
+        }
+      }, 1000);
+
+      // Check if Payment Request is available (Apple Pay / Google Pay)
+      window.paymentRequest.canMakePayment().then(function(result) {
+    console.log('=== Payment Request Check ===');
+    console.log('Payment Request available:', result);
+    console.log('Result details:', JSON.stringify(result, null, 2));
+    console.log('Is HTTPS:', window.location.protocol === 'https:');
+    console.log('Current URL:', window.location.href);
+    console.log('User Agent:', navigator.userAgent);
+    console.log('Stripe public key:', '{{ stripe_public_key }}'.substring(0, 20) + '...');
+    
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    
+    if (result) {
+      console.log('✅ Payment Request is available!');
+      console.log('Available payment methods:', result);
+      
+      // Check what payment methods are available
+      if (result.applePay) {
+        console.log('✅ Apple Pay is available');
+      }
+      if (result.googlePay) {
+        console.log('✅ Google Pay is available');
+      }
+      
+      console.log('Mounting Payment Request Button...');
+      try {
+        // Show the payment request button
+        paymentRequestButton.mount('#payment-request-button-container');
+        console.log('✅ Payment Request Button mounted successfully');
+        
+        // Style container when button is mounted
+        if (container) {
+          container.style.border = 'none';
+          container.style.background = 'transparent';
+          container.style.padding = '0';
+          container.style.minHeight = '48px';
+        }
+        
+        // Show divider
+        const divider = document.getElementById('payment-divider');
+        if (divider) divider.style.display = 'block';
+      } catch (error) {
+        console.error('❌ Error mounting Payment Request Button:', error);
+        console.error('Error stack:', error.stack);
+        if (unavailableDiv) {
+          unavailableDiv.style.display = 'block';
+          unavailableDiv.textContent = 'Error: ' + error.message;
+        }
+      }
+      
+      // Allowed countries list (must match backend validation)
+      const ALLOWED_COUNTRIES = {
+        // ISO codes
+        'AL': 'Albania', 'AD': 'Andorra', 'BA': 'Bosnia and Herzegovina', 'VA': 'Vatican',
+        'GB': 'United Kingdom', 'IS': 'Iceland', 'LI': 'Liechtenstein', 'MC': 'Monaco',
+        'ME': 'Montenegro', 'NO': 'Norway', 'SM': 'San Marino', 'RS': 'Serbia',
+        'CH': 'Switzerland', 'BH': 'Bahrain', 'JP': 'Japan', 'QA': 'Qatar',
+        'SA': 'Saudi Arabia', 'AE': 'United Arab Emirates', 'ZA': 'South Africa',
+        'CA': 'Canada', 'CR': 'Costa Rica', 'US': 'United States', 'AU': 'Australia',
+        'NZ': 'New Zealand',
+        // Full names (for compatibility)
+        'Albania': true, 'Andorra': true, 'Bosnia and Herzegovina': true, 'Vatican': true,
+        'United Kingdom': true, 'Iceland': true, 'Liechtenstein': true, 'Monaco': true,
+        'Montenegro': true, 'Norway': true, 'San Marino': true, 'Serbia': true,
+        'Switzerland': true, 'Bahrain': true, 'Japan': true, 'Qatar': true,
+        'Saudi Arabia': true, 'United Arab Emirates': true, 'South Africa': true,
+        'Canada': true, 'Costa Rica': true, 'United States': true, 'Australia': true,
+        'New Zealand': true
+      };
+      
+      function isCountryAllowed(country) {
+        if (!country) return false;
+        // Check ISO code
+        if (ALLOWED_COUNTRIES[country]) return true;
+        // Check full name
+        return ALLOWED_COUNTRIES[country] === true;
+      }
+      
+      // Store shipping options from shippingaddresschange for use in shippingoptionchange
+      let storedShippingOptions = null;
+      
+      // Handle shipping address change (REQUIRED for mobile devices)
+      // This event is triggered when user selects/changes shipping address in Apple Pay
+      window.paymentRequest.on('shippingaddresschange', function(ev) {
+        console.log('📦 Shipping address changed event (mobile):', ev.shippingAddress);
+        
+        if (ev.shippingAddress) {
+          const addr = ev.shippingAddress;
+          const country = addr.country;
+          
+          console.log('🌍 Selected country:', country);
+          
+          // Check if country is allowed
+          if (!isCountryAllowed(country)) {
+            console.error('❌ Country not allowed:', country);
+            ev.updateWith({
+              status: 'fail',
+              errors: {
+                shippingAddress: 'We don\'t ship to your country. Please select a country from the allowed list.'
+              }
+            });
+            return;
+          }
+          
+          console.log('✅ Country allowed:', country);
+          
+          // Get exchange rate for currency conversion
+          const getExchangeRate = function() {
+            try {
+              const cached = localStorage.getItem('exchangeRatesCache');
+              if (cached) {
+                const rates = JSON.parse(cached);
+                return rates;
+              }
+            } catch (e) {
+              console.warn('Could not load exchange rates from cache');
+            }
+            return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+          };
+          const exchangeRates = getExchangeRate();
+          const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+          const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+          
+          // Check if user selected a shipping option from dropdown before clicking Apple Pay
+          let defaultShippingOption = null;
+          
+          // Always try to get directly from dropdown first (most reliable)
+          const shippingSelect = document.getElementById('shipping_option');
+          console.log('🔍 DEBUG shippingaddresschange - Dropdown element:', shippingSelect);
+          console.log('🔍 DEBUG shippingaddresschange - Dropdown value:', shippingSelect ? shippingSelect.value : 'N/A');
+          console.log('🔍 DEBUG shippingaddresschange - Dropdown selectedIndex:', shippingSelect ? shippingSelect.selectedIndex : 'N/A');
+          console.log('🔍 DEBUG shippingaddresschange - Stored option:', window.selectedShippingOptionForPayment);
+          
+          if (shippingSelect && shippingSelect.value) {
+            const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+            console.log('🔍 DEBUG shippingaddresschange - Selected option:', selectedOption);
+            if (selectedOption && selectedOption.value) {
+              const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+              const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+              const shippingCostInCurrency = window.convertPrice ? window.convertPrice(shippingPrice, currentCurrency.toUpperCase()) : shippingPrice;
+              const shippingCostInCents = Math.round(shippingCostInCurrency * 100);
+              
+              defaultShippingOption = {
+                id: selectedOption.value,
+                label: shippingName,
+                amount: shippingCostInCents,
+                price: shippingPrice,
+              };
+              console.log('📦 Using pre-selected shipping option from dropdown (direct read):', defaultShippingOption);
+              console.log('📦 Dropdown selected value:', shippingSelect.value);
+              console.log('📦 Dropdown selected index:', shippingSelect.selectedIndex);
+              console.log('📦 Selected option text:', selectedOption.textContent);
+              console.log('📦 Shipping price (EUR):', shippingPrice);
+              console.log('📦 Shipping name:', shippingName);
+            } else {
+              console.log('⚠️ WARNING - Selected option is invalid:', selectedOption);
+            }
+          } else {
+            console.log('⚠️ WARNING - No shipping option selected in dropdown');
+          }
+          
+          // Fallback to stored option if dropdown doesn't have selection
+          if (!defaultShippingOption && window.selectedShippingOptionForPayment) {
+            defaultShippingOption = window.selectedShippingOptionForPayment;
+            console.log('📦 Using pre-selected shipping option from stored:', defaultShippingOption);
+          }
+          
+          if (defaultShippingOption) {
+            console.log('📦 Pre-selected option ID:', defaultShippingOption.id);
+            console.log('📦 Pre-selected option label:', defaultShippingOption.label);
+            console.log('📦 Pre-selected option price (EUR):', defaultShippingOption.price);
+            console.log('📦 Pre-selected option amount (cents):', defaultShippingOption.amount);
+          } else {
+            console.log('📦 No pre-selected shipping option found');
+            console.log('📦 Shipping select element:', shippingSelect);
+            console.log('📦 Shipping select value:', shippingSelect ? shippingSelect.value : 'N/A');
+            console.log('📦 Stored option:', window.selectedShippingOptionForPayment);
+          }
+          
+          // Determine shipping options based on country
+          let shippingOptions = [];
+          
+          if (country === 'CA' || country === 'AU' || country === 'NZ' || country === 'NO' || country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
+            // Canada, Australia, New Zealand and Norway: Standard Shipping ($5.99) and Express Shipping ($19.99)
+            const standardCostEUR = 5.99;
+            const expressCostEUR = 19.99;
+            const standardCost = Math.round(standardCostEUR * rate * 100);
+            const expressCost = Math.round(expressCostEUR * rate * 100);
+            
+            shippingOptions = [
+              {
+                id: 'standard',
+                label: 'Standard Shipping',
+                amount: standardCost,
+              },
+              {
+                id: 'express',
+                label: 'Express Shipping',
+                amount: expressCost,
+              }
+            ];
+            
+            // Use pre-selected option if available, otherwise default to Standard Shipping
+            // Check by price (most reliable) or by label
+            let defaultTotal;
+            let selectedShippingId = null;
+            
+            if (defaultShippingOption) {
+              // Check if it's Express Shipping by price (19.99) or label
+              if (defaultShippingOption.price === 19.99 || 
+                  defaultShippingOption.price === 19.9900 || 
+                  Math.abs(defaultShippingOption.price - 19.99) < 0.01 ||
+                  defaultShippingOption.label === 'Express Shipping' ||
+                  defaultShippingOption.label.includes('Express')) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                selectedShippingId = 'express';
+                console.log('📦 Using pre-selected Express Shipping (matched by price or label)');
+              } else if (defaultShippingOption.price === 5.99 || 
+                         defaultShippingOption.price === 5.9900 || 
+                         Math.abs(defaultShippingOption.price - 5.99) < 0.01 ||
+                         defaultShippingOption.label === 'Standard Shipping' ||
+                         defaultShippingOption.label.includes('Standard')) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+                selectedShippingId = 'standard';
+                console.log('📦 Using pre-selected Standard Shipping (matched by price or label)');
+              } else {
+                defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+                selectedShippingId = 'standard';
+                console.log('📦 Could not match pre-selected option, defaulting to Standard Shipping');
+              }
+            } else {
+              defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+              selectedShippingId = 'standard';
+              console.log('📦 No pre-selected option, defaulting to Standard Shipping');
+            }
+            
+            ev.updateWith({
+              status: 'success',
+              total: {
+                label: 'Total',
+                amount: defaultTotal,
+              },
+              shippingOptions: shippingOptions,
+              ...(selectedShippingId && { shippingOption: selectedShippingId }), // Set default shipping option
+            });
+            
+            console.log('✅ Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
+          } else {
+            // Other countries: Free Shipping ($0) and Express Shipping ($19.99)
+            const freeCostEUR = 0;
+            const expressCostEUR = 19.99;
+            const freeCost = Math.round(freeCostEUR * 100);
+            const expressCost = Math.round(expressCostEUR * rate * 100);
+            
+            shippingOptions = [
+              {
+                id: 'free',
+                label: 'Free Shipping',
+                amount: freeCost,
+              },
+              {
+                id: 'express',
+                label: 'Express Shipping',
+                amount: expressCost,
+              }
+            ];
+            
+            // Use pre-selected option if available, otherwise default to Free Shipping
+            // Check by price (most reliable) or by label
+            let defaultTotal;
+            let selectedShippingId = null;
+            
+            if (defaultShippingOption) {
+              console.log('🔍 Matching defaultShippingOption:', defaultShippingOption);
+              console.log('🔍 Price:', defaultShippingOption.price);
+              console.log('🔍 Label:', defaultShippingOption.label);
+              console.log('🔍 Amount:', defaultShippingOption.amount);
+              console.log('🔍 Express cost to match:', expressCost);
+              
+              // Check if it's Express Shipping by price (19.99) or label or amount
+              const isExpress = defaultShippingOption.price === 19.99 || 
+                                defaultShippingOption.price === 19.9900 || 
+                                Math.abs(defaultShippingOption.price - 19.99) < 0.01 ||
+                                defaultShippingOption.label === 'Express Shipping' ||
+                                defaultShippingOption.label.includes('Express') ||
+                                defaultShippingOption.label.toLowerCase().includes('express') ||
+                                Math.abs(defaultShippingOption.amount - expressCost) < 50; // Match by amount (within 50 cents)
+              
+              const isFree = defaultShippingOption.price === 0 || 
+                             defaultShippingOption.price === 0.0 || 
+                             defaultShippingOption.price === 0.00 ||
+                             defaultShippingOption.label === 'Free Shipping' ||
+                             defaultShippingOption.label.includes('Free') ||
+                             defaultShippingOption.label.toLowerCase().includes('free') ||
+                             defaultShippingOption.amount === 0;
+              
+              console.log('🔍 Is Express?', isExpress);
+              console.log('🔍 Is Free?', isFree);
+              
+              if (isExpress) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                selectedShippingId = 'express';
+                console.log('✅ Using pre-selected Express Shipping (matched by price, label, or amount)');
+                console.log('📦 Express cost:', expressCost / 100);
+                console.log('📦 Original total:', originalTotalAmount);
+                console.log('📦 Default total:', defaultTotal / 100);
+              } else if (isFree) {
+                defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+                selectedShippingId = 'free';
+                console.log('✅ Using pre-selected Free Shipping (matched by price or label)');
+              } else {
+                // If we can't match, default to Express if price is > 0, otherwise Free
+                if (defaultShippingOption.price > 0 || defaultShippingOption.amount > 0) {
+                  defaultTotal = Math.round(originalTotalAmount * 100) + expressCost;
+                  selectedShippingId = 'express';
+                  console.log('✅ Defaulting to Express Shipping (price > 0)');
+                } else {
+                  defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+                  selectedShippingId = 'free';
+                  console.log('⚠️ Could not match pre-selected option, defaulting to Free Shipping');
+                }
+              }
+            } else {
+              defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+              selectedShippingId = 'free';
+              console.log('⚠️ No pre-selected option, defaulting to Free Shipping');
+            }
+          // Store shipping options for use in shippingoptionchange
+          storedShippingOptions = shippingOptions;
+          
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+                amount: defaultTotal,
+              },
+              shippingOptions: shippingOptions,
+              ...(selectedShippingId && { shippingOption: selectedShippingId }), // Set default shipping option
+            });
+            
+            console.log('✅ Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100, 'Selected ID:', selectedShippingId);
+            console.log('💾 Stored shipping options for shippingoptionchange:', storedShippingOptions);
+          }
+        } else {
+          ev.updateWith({ status: 'success' });
+        }
+      });
+      
+      // Handle shipping option change (when user selects different shipping option in Apple Pay)
+      window.paymentRequest.on('shippingoptionchange', function(ev) {
+        console.log('📦 Shipping option changed:', ev.shippingOption);
+        console.log('📦 Available shipping options:', ev.shippingOptions);
+        console.log('📦 Stored shipping options:', storedShippingOptions);
+        console.log('📦 Shipping address:', ev.shippingAddress);
+        console.log('📦 Current total from event:', ev.total);
+        console.log('📦 Original total amount:', originalTotalAmount);
+        
+        // Use stored shipping options if ev.shippingOptions is undefined
+        const availableShippingOptions = ev.shippingOptions || storedShippingOptions || [];
+        console.log('📦 Using shipping options:', availableShippingOptions);
+        
+        // Check if user selected Express Shipping from dropdown before clicking Apple Pay
+        let preferredShippingOption = null;
+        const shippingSelect = document.getElementById('shipping_option');
+        if (shippingSelect && shippingSelect.value) {
+          const selectedOption = shippingSelect.options[shippingSelect.selectedIndex];
+          if (selectedOption && selectedOption.value) {
+            const shippingPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+            const shippingName = selectedOption.getAttribute('data-name') || selectedOption.textContent.split('(')[0].trim();
+            // Check if it's Express Shipping
+            if (shippingPrice === 19.99 || shippingName.includes('Express')) {
+              preferredShippingOption = 'express';
+              console.log('🎯 User selected Express Shipping from dropdown, preferring Express in Apple Pay');
+            }
+          }
+        }
+        
+        if (ev.shippingOption) {
+          // ev.shippingOption can be either an ID (string) or the full option object
+          let shippingOption;
+          let newShippingCost;
+          
+          if (typeof ev.shippingOption === 'string') {
+            // If it's an ID, find the option from available shipping options
+            if (availableShippingOptions && availableShippingOptions.length > 0) {
+              shippingOption = availableShippingOptions.find(opt => opt.id === ev.shippingOption);
+              if (shippingOption) {
+                newShippingCost = shippingOption.amount;
+              }
+            }
+          } else if (ev.shippingOption && typeof ev.shippingOption === 'object' && ev.shippingOption.amount !== undefined) {
+            // If it's already the option object (most common case), use it directly
+            shippingOption = ev.shippingOption;
+            newShippingCost = shippingOption.amount;
+            console.log('✅ Found shipping option object:', shippingOption);
+            console.log('✅ Shipping option ID:', shippingOption.id);
+            console.log('✅ Shipping option label:', shippingOption.label);
+            console.log('✅ Shipping option amount:', shippingOption.amount);
+            
+            // If user selected Express Shipping from dropdown but Apple Pay shows Free Shipping, override it
+            if (preferredShippingOption === 'express' && shippingOption.id === 'free' && availableShippingOptions && availableShippingOptions.length > 0) {
+              const expressOption = availableShippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express'));
+              if (expressOption) {
+                console.log('🔄 Overriding Free Shipping with Express Shipping (user preference)');
+                shippingOption = expressOption;
+                newShippingCost = expressOption.amount;
+              }
+            }
+          }
+          
+          // If we still don't have the shipping cost, try to get it from available shipping options array
+          if ((newShippingCost === undefined || newShippingCost === null) && availableShippingOptions && Array.isArray(availableShippingOptions) && availableShippingOptions.length > 0) {
+            console.log('⚠️ Shipping cost not found, trying to get from shippingOptions array');
+            console.log('⚠️ Available options:', availableShippingOptions);
+            // If user preferred Express, try to find it first
+            if (preferredShippingOption === 'express') {
+              const expressOption = availableShippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express'));
+              if (expressOption) {
+                shippingOption = expressOption;
+                newShippingCost = expressOption.amount;
+                console.log('✅ Found Express Shipping from options array (user preference):', expressOption);
+              }
+            }
+            // If still not found, use first non-free option or first option
+            if (!shippingOption || newShippingCost === undefined || newShippingCost === null) {
+              const nonFreeOption = availableShippingOptions.find(opt => opt.amount > 0);
+              if (nonFreeOption) {
+                shippingOption = nonFreeOption;
+                newShippingCost = nonFreeOption.amount;
+                console.log('✅ Using first non-free option:', nonFreeOption);
+              } else {
+                shippingOption = availableShippingOptions[0];
+                newShippingCost = shippingOption.amount;
+                console.log('⚠️ Using first shipping option from array:', shippingOption);
+              }
+            }
+          }
+          
+          // Final check: if user selected Express from dropdown but we got Free Shipping, force Express
+          if (preferredShippingOption === 'express' && newShippingCost === 0 && availableShippingOptions && availableShippingOptions.length > 0) {
+            const expressOption = availableShippingOptions.find(opt => opt.id === 'express' || opt.label.includes('Express') || opt.amount > 0);
+            if (expressOption) {
+              console.log('🔄 FORCING Express Shipping (user selected Express from dropdown):', expressOption);
+              shippingOption = expressOption;
+              newShippingCost = expressOption.amount;
+            }
+          }
+          
+          if (newShippingCost !== undefined && newShippingCost !== null) {
+            // Calculate base total (without shipping) - get subtotal from DOM or use originalTotalAmount
+            let baseTotal;
+            
+            // Try to get subtotal from DOM element first (most reliable)
+            const subtotalDisplay = document.querySelector('.totals .row:first-child span[data-eur-price]');
+            if (subtotalDisplay) {
+              const subtotalAttr = subtotalDisplay.getAttribute('data-eur-price');
+              if (subtotalAttr) {
+                const subtotalValue = parseFloat(subtotalAttr);
+                if (!isNaN(subtotalValue) && subtotalValue > 0) {
+                  // Convert to current currency
+                  const getCurrentCurrency = window.getCurrentCurrency || function() {
+                    return localStorage.getItem('selectedCurrency') || 'EUR';
+                  };
+                  const getExchangeRate = function() {
+                    try {
+                      const cached = localStorage.getItem('exchangeRatesCache');
+                      if (cached) {
+                        const rates = JSON.parse(cached);
+                        return rates;
+                      }
+                    } catch (e) {
+                      console.warn('Could not load exchange rates from cache');
+                    }
+                    return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+                  };
+                  const currentCurrency = getCurrentCurrency().toLowerCase();
+                  const exchangeRates = getExchangeRate();
+                  const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+                  const subtotalInCurrency = subtotalValue * rate;
+                  baseTotal = Math.round(subtotalInCurrency * 100);
+                  console.log('📦 Using subtotal from DOM:', subtotalValue, 'EUR, converted to', subtotalInCurrency, currentCurrency.toUpperCase());
+                }
+              }
+            }
+            
+            // Fallback to originalTotalAmount if DOM value not available
+            if (!baseTotal) {
+              baseTotal = Math.round(originalTotalAmount * 100);
+              console.log('📦 Using originalTotalAmount:', originalTotalAmount);
+            }
+            
+            // Calculate final total: base total + new shipping cost
+            const finalTotal = baseTotal + newShippingCost;
+            
+            console.log('📦 Base total (without shipping):', baseTotal / 100);
+            console.log('📦 Base total in cents:', baseTotal);
+            console.log('📦 New shipping cost:', newShippingCost / 100);
+            console.log('📦 New shipping cost in cents:', newShippingCost);
+            console.log('📦 Final total:', finalTotal / 100);
+            console.log('📦 Final total in cents:', finalTotal);
+            
+            // IMPORTANT: Must return shippingOptions as well to keep them available
+            // Try to get shippingOptions from the previous shippingaddresschange event
+            // If not available, use stored options or empty array
+            const shippingOptionsToReturn = ev.shippingOptions || storedShippingOptions || [];
+            
+            const updateData = {
+              status: 'success',
+              total: {
+                label: 'Total',
+                amount: finalTotal, // Already in cents
+              },
+              shippingOptions: shippingOptionsToReturn, // Keep existing shipping options
+            };
+            
+            console.log('📦 Calling ev.updateWith with:', JSON.stringify(updateData, null, 2));
+            
+            // Call updateWith synchronously
+            ev.updateWith(updateData);
+            
+            console.log('✅ Updated total with shipping option:', shippingOption ? shippingOption.label : 'Unknown', 'Cost:', newShippingCost / 100, 'Total:', finalTotal / 100);
+          } else {
+            // Fallback: calculate based on option ID
+            // Get exchange rate for currency conversion
+            const getExchangeRate = function() {
+              try {
+                const cached = localStorage.getItem('exchangeRatesCache');
+                if (cached) {
+                  const rates = JSON.parse(cached);
+                  return rates;
+                }
+              } catch (e) {
+                console.warn('Could not load exchange rates from cache');
+              }
+              return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+            };
+            const exchangeRates = getExchangeRate();
+            const currentCurrency = window.getCurrentCurrency ? window.getCurrentCurrency() : 'EUR';
+            const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+            
+            let shippingCostEUR = 0;
+            if (selectedOptionId === 'standard') {
+              shippingCostEUR = 5.99;
+            } else if (selectedOptionId === 'express') {
+              shippingCostEUR = 19.99;
+            } else if (selectedOptionId === 'free') {
+              shippingCostEUR = 0;
+            }
+            
+          const shippingCost = Math.round(shippingCostEUR * rate * 100);
+            const finalTotal = Math.round(originalTotalAmount * 100) + shippingCost;
+          
+            console.log('📦 Fallback: Original total:', originalTotalAmount, 'Shipping cost:', shippingCost / 100, 'Final total:', finalTotal / 100);
+            
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: finalTotal,
+            },
+          });
+          
+            console.log('✅ Updated total with shipping option ID:', selectedOptionId, 'Cost:', shippingCost / 100, 'Total:', finalTotal / 100);
+          }
+        } else {
+          ev.updateWith({ status: 'success' });
+        }
+      });
+      
+      // Handle payment method
+      window.paymentRequest.on('paymentmethod', async function(ev) {
+        try {
+          console.log('=== Apple Pay / Google Pay Payment Method Received ===');
+          console.log('Device:', /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+          console.log('Payer Name:', ev.payerName);
+          console.log('Payer Email:', ev.payerEmail);
+          console.log('Payer Phone:', ev.payerPhone);
+          console.log('Shipping Address:', ev.shippingAddress);
+          console.log('Payer Address:', ev.payerAddress);
+          console.log('Full event object keys:', Object.keys(ev));
+          
+          // Prepare shipping data for Stripe and validate country
+          let shippingData = null;
+          let shippingCountry = null;
+          
+          if (ev.shippingAddress) {
+            const addr = ev.shippingAddress;
+            shippingCountry = addr.country;
+            
+            // Validate country before processing payment
+            if (!isCountryAllowed(shippingCountry)) {
+              console.error('❌ Country not allowed for payment:', shippingCountry);
+              ev.complete('fail');
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
+              return;
+            }
+            
+            shippingData = {
+              name: ev.payerName || '',
+              phone: ev.payerPhone || '',
+              address: {
+                line1: addr.addressLine && addr.addressLine.length > 0 ? addr.addressLine[0] : '',
+                line2: addr.addressLine && addr.addressLine.length > 1 ? addr.addressLine.slice(1).join(', ') : '',
+                city: addr.city || '',
+                postal_code: addr.postalCode || '',
+                country: addr.country || '',
+              }
+            };
+            console.log('✅ Country validated for payment:', shippingCountry);
+            console.log('Shipping data prepared:', shippingData);
+          } else if (ev.payerAddress && ev.payerAddress.country) {
+            // Fallback to payer address if shipping address is not available
+            shippingCountry = ev.payerAddress.country;
+            if (!isCountryAllowed(shippingCountry)) {
+              console.error('❌ Country not allowed for payment:', shippingCountry);
+              ev.complete('fail');
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
+              return;
+            }
+            console.log('✅ Country validated for payment (from payer address):', shippingCountry);
+          } else {
+            // No shipping address available - check country from form
+            const countryField = document.getElementById('country');
+            if (countryField && countryField.value) {
+              shippingCountry = countryField.value;
+              if (!isCountryAllowed(shippingCountry)) {
+                console.error('❌ Country not allowed for payment:', shippingCountry);
+                ev.complete('fail');
+                const cardErrors = document.getElementById('card-errors');
+                if (cardErrors) {
+                  cardErrors.textContent = 'We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.';
+                  cardErrors.style.display = 'block';
+                  cardErrors.style.color = 'red';
+                }
+                alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
+                return;
+              }
+              console.log('✅ Country validated for payment (from form):', shippingCountry);
+            } else {
+              console.error('❌ No country information available for payment validation');
+              ev.complete('fail');
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'Please select a shipping country before completing payment.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('Please select a shipping country before completing payment.');
+              return;
+            }
+          }
+          
+          // Confirm payment with PaymentIntent using the payment method from Apple Pay/Google Pay
+          // IMPORTANT: Include customer data (email, shipping) in the confirmation
+          const confirmParams = {
+            payment_method: ev.paymentMethod.id,
+          };
+          
+          // Add receipt_email if available
+          if (ev.payerEmail) {
+            confirmParams.receipt_email = ev.payerEmail;
+          }
+          
+          // Add shipping if available
+          if (shippingData) {
+            confirmParams.shipping = shippingData;
+          }
+          
+          console.log('Confirming payment with params:', confirmParams);
+          
+          const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
+            '{{ client_secret }}',
+            confirmParams,
+            { handleActions: false }
+          );
+
+          if (confirmError) {
+            console.error('Payment confirmation error:', confirmError);
+            ev.complete('fail');
+            document.getElementById('card-errors').textContent = confirmError.message || 'Payment failed.';
+            return;
+          }
+
+          console.log('Payment Intent status:', paymentIntent.status);
+
+          // If payment requires action (3D Secure, etc.), handle it
+          if (paymentIntent.status === 'requires_action') {
+            const { error: actionError } = await stripe.confirmCardPayment('{{ client_secret }}');
+            if (actionError) {
+              console.error('Payment action error:', actionError);
+              ev.complete('fail');
+              document.getElementById('card-errors').textContent = actionError.message || 'Payment failed.';
+              return;
+            }
+          }
+
+          // Payment succeeded
+          ev.complete('success');
+          console.log('✅ Payment succeeded, filling form...');
+          
+          // Fill form with payment method details (for order creation)
+          // IMPORTANT: Fill fields BEFORE submitting
+          const fullNameField = document.getElementById('full_name');
+          const emailField = document.getElementById('email');
+          const phoneField = document.getElementById('phone');
+          const addressField = document.getElementById('address');
+          const cityField = document.getElementById('city');
+          const postalCodeField = document.getElementById('postal_code');
+          const countryField = document.getElementById('country');
+          
+          if (ev.payerName && fullNameField) {
+            fullNameField.value = ev.payerName;
+            console.log('✅ Filled full_name:', ev.payerName);
+          }
+          if (ev.payerEmail && emailField) {
+            emailField.value = ev.payerEmail;
+            console.log('✅ Filled email:', ev.payerEmail);
+          }
+          if (ev.payerPhone && phoneField) {
+            phoneField.value = ev.payerPhone;
+            console.log('✅ Filled phone:', ev.payerPhone);
+          }
+          
+          // Fill address fields from Apple Pay / Google Pay
+          // Check both shippingAddress and payerAddress (for compatibility)
+          const shippingAddr = ev.shippingAddress || ev.payerAddress;
+          
+          if (shippingAddr) {
+            const addr = shippingAddr;
+            const country = addr.country;
+            
+            console.log('📦 Shipping Address received:', addr);
+            console.log('📦 Address details:', {
+              addressLine: addr.addressLine,
+              city: addr.city,
+              postalCode: addr.postalCode,
+              country: country,
+              region: addr.region,
+            });
+            
+            // Validate country before proceeding
+            if (!isCountryAllowed(country)) {
+              console.error('❌ Country not allowed:', country);
+              ev.complete('fail');
+              const cardErrors = document.getElementById('card-errors');
+              if (cardErrors) {
+                cardErrors.textContent = 'We do not ship to ' + (country || 'this country') + '. Please select a country from the allowed list.';
+                cardErrors.style.display = 'block';
+                cardErrors.style.color = 'red';
+              }
+              alert('We do not ship to ' + (country || 'this country') + '. Please select a country from the allowed list.');
+              return;
+            }
+            
+            console.log('✅ Country validated:', country);
+            
+            if (addr.addressLine && addr.addressLine.length > 0 && addressField) {
+              const addressLine = addr.addressLine.join(', ');
+              addressField.value = addressLine;
+              console.log('✅ Filled address:', addressLine);
+              // Trigger input event to ensure form validation
+              addressField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (addr.city && cityField) {
+              cityField.value = addr.city;
+              console.log('✅ Filled city:', addr.city);
+              cityField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (addr.postalCode && postalCodeField) {
+              postalCodeField.value = addr.postalCode;
+              console.log('✅ Filled postal_code:', addr.postalCode);
+              postalCodeField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (country && countryField) {
+              countryField.value = country;
+              console.log('✅ Filled country:', country);
+              countryField.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (addr.region && cityField && !cityField.value) {
+              // Some Apple Pay implementations use 'region' instead of 'city'
+              cityField.value = addr.region;
+              console.log('✅ Filled city from region:', addr.region);
+            }
+          } else {
+            console.warn('⚠️ No shipping address received from Apple Pay');
+            console.warn('⚠️ ev.shippingAddress:', ev.shippingAddress);
+            console.warn('⚠️ ev.payerAddress:', ev.payerAddress);
+            console.warn('⚠️ Full event object:', ev);
+          }
+          
+          // Set payment intent ID
+          const paymentIntentIdField = document.getElementById('payment_intent_id');
+          if (paymentIntentIdField) {
+            paymentIntentIdField.value = paymentIntent.id;
+            console.log('✅ Set payment_intent_id:', paymentIntent.id);
+          }
+          
+          // Ensure shipping option is selected if not already
+          const shippingSelect = document.getElementById('shipping_option');
+          if (shippingSelect && !shippingSelect.value && countryField && countryField.value) {
+            // Auto-select shipping based on country
+            const country = countryField.value;
+            const options = shippingSelect.options;
+            for (let i = 0; i < options.length; i++) {
+              const option = options[i];
+              const price = parseFloat(option.getAttribute('data-price')) || 0;
+              if (country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
+                // Auto-select Standard Shipping (5.99) as default, or Express if Standard not available
+                if (price === 5.99) {
+                  shippingSelect.value = option.value;
+                  console.log('✅ Auto-selected Standard Shipping for', country);
+                  break;
+                } else if (price === 19.99) {
+                  // Only select Express if Standard wasn't found
+                  if (!shippingSelect.value) {
+                    shippingSelect.value = option.value;
+                    console.log('✅ Auto-selected Express Shipping for', country);
+                  }
+                }
+              } else {
+                if (price === 0) {
+                  shippingSelect.value = option.value;
+                  console.log('✅ Auto-selected Free Shipping for', country);
+                  break;
+                }
+              }
+            }
+          }
+          
+          // Wait a bit to ensure all fields are filled and visible
+          console.log('✅ Form filled, waiting before submit...');
+          setTimeout(function() {
+            console.log('📤 Submitting form...');
+            const form = document.getElementById('payment-form');
+            if (form) {
+              // Verify all required fields are filled
+              const requiredFields = ['full_name', 'address', 'city', 'postal_code', 'phone', 'country'];
+              let allFilled = true;
+              requiredFields.forEach(function(fieldId) {
+                const field = document.getElementById(fieldId);
+                if (field && !field.value.trim()) {
+                  console.warn('⚠️ Field not filled:', fieldId);
+                  allFilled = false;
+                }
+              });
+              
+              if (allFilled) {
+                console.log('✅ All fields filled, submitting form');
+                form.submit();
+              } else {
+                console.error('❌ Some required fields are missing, cannot submit');
+                document.getElementById('card-errors').textContent = 'Please fill all required fields.';
+              }
+            }
+          }, 300); // Wait 300ms to ensure fields are filled
+        } catch (error) {
+          console.error('❌ Error in payment method handler:', error);
+          ev.complete('fail');
+          document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
+        }
+      });
+    } else {
+      console.log('Payment Request not available. Reasons:');
+      console.log('- Browser may not support Payment Request API');
+      console.log('- Apple Pay/Google Pay may not be set up');
+      console.log('- Site may not be on HTTPS (required for production)');
+      console.log('- Current browser:', navigator.userAgent);
+      console.log('- Is HTTPS:', window.location.protocol === 'https:');
+      
+      // Show unavailable message instead of hiding
+      if (unavailableDiv) {
+        unavailableDiv.style.display = 'block';
+      }
+      if (container) {
+        container.style.border = '1px dashed #ddd';
+        container.style.background = '#f9f9f9';
+      }
+      
+      // Hide divider
+      const divider = document.getElementById('payment-divider');
+      if (divider) {
+        divider.style.display = 'none';
+        console.log('Divider hidden');
+      }
+      if (loadingDiv) loadingDiv.style.display = 'none';
     }
-  });
+    }).catch(function(error) {
+      console.error('Error checking Payment Request availability:', error);
+      console.error('Error stack:', error.stack);
+      if (unavailableDiv) {
+        unavailableDiv.style.display = 'block';
+        unavailableDiv.textContent = 'Error checking payment options: ' + error.message;
+      }
+      const divider = document.getElementById('payment-divider');
+      if (divider) divider.style.display = 'none';
+      if (loadingDiv) loadingDiv.style.display = 'none';
+    });
+    } // End of else block for valid totalAmount
+
+    // Form submit handler (always available, regardless of Payment Request)
+    const form = document.getElementById('payment-form');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fullName = document.getElementById('full_name').value;
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment('{{ client_secret }}', {
+          payment_method: { card, billing_details: { name: fullName } }
+        });
+
+        if (error) {
+          document.getElementById('card-errors').textContent = error.message || 'Payment failed.';
+          return;
+        }
+
+        document.getElementById('payment_intent_id').value = paymentIntent.id;
+        form.submit();
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error initializing Stripe Payment Request:', error);
+    console.error('Error stack:', error.stack);
+    const container = document.getElementById('payment-request-button-container');
+    const unavailableDiv = document.getElementById('payment-request-unavailable');
+    const divider = document.getElementById('payment-divider');
+    const loadingDiv = document.getElementById('payment-request-loading');
+    if (container) container.style.display = 'none';
+    if (divider) divider.style.display = 'none';
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    if (unavailableDiv) {
+      unavailableDiv.style.display = 'block';
+      unavailableDiv.textContent = 'Error: ' + error.message;
+    }
+  }
+  // eslint-disable-next-line
+  {% else %}
+  console.error('Stripe publishable key is not configured');
+  document.getElementById('card-errors').textContent = 'Payment system is not configured. Please contact support.';
+  // eslint-disable-next-line
+  {% endif %}
 </script>
 {% endblock %}
+
+

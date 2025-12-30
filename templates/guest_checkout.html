@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Guest Checkout{% endblock %}
+
+{% block content %}
+<style>
+  .checkout-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 32px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+
+  .checkout-container h2 {
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 1.8rem;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+
+  .checkout-btn {
+    margin-top: 24px;
+    width: 100%;
+    padding: 12px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .checkout-btn:hover {
+    background-color: #555;
+  }
+
+  .cart-summary {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 10px;
+  }
+
+  .cart-summary h4 {
+    margin-bottom: 10px;
+  }
+
+  .cart-summary ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .cart-summary li {
+    margin-bottom: 6px;
+  }
+
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 6px 0;
+  }
+  .totals-row.total {
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+</style>
+
+<div class="checkout-container">
+  <h2>Guest Checkout</h2>
+
+  <!-- ONE SINGLE FORM -->
+  <form method="POST">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label for="full_name">Full Name</label>
+      <input type="text" name="full_name" required>
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" name="email" required>
+    </div>
+
+    <div class="form-group">
+      <label for="phone">Phone Number</label>
+      <input type="text" name="phone" required>
+    </div>
+
+    <div class="form-group">
+      <label for="address">Address</label>
+      <input type="text" name="address" required>
+    </div>
+
+    <div class="form-group">
+      <label for="city">City</label>
+      <input type="text" name="city" required>
+    </div>
+
+    <div class="form-group">
+      <label for="postal_code">Postal Code</label>
+      <input type="text" name="postal_code" required>
+    </div>
+
+    <div class="form-group">
+      <label for="country">Country</label>
+      <select id="country" name="country" required>
+        <option value="">-- Select Country --</option>
+        <optgroup label="Europe">
+          <option value="Albania">Albania</option>
+          <option value="Andorra">Andorra</option>
+          <option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
+          <option value="Vatican">Vatican</option>
+          <option value="United Kingdom">United Kingdom</option>
+          <option value="Iceland">Iceland</option>
+          <option value="Liechtenstein">Liechtenstein</option>
+          <option value="Monaco">Monaco</option>
+          <option value="Montenegro">Montenegro</option>
+          <option value="Norway">Norway</option>
+          <option value="San Marino">San Marino</option>
+          <option value="Serbia">Serbia</option>
+          <option value="Switzerland">Switzerland</option>
+        </optgroup>
+        <optgroup label="Asia">
+          <option value="Bahrain">Bahrain</option>
+          <option value="Japan">Japan</option>
+          <option value="Qatar">Qatar</option>
+          <option value="Saudi Arabia">Saudi Arabia</option>
+          <option value="United Arab Emirates">United Arab Emirates</option>
+        </optgroup>
+        <optgroup label="Africa">
+          <option value="South Africa">South Africa</option>
+        </optgroup>
+        <optgroup label="North America">
+          <option value="Canada">Canada</option>
+          <option value="Costa Rica">Costa Rica</option>
+          <option value="United States">United States</option>
+        </optgroup>
+        <optgroup label="Oceania">
+          <option value="Australia">Australia</option>
+          <option value="New Zealand">New Zealand</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="shipping_option">Shipping Option</label>
+      <select name="shipping_option" required>
+        {% for option in shipping_options %}
+          <option value="{{ option.id }}">{{ option.name }} - ${{ option.price }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Promo code -->
+    <div class="form-group">
+      <label for="coupon">Promo code</label>
+      <input type="text" name="coupon" id="coupon" placeholder="Enter promo code" value="{{ coupon_code|default:'' }}">
+      {% if coupon_error %}<div style="color:#c00; margin-top:6px;">{{ coupon_error }}</div>{% endif %}
+      {% if coupon_applied %}<div style="color:#0a0; margin-top:6px;">Coupon {{ coupon_applied }} applied.</div>{% endif %}
+    </div>
+
+    <button type="submit" class="checkout-btn">Complete Order — ${{ subtotal }}</button>
+  </form>
+
+  <div class="cart-summary">
+    <h4>Your Cart</h4>
+    <ul>
+      {% for item in cart_items %}
+        <li>
+          {{ item.product.name }}{% if item.variant %} (Size: {{ item.variant.size }}){% endif %} × {{ item.quantity }} — <span data-eur-price="{{ item.subtotal }}">${{ item.subtotal|floatformat:2 }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <div class="totals-row">
+      <span>Subtotal:</span>
+      <span data-eur-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
+    </div>
+    {% if discount %}
+    <div class="totals-row">
+      <span>Discount:</span>
+      <span data-eur-price="{{ discount }}">- ${{ discount|floatformat:2 }}</span>
+    </div>
+    {% endif %}
+    {% if shipping_cost %}
+    <div class="totals-row">
+      <span>Shipping:</span>
+      <span data-eur-price="{{ shipping_cost }}">${{ shipping_cost|floatformat:2 }}</span>
+    </div>
+    {% endif %}
+    <div class="totals-row total">
+      <span>Total:</span>
+      <span>
+        {% if total %}
+          <span data-eur-price="{{ total }}">${{ total|floatformat:2 }}</span>
+        {% else %}
+          <span data-eur-price="{{ subtotal }}">${{ subtotal|floatformat:2 }}</span>
+        {% endif %}
+      </span>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -16,11 +16,46 @@ Including another URLconf
 """
 from django.conf import settings
 from django.contrib import admin
-from django.urls import path, include
+from django.shortcuts import redirect
+from django.urls import path, include, re_path
 from django.conf.urls.static import static
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.views.static import serve
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('ecommerce.urls')),
+    # Redirect allauth signup/login/logout to custom views
+    path('accounts/signup/', lambda request: redirect('/register/'), name='account_signup'),
+    path('accounts/login/', lambda request: redirect('/login/'), name='account_login'),
+    path('accounts/logout/', lambda request: redirect('/logout/'), name='account_logout'),
+    # Keep other allauth URLs (password reset, etc.)
+    path('accounts/', include('allauth.urls')),
+    path('login/', lambda request: redirect('/login/')),
 ]
+
+
+handler404 = 'ecommerce.views.handler404'
+handler500 = 'ecommerce.views.handler500'
+
+
+
+
+
+if settings.DEBUG:
+
+    urlpatterns += staticfiles_urlpatterns()
+else:
+
+    urlpatterns += [
+        re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
+    ]
+
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    ]

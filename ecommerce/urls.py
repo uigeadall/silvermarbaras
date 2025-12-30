@@ -6,7 +6,6 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('register/', views.register_view, name='register'),
-    path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('favorites/', views.favorites_list, name='favorites_list'),
     path('favorites/remove/<int:pk>/', views.remove_from_favorites, name='remove_from_favorites'),
@@ -23,9 +22,30 @@ urlpatterns = [
     path('toggle-favorite/<int:pk>/', views.toggle_favorite, name='toggle_favorite'),
     path('cart/update/<int:pk>/', views.update_cart_quantity, name='update_cart_quantity'),
     path('order-success/', views.order_success, name='order_success'),
+path("terms/", views.terms, name="terms"),
+    path("privacy/", views.privacy, name="privacy"),
+    path("contact/", views.contact, name="contact"),
+path("account/", views.profile_dashboard, name="profile_dashboard"),
+    path("account/favorites/", views.profile_favorites, name="profile_favorites"),
+    path("account/orders/", views.profile_orders, name="profile_orders"),
+    path("account/details/", views.profile_details, name="profile_details"),
 
 
+path('checkout/guest/', views.guest_checkout_view, name='guest_checkout'),
+
+
+    path("login/", views.login_view, name="login"),
+    path("blog/<slug:slug>/", views.blog_detail, name="blog_detail"),
+    path("health/", views.health_check, name="health_check"),
+    path("test-emails/", views.test_emails_view, name="test_emails"),
 ]
+
+
+
+
+
+
+
 
 
 

@@ -1,0 +1,16 @@
+/* Style for sale expiration field */
+.field-sale_expires_at {
+    margin-top: 10px;
+}
+
+.field-sale_expires_at label {
+    font-weight: bold;
+    color: #417690;
+}
+
+.field-sale_expires_at .help {
+    color: #666;
+    font-size: 12px;
+    margin-top: 5px;
+}
+

@@ -1,0 +1,103 @@
+{# templates/admin/orders_changelist.html #}
+{% extends "admin/change_list.html" %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .analytics-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 12px 0 20px;
+    }
+    @media (min-width: 1200px){
+      .analytics-grid{ grid-template-columns: 1.2fr 0.8fr; }
+    }
+    .card{
+      background:#fff;
+      border-radius:8px;
+      padding:16px;
+      box-shadow:0 1px 6px rgba(0,0,0,.06);
+    }
+    .card h3{ margin:0 0 10px; font-weight:600; }
+    .card canvas{ width:100%; height:300px; }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="analytics-grid">
+    <div class="card" style="grid-column: 1 / -1;">
+      <h3>Orders & Revenue (last 12 months)</h3>
+      <canvas id="ordersRevenueChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>Top Products (by quantity)</h3>
+      <canvas id="topProductsChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>Top Categories (by quantity)</h3>
+      <canvas id="topCategoriesChart"></canvas>
+    </div>
+  </div>
+
+  {{ block.super }} {# keep the normal changelist table #}
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    (function(){
+      const monthLabels = {{ chart_month_labels|safe }};
+      const monthOrders = {{ chart_month_orders|safe }};
+      const monthRevenue = {{ chart_month_revenue|safe }};
+      const prodLabels = {{ chart_prod_labels|safe }};
+      const prodQty = {{ chart_prod_qty|safe }};
+      const catLabels = {{ chart_cat_labels|safe }};
+      const catQty = {{ chart_cat_qty|safe }};
+
+      // Orders + Revenue dual-axis
+      new Chart(document.getElementById('ordersRevenueChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: monthLabels,
+          datasets: [
+            { label: 'Orders', data: monthOrders, yAxisID: 'y' },
+            { label: 'Revenue', data: monthRevenue, type: 'line', yAxisID: 'y1' }
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            y:  { beginAtZero: true, title: { display: true, text: 'Orders' } },
+            y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Revenue' } }
+          },
+          plugins: { legend: { position: 'top' } }
+        }
+      });
+
+      // Top products (horizontal bar)
+      new Chart(document.getElementById('topProductsChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: prodLabels, datasets: [{ label: 'Qty', data: prodQty }] },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+
+      // Top categories (horizontal bar)
+      new Chart(document.getElementById('topCategoriesChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: catLabels, datasets: [{ label: 'Qty', data: catQty }] },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    })();
+  </script>
+{% endblock %}

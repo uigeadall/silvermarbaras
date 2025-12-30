@@ -1,0 +1,28 @@
+Hello, {{ order.full_name|default:order.user.username }},
+
+We're excited to inform you that your order #{{ order.id }} has been shipped!
+
+{% if shipping_option %}
+Shipping information:
+- Method: {{ shipping_option.name }}
+- Delivery time: {{ shipping_option.delivery_time }}
+{% if tracking_number %}
+- Tracking number: {{ tracking_number }}
+{% endif %}
+{% endif %}
+
+Shipping address:
+{{ order.full_name }}
+{{ order.address }}
+{{ order.city }}{% if order.postal_code %}, {{ order.postal_code }}{% endif %}
+{% if order.country %}{{ order.country }}{% endif %}
+
+Ordered products:
+{% for item in items %}
+- {{ item.product.name }}{% if item.variant %} (Size: {{ item.variant.size }}){% endif %} × {{ item.quantity }}
+{% endfor %}
+
+View orders: {{ base_url }}{% url 'profile_orders' %}
+
+Best regards,
+The Marbaras Team

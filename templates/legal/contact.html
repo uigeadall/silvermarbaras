@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Contact Us - Marbaras{% endblock %}
+
+{% block extra_head %}
+<style>
+  .contact-wrap{max-width:1000px;margin:0 auto}
+  .contact-hero{margin-bottom:22px}
+  .contact-hero h1{font-size:2rem;margin-bottom:6px}
+  .contact-hero p{color:#666}
+
+  .contact-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:24px}
+  @media (max-width:768px){ .contact-grid{grid-template-columns:1fr} }
+
+  .card{background:#f8f8f8;border-radius:16px;padding:20px}
+  .card h2{font-size:1.2rem;margin-bottom:12px}
+
+  .contact-form .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:768px){ .contact-form .form-row{grid-template-columns:1fr} }
+
+  .form-field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+  .form-field label{font-weight:600}
+  .field{
+    padding:12px 14px;border-radius:10px;background:#ffffff;
+    font-size:1rem;
+  }
+  /* Override your global border/outline resets to show a clear focus */
+  .contact-form input:focus,
+  .contact-form textarea:focus{
+    box-shadow:0 0 0 3px rgba(17,17,17,.12) !important;
+    background:#fff;
+  }
+
+  .form-actions{
+    margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap
+  }
+  .policy{color:#777;font-size:.9rem}
+  .btn-primary{
+    background:#111;color:#fff;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600
+  }
+  .btn-primary:hover{opacity:.9}
+
+  .honeypot{position:absolute;left:-9999px;visibility:hidden}
+
+  /* Contact info list */
+  .info-list{list-style:none;padding:0;margin:6px 0 0 0}
+  .info-list li{margin:10px 0;line-height:1.7}
+  .info-list a{text-decoration:none;color:#333}
+  .info-list a:hover{text-decoration:underline}
+
+  .meta-note{margin-top:10px;color:#777;font-size:.9rem}
+  .char-count{font-size:.85rem;color:#777;text-align:right;margin-top:6px}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="contact-wrap">
+  <header class="contact-hero">
+    <h1>Contact Us</h1>
+    <p>Questions, feedback, or partnership ideas? Send us a message—we’ll get back to you as soon as possible.</p>
+  </header>
+
+  <div class="contact-grid">
+    <!-- Left: Form -->
+    <div class="card">
+      <h2>Send us a message</h2>
+      <form method="post" class="contact-form" novalidate>
+        {% csrf_token %}
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" class="field" placeholder="Your name" required autocomplete="name">
+          </div>
+          <div class="form-field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" class="field" placeholder="you@example.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="subject">Subject</label>
+          <input id="subject" name="subject" type="text" class="field" placeholder="How can we help?">
+        </div>
+
+        <div class="form-field">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" rows="6" class="field" placeholder="Write your message..." required maxlength="1200"></textarea>
+          <div class="char-count"><span id="msgCount">0</span>/1200</div>
+        </div>
+
+        <!-- Honeypot (basic spam trap) -->
+        <div class="honeypot" aria-hidden="true">
+          <label for="website">Website</label>
+          <input id="website" type="text" name="website" tabindex="-1">
+        </div>
+
+        <div class="form-actions">
+          <small class="policy">
+            By sending, you agree to our
+            <a href="{% url 'privacy' %}">Privacy Policy</a>.
+          </small>
+          <button type="submit" class="btn-primary">Send message</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Right: Company info -->
+    <aside class="card">
+      <h2>Other ways to reach us</h2>
+      <ul class="info-list">
+        <li>✉️ Email: <a href="mailto:support@marbaras.com">support@marbaras.com</a></li>
+        <li>🏢 Address:<br>
+          Sanford House, 81 Skipper Way,<br>
+          St. Neots, PE19 6LT, United Kingdom
+        </li>
+        <li>📄 Legal: <a href="{% url 'terms' %}">Terms &amp; Conditions</a> · <a href="{% url 'privacy' %}">Privacy Policy</a></li>
+      </ul>
+      <p class="meta-note">We typically reply within 1–2 business days.</p>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function(){
+    const msg = document.getElementById('message');
+    const out = document.getElementById('msgCount');
+    if(msg && out){
+      const update = () => { out.textContent = msg.value.length; };
+      msg.addEventListener('input', update);
+      update();
+    }
+  })();
+</script>
+{% endblock %}

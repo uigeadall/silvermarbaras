@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}500 - Server Error{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div class="max-w-md w-full text-center">
+        <h1 class="text-9xl font-bold text-gray-200">500</h1>
+        <h2 class="text-3xl font-bold text-gray-800 mt-4">Server Error</h2>
+        <p class="text-gray-600 mt-4">
+            An unexpected error occurred. Our team has been notified and is working on resolving the issue.
+        </p>
+        <div class="mt-8 space-x-4">
+            <a href="{% url 'home' %}" class="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition">
+                Home
+            </a>
+            <a href="javascript:history.back()" class="inline-block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
+                Back
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

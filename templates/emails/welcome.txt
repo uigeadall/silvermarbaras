@@ -1,0 +1,14 @@
+Hello, {{ user.username }},
+
+Thank you for registering with Marbaras! We're excited to welcome you to our family.
+
+Now you can:
+- Browse our collection of silver jewelry
+- Create a list of favorite products
+- Track your orders
+- Receive exclusive offers
+
+Browse products: {{ base_url }}{% url 'home' %}?all=true
+
+Best regards,
+The Marbaras Team
