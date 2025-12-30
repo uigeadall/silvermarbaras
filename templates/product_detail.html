@@ -1553,7 +1553,7 @@
     const variantId = document.getElementById('variantInput') ? document.getElementById('variantInput').value : '';
     // Get quantity from quantity input or default to 1
     let quantity = 1;
-    const qtyInput = document.querySelector('.qty-input');
+    const qtyInput = document.getElementById('qtyInput');
     if (qtyInput) {
       quantity = parseInt(qtyInput.value) || 1;
     }
