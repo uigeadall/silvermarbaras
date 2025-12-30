@@ -118,10 +118,6 @@
   .carousel-dot.active {
     opacity: 1 !important;
   }
-  .carousel-prev:hover,
-  .carousel-next:hover {
-    transform: translateY(-50%) scale(1.1);
-  }
 </style>
 {% endblock %}
 
@@ -283,18 +279,6 @@
                 ></button>
                 {% endfor %}
               </div>
-              
-              <!-- Navigation arrows -->
-              <button class="carousel-prev absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg transition-all z-10" aria-label="Previous slide">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-              </button>
-              <button class="carousel-next absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg transition-all z-10" aria-label="Next slide">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-              </button>
               {% endif %}
             </div>
           </div>
@@ -1024,14 +1008,12 @@
 
     const slides = carouselContainer.querySelectorAll('.carousel-slide');
     const dots = carouselContainer.querySelectorAll('.carousel-dot');
-    const prevBtn = carouselContainer.querySelector('.carousel-prev');
-    const nextBtn = carouselContainer.querySelector('.carousel-next');
     
     if (slides.length <= 1) return; // No carousel needed for single slide
 
     let currentSlide = 0;
     let autoSlideInterval = null;
-    const SLIDE_INTERVAL = 5000; // 5 seconds
+    const SLIDE_INTERVAL = 10000; // 10 seconds
 
     function showSlide(index) {
       // Remove active class from all slides and dots
@@ -1054,12 +1036,12 @@
       showSlide(next);
     }
 
-    function prevSlide() {
-      const prev = (currentSlide - 1 + slides.length) % slides.length;
-      showSlide(prev);
-    }
-
     function startAutoSlide() {
+      // Clear any existing interval
+      if (autoSlideInterval) {
+        clearInterval(autoSlideInterval);
+      }
+      // Start the interval
       autoSlideInterval = setInterval(nextSlide, SLIDE_INTERVAL);
     }
 
@@ -1079,30 +1061,16 @@
       });
     });
 
-    // Previous button
-    if (prevBtn) {
-      prevBtn.addEventListener('click', () => {
-        prevSlide();
-        stopAutoSlide();
-        startAutoSlide();
-      });
-    }
-
-    // Next button
-    if (nextBtn) {
-      nextBtn.addEventListener('click', () => {
-        nextSlide();
-        stopAutoSlide();
-        startAutoSlide();
-      });
-    }
-
     // Pause on hover
     carouselContainer.addEventListener('mouseenter', stopAutoSlide);
     carouselContainer.addEventListener('mouseleave', startAutoSlide);
 
-    // Start auto-slide
-    startAutoSlide();
+    // Ensure first slide is properly displayed, then start auto-slide after a short delay
+    // This prevents the "jump" on first change
+    setTimeout(() => {
+      showSlide(0); // Ensure first slide is active
+      startAutoSlide(); // Start auto-slide after initial display
+    }, 100);
   })();
 </script>
 {% endblock %}
