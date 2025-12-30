@@ -136,6 +136,13 @@
   
   <form method="POST" action="{% url 'register' %}" id="register-form">
     {% csrf_token %}
+    <!-- Honeypot field - hidden from users but bots will fill it -->
+    <div style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;" aria-hidden="true">
+      <label for="website">Website (leave blank)</label>
+      <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+    </div>
+    <!-- Time-based validation - store form load time -->
+    <input type="hidden" name="form_load_time" id="form_load_time" value="">
     <div class="form-group">
       <label>Username</label>
       <input type="text" name="username" required autocomplete="username">
@@ -156,6 +163,15 @@
   </form>
   
   <script>
+    // Set form load time for bot detection
+    document.addEventListener('DOMContentLoaded', function() {
+      const formLoadTime = Date.now();
+      const formLoadTimeInput = document.getElementById('form_load_time');
+      if (formLoadTimeInput) {
+        formLoadTimeInput.value = formLoadTime;
+      }
+    });
+    
     // Ensure CSRF token is available
     function getCookie(name) {
       let cookieValue = null;
