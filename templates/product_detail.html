@@ -1612,7 +1612,7 @@
         if (addToCartResponse.ok || addToCartResponse.redirected) {
           console.log('✅ Product added to cart, redirecting to checkout...');
           // Redirect to checkout page
-          window.location.href = '{% url "checkout_view" %}';
+          window.location.href = '{% url "checkout" %}';
           ev.complete('success');
         } else {
           console.error('❌ Failed to add product to cart');
@@ -1697,7 +1697,7 @@
             credentials: 'same-origin',
           }).then(function(response) {
             if (response.ok || response.redirected) {
-              window.location.href = '{% url "checkout_view" %}';
+              window.location.href = '{% url "checkout" %}';
             } else {
               alert('Failed to add product to cart. Please try again.');
             }
