@@ -46,6 +46,28 @@
   </script>
 
   <style>
+    /* Prevent image downloading */
+    img {
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      pointer-events: auto;
+      -webkit-user-drag: none;
+      -khtml-user-drag: none;
+      -moz-user-drag: none;
+      -o-user-drag: none;
+      user-drag: none;
+    }
+    
+    /* Prevent text selection on images */
+    img::selection {
+      background: transparent;
+    }
+    img::-moz-selection {
+      background: transparent;
+    }
+
     .cart-tip::after{
       content:""; position:absolute; top:-6px; left:50%; transform:translateX(-50%);
       border:6px solid transparent; border-bottom-color:#0b1220;
@@ -711,6 +733,63 @@
   </script>
 
   {% block extra_js %}{% endblock %}
+
+  <!-- Image Protection Script -->
+  <script>
+    (function() {
+      // Disable right-click context menu
+      document.addEventListener('contextmenu', function(e) {
+        // Allow right-click on input fields and textareas for normal functionality
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+          return;
+        }
+        e.preventDefault();
+        return false;
+      });
+
+      // Disable drag and drop for images
+      document.addEventListener('dragstart', function(e) {
+        if (e.target.tagName === 'IMG') {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // Disable image dragging
+      document.addEventListener('selectstart', function(e) {
+        if (e.target.tagName === 'IMG') {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // Disable keyboard shortcuts for saving images
+      document.addEventListener('keydown', function(e) {
+        // Disable Ctrl+S (Save)
+        if (e.ctrlKey && e.key === 's') {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // Add overlay protection to images (prevents direct image access)
+      document.addEventListener('DOMContentLoaded', function() {
+        const images = document.querySelectorAll('img');
+        images.forEach(function(img) {
+          // Prevent drag
+          img.setAttribute('draggable', 'false');
+          
+          // Add onmousedown protection
+          img.addEventListener('mousedown', function(e) {
+            if (e.button === 1 || e.button === 2) { // Middle or right mouse button
+              e.preventDefault();
+              return false;
+            }
+          });
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
 
