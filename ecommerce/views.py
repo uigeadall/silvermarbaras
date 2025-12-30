@@ -808,6 +808,9 @@ def register_view(request: HttpRequest) -> HttpResponse:
                         user = User.objects.create_user(username=username, email=email, password=password)
                         logger.info("User created successfully: %s", username)
                         
+                        # Reset rate limit on successful registration
+                        cache.delete(cache_key)
+                        
                         # Send user_registered signal to trigger welcome email (in background thread)
                         try:
                             logger.info("Sending user_registered signal for user: %s", username)
