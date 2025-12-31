@@ -1655,6 +1655,28 @@
             container.style.minHeight = '56px';
             container.style.width = '100%';
           }
+          
+          // Force Stripe button to be full width and proper height
+          setTimeout(function() {
+            const stripeButton = container.querySelector('button');
+            const stripeIframe = container.querySelector('iframe');
+            const stripeDiv = container.querySelector('div');
+            
+            if (stripeButton) {
+              stripeButton.style.width = '100%';
+              stripeButton.style.minHeight = '56px';
+              stripeButton.style.height = '56px';
+            }
+            if (stripeIframe) {
+              stripeIframe.style.width = '100%';
+              stripeIframe.style.minHeight = '56px';
+              stripeIframe.style.height = '56px';
+            }
+            if (stripeDiv) {
+              stripeDiv.style.width = '100%';
+            }
+          }, 100);
+          
           console.log('✅ Apple Pay / Google Pay button mounted successfully');
         } catch (error) {
           console.error('Error mounting Payment Request Button:', error);
