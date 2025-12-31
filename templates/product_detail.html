@@ -316,6 +316,22 @@
     opacity: 1;
     visibility: visible;
   }
+  /* Apple Pay / Google Pay Button Styles */
+  #product-payment-request-button-container {
+    width: 100% !important;
+    min-height: 56px !important;
+  }
+  #product-payment-request-button-container button,
+  #product-payment-request-button-container iframe {
+    width: 100% !important;
+    min-height: 56px !important;
+    height: 56px !important;
+  }
+  /* Ensure Stripe button container is full width */
+  #product-payment-request-button-container > div {
+    width: 100% !important;
+  }
+
   .add-to-cart-tooltip::after {
     content: '';
     position: absolute;
