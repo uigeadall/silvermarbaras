@@ -1566,10 +1566,17 @@
     
     if (!container) return;
     
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    
+    // Detect if mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    console.log('📱 Product Detail - Device type:', isMobile ? 'Mobile' : 'Desktop');
+    
     // Get product price
     const productPrice = {{ product.get_discounted_price|floatformat:2 }};
     const productId = {{ product.pk }};
-    const variantId = document.getElementById('variantInput') ? document.getElementById('variantInput').value : '';
+    const variantIdInput = document.getElementById('variantInput');
+    const variantId = variantIdInput ? variantIdInput.value : '';
     // Get quantity from quantity input or default to 1
     let quantity = 1;
     const qtyInput = document.getElementById('qtyInput');
@@ -1577,7 +1584,10 @@
       quantity = parseInt(qtyInput.value) || 1;
     }
     
-    // Calculate total
+    // Get current currency and exchange rate
+    const getCurrentCurrency = window.getCurrentCurrency || function() {
+      return localStorage.getItem('selectedCurrency') || 'EUR';
+    };
     const getExchangeRate = function() {
       try {
         const cached = localStorage.getItem('exchangeRatesCache');
@@ -1590,31 +1600,319 @@
       return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
     };
     
-    const getCurrentCurrency = window.getCurrentCurrency || function() {
-      return localStorage.getItem('selectedCurrency') || 'EUR';
+    const currentCurrency = getCurrentCurrency().toLowerCase();
+    const exchangeRates = getExchangeRate();
+    const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+    const totalAmount = productPrice * quantity * rate;
+    // Store original total amount (without shipping) for use in shipping handlers
+    const originalTotalAmount = totalAmount;
+    
+    console.log('💰 Product Detail - Current currency:', currentCurrency.toUpperCase());
+    console.log('💰 Product Detail - Exchange rate:', rate);
+    console.log('💰 Product Detail - Product price EUR:', productPrice);
+    console.log('💰 Product Detail - Quantity:', quantity);
+    console.log('💰 Product Detail - Total amount (converted):', totalAmount);
+    
+    // Allowed countries list (must match backend validation)
+    const ALLOWED_COUNTRIES = {
+      // ISO codes
+      'AL': 'Albania', 'AD': 'Andorra', 'BA': 'Bosnia and Herzegovina', 'VA': 'Vatican',
+      'GB': 'United Kingdom', 'IS': 'Iceland', 'LI': 'Liechtenstein', 'MC': 'Monaco',
+      'ME': 'Montenegro', 'NO': 'Norway', 'SM': 'San Marino', 'RS': 'Serbia',
+      'CH': 'Switzerland', 'BH': 'Bahrain', 'JP': 'Japan', 'QA': 'Qatar',
+      'SA': 'Saudi Arabia', 'AE': 'United Arab Emirates', 'ZA': 'South Africa',
+      'CA': 'Canada', 'CR': 'Costa Rica', 'US': 'United States', 'AU': 'Australia',
+      'NZ': 'New Zealand',
+      // Full names (for compatibility)
+      'Albania': true, 'Andorra': true, 'Bosnia and Herzegovina': true, 'Vatican': true,
+      'United Kingdom': true, 'Iceland': true, 'Liechtenstein': true, 'Monaco': true,
+      'Montenegro': true, 'Norway': true, 'San Marino': true, 'Serbia': true,
+      'Switzerland': true, 'Bahrain': true, 'Japan': true, 'Qatar': true,
+      'Saudi Arabia': true, 'United Arab Emirates': true, 'South Africa': true,
+      'Canada': true, 'Costa Rica': true, 'United States': true, 'Australia': true,
+      'New Zealand': true
     };
     
-    const exchangeRates = getExchangeRate();
-    const currentCurrency = getCurrentCurrency().toLowerCase();
-    const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
-    const totalInCurrency = productPrice * quantity * rate;
-    const totalAmount = Math.round(totalInCurrency * 100); // Convert to cents
+    function isCountryAllowed(country) {
+      if (!country) return false;
+      // Check ISO code
+      if (ALLOWED_COUNTRIES[country]) return true;
+      // Check full name
+      return ALLOWED_COUNTRIES[country] === true;
+    }
     
-    // Create Payment Request
+    // Store shipping options from shippingaddresschange for use in shippingoptionchange
+    let storedShippingOptions = null;
+    
     const paymentRequest = stripe.paymentRequest({
-      country: 'US',
-      currency: currentCurrency.toLowerCase(),
+      country: 'BG',
+      currency: currentCurrency, // Use selected currency (usd, eur, or gbp)
       total: {
-        label: '{{ product.name|truncatewords:5 }}',
-        amount: totalAmount,
+        label: 'Total',
+        amount: Math.round(totalAmount * 100), // Convert to cents in selected currency
       },
       requestPayerName: true,
       requestPayerEmail: true,
+      requestPayerPhone: true,
+      requestShipping: true, // Changed from requestPayerAddress to requestShipping
+      // For mobile devices, explicitly request shipping address
+      ...(isMobile && {
+        shippingAddressRequired: true,
+      }),
+    });
+    
+    // Handle shipping address change (REQUIRED for mobile devices)
+    // This event is triggered when user selects/changes shipping address in Apple Pay
+    paymentRequest.on('shippingaddresschange', function(ev) {
+      console.log('📦 Product Detail - Shipping address changed event (mobile):', ev.shippingAddress);
+      
+      if (ev.shippingAddress) {
+        const addr = ev.shippingAddress;
+        const country = addr.country;
+        
+        console.log('🌍 Product Detail - Selected country:', country);
+        
+        // Check if country is allowed
+        if (!isCountryAllowed(country)) {
+          console.error('❌ Product Detail - Country not allowed:', country);
+          ev.updateWith({
+            status: 'fail',
+            errors: {
+              shippingAddress: 'We don\'t ship to your country. Please select a country from the allowed list.'
+            }
+          });
+          return;
+        }
+        
+        console.log('✅ Product Detail - Country allowed:', country);
+        
+        // Get current currency and exchange rate
+        const getCurrentCurrency = window.getCurrentCurrency || function() {
+          return localStorage.getItem('selectedCurrency') || 'EUR';
+        };
+        const getExchangeRate = function() {
+          try {
+            const cached = localStorage.getItem('exchangeRatesCache');
+            if (cached) {
+              const rates = JSON.parse(cached);
+              return rates;
+            }
+          } catch (e) {
+            console.warn('Could not load exchange rates from cache');
+          }
+          return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+        };
+        const currentCurrency = getCurrentCurrency().toLowerCase();
+        const exchangeRates = getExchangeRate();
+        const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+        
+        // Determine shipping options based on country
+        let shippingOptions = [];
+        
+        if (country === 'CA' || country === 'AU' || country === 'NZ' || country === 'NO' || country === 'Canada' || country === 'Australia' || country === 'New Zealand' || country === 'Norway') {
+          // Canada, Australia, New Zealand and Norway: Standard Shipping ($5.99) and Express Shipping ($19.99)
+          const standardCostEUR = 5.99;
+          const expressCostEUR = 19.99;
+          const standardCost = Math.round(standardCostEUR * rate * 100);
+          const expressCost = Math.round(expressCostEUR * rate * 100);
+          
+          shippingOptions = [
+            {
+              id: 'standard',
+              label: 'Standard Shipping',
+              amount: standardCost,
+            },
+            {
+              id: 'express',
+              label: 'Express Shipping',
+              amount: expressCost,
+            }
+          ];
+          
+          // Default to Standard Shipping
+          const defaultTotal = Math.round(originalTotalAmount * 100) + standardCost;
+          const selectedShippingId = 'standard';
+          
+          // Store shipping options for use in shippingoptionchange
+          storedShippingOptions = shippingOptions;
+          
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: defaultTotal,
+            },
+            shippingOptions: shippingOptions,
+            shippingOption: selectedShippingId, // Set default shipping option
+          });
+          
+          console.log('✅ Product Detail - Updated shipping options for', country, '- Standard:', standardCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100);
+        } else {
+          // Other countries: Free Shipping ($0) and Express Shipping ($19.99)
+          const freeCostEUR = 0;
+          const expressCostEUR = 19.99;
+          const freeCost = Math.round(freeCostEUR * 100);
+          const expressCost = Math.round(expressCostEUR * rate * 100);
+          
+          shippingOptions = [
+            {
+              id: 'free',
+              label: 'Free Shipping',
+              amount: freeCost,
+            },
+            {
+              id: 'express',
+              label: 'Express Shipping',
+              amount: expressCost,
+            }
+          ];
+          
+          // Default to Free Shipping
+          const defaultTotal = Math.round(originalTotalAmount * 100) + freeCost;
+          const selectedShippingId = 'free';
+          
+          // Store shipping options for use in shippingoptionchange
+          storedShippingOptions = shippingOptions;
+          
+          ev.updateWith({
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: defaultTotal,
+            },
+            shippingOptions: shippingOptions,
+            shippingOption: selectedShippingId, // Set default shipping option
+          });
+          
+          console.log('✅ Product Detail - Updated shipping options for', country, '- Free:', freeCost / 100, 'Express:', expressCost / 100, 'Default total:', defaultTotal / 100);
+        }
+      } else {
+        ev.updateWith({ status: 'success' });
+      }
+    });
+    
+    // Handle shipping option change (when user selects different shipping option in Apple Pay)
+    paymentRequest.on('shippingoptionchange', function(ev) {
+      console.log('📦 Product Detail - Shipping option changed:', ev.shippingOption);
+      console.log('📦 Product Detail - Available shipping options:', ev.shippingOptions);
+      console.log('📦 Product Detail - Stored shipping options:', storedShippingOptions);
+      console.log('📦 Product Detail - Shipping address:', ev.shippingAddress);
+      console.log('📦 Product Detail - Current total from event:', ev.total);
+      console.log('📦 Product Detail - Original total amount:', originalTotalAmount);
+      
+      // Determine which shipping options array to use
+      const currentShippingOptions = ev.shippingOptions && ev.shippingOptions.length > 0 ? ev.shippingOptions : storedShippingOptions;
+      console.log('📦 Product Detail - Using shipping options:', currentShippingOptions);
+      
+      if (ev.shippingOption) {
+        // ev.shippingOption can be either an ID (string) or the full option object
+        let shippingOption;
+        let newShippingCost;
+        
+        if (typeof ev.shippingOption === 'string') {
+          // If it's an ID, find the option from currentShippingOptions
+          if (currentShippingOptions && currentShippingOptions.length > 0) {
+            shippingOption = currentShippingOptions.find(opt => opt.id === ev.shippingOption);
+            if (shippingOption) {
+              newShippingCost = shippingOption.amount;
+            }
+          }
+        } else if (ev.shippingOption && typeof ev.shippingOption === 'object' && ev.shippingOption.amount !== undefined) {
+          // If it's already the option object (most common case), use it directly
+          shippingOption = ev.shippingOption;
+          newShippingCost = shippingOption.amount;
+          console.log('✅ Product Detail - Found shipping option object:', shippingOption);
+        }
+        
+        if (newShippingCost !== undefined && newShippingCost !== null) {
+          // Calculate base total (without shipping)
+          const baseTotal = Math.round(originalTotalAmount * 100);
+          
+          // Calculate final total: base total + new shipping cost
+          const finalTotal = baseTotal + newShippingCost;
+          
+          console.log('📦 Product Detail - Base total (without shipping):', baseTotal / 100);
+          console.log('📦 Product Detail - New shipping cost:', newShippingCost / 100);
+          console.log('📦 Product Detail - Final total:', finalTotal / 100);
+          
+          // IMPORTANT: Must return shippingOptions as well to keep them available
+          const shippingOptionsToReturn = currentShippingOptions || [];
+          
+          const updateData = {
+            status: 'success',
+            total: {
+              label: 'Total',
+              amount: finalTotal, // Already in cents
+            },
+            shippingOptions: shippingOptionsToReturn, // Keep existing shipping options
+          };
+          
+          console.log('📦 Product Detail - Calling ev.updateWith with:', JSON.stringify(updateData, null, 2));
+          
+          // Call updateWith synchronously
+          ev.updateWith(updateData);
+          
+          console.log('✅ Product Detail - Updated total with shipping option:', shippingOption ? shippingOption.label : 'Unknown', 'Cost:', newShippingCost / 100, 'Total:', finalTotal / 100);
+        } else {
+          ev.updateWith({ status: 'success' });
+        }
+      } else {
+        ev.updateWith({ status: 'success' });
+      }
     });
     
     // Handle payment method
     paymentRequest.on('paymentmethod', async function(ev) {
-      console.log('=== Product Detail - Apple Pay / Google Pay Payment ===');
+      console.log('=== Product Detail - Apple Pay / Google Pay Payment Method Received ===');
+      console.log('Device:', /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop');
+      console.log('Payer Name:', ev.payerName);
+      console.log('Payer Email:', ev.payerEmail);
+      console.log('Payer Phone:', ev.payerPhone);
+      console.log('Shipping Address:', ev.shippingAddress);
+      console.log('Payer Address:', ev.payerAddress);
+      
+      // Check both shippingAddress and payerAddress (for compatibility)
+      const shippingAddr = ev.shippingAddress || ev.payerAddress;
+      let shippingCountry = shippingAddr ? shippingAddr.country : null;
+      
+      // Validate country before proceeding
+      if (shippingCountry && !isCountryAllowed(shippingCountry)) {
+        console.error('❌ Product Detail - Country not allowed for payment:', shippingCountry);
+        ev.complete('fail');
+        alert('We do not ship to ' + (shippingCountry || 'this country') + '. Please select a country from the allowed list.');
+        return;
+      }
+      
+      // If no shipping address, fail
+      if (!shippingCountry) {
+        console.error('❌ Product Detail - No country information available for payment validation');
+        ev.complete('fail');
+        alert('Please select a shipping country before completing payment.');
+        return;
+      }
+      
+      console.log('✅ Product Detail - Country validated for payment:', shippingCountry);
+      
+      // Complete payment first (before redirect)
+      ev.complete('success');
+      
+      // Store data in sessionStorage
+      if (ev.payerName || ev.payerEmail || ev.payerPhone || shippingAddr) {
+        const paymentData = {
+          payerName: ev.payerName,
+          payerEmail: ev.payerEmail,
+          payerPhone: ev.payerPhone,
+          shippingAddress: shippingAddr ? {
+            addressLine: shippingAddr.addressLine,
+            city: shippingAddr.city,
+            postalCode: shippingAddr.postalCode,
+            country: shippingAddr.country,
+            region: shippingAddr.region,
+          } : null
+        };
+        sessionStorage.setItem('applePayData', JSON.stringify(paymentData));
+        console.log('✅ Product Detail - Payment data stored');
+      }
       
       // First, add product to cart
       try {
@@ -1633,22 +1931,20 @@
         
         if (addToCartResponse.ok || addToCartResponse.redirected) {
           console.log('✅ Product added to cart, redirecting to checkout...');
-          // Redirect to checkout page
-          window.location.href = '{% url "checkout" %}';
-          ev.complete('success');
+          // Small delay before redirect to ensure ev.complete is processed
+          setTimeout(function() {
+            window.location.href = '{% url "checkout" %}';
+          }, 100);
         } else {
           console.error('❌ Failed to add product to cart');
-          ev.complete('fail');
           alert('Failed to add product to cart. Please try again.');
         }
       } catch (error) {
         console.error('Error adding product to cart:', error);
-        ev.complete('fail');
         alert('An error occurred. Please try again.');
       }
     });
     
-    // Create Payment Request Button
     const paymentRequestButton = elements.create('paymentRequestButton', {
       paymentRequest: paymentRequest,
       style: {
@@ -1659,75 +1955,25 @@
         },
       },
     });
-    
-    // Check if Apple Pay/Google Pay is available
+
     paymentRequest.canMakePayment().then(function(result) {
       if (loadingDiv) loadingDiv.style.display = 'none';
       
       if (result) {
         try {
+          // Hide placeholder button
           if (placeholderBtn) placeholderBtn.style.display = 'none';
+          // Mount real Stripe button
           paymentRequestButton.mount('#product-payment-request-button-container');
           if (container) {
             container.style.border = 'none';
             container.style.background = 'transparent';
             container.style.padding = '0';
-            container.style.minHeight = '48px';
-            container.style.width = '100%';
           }
-          
-          // Force Stripe button to be full width and proper height
-          // Use multiple timeouts to catch Stripe's dynamic rendering
-          setTimeout(function() {
-            const stripeButton = container.querySelector('button');
-            const stripeIframe = container.querySelector('iframe');
-            const stripeDiv = container.querySelector('div');
-            const stripeWrapper = container.querySelector('[class*="StripeElement"]');
-            
-            if (stripeButton) {
-              stripeButton.style.width = '100%';
-              stripeButton.style.minHeight = '48px';
-              stripeButton.style.height = '48px';
-              stripeButton.style.display = 'block';
-            }
-            if (stripeIframe) {
-              stripeIframe.style.width = '100%';
-              stripeIframe.style.minHeight = '48px';
-              stripeIframe.style.height = '48px';
-            }
-            if (stripeDiv) {
-              stripeDiv.style.width = '100%';
-              stripeDiv.style.minHeight = '48px';
-            }
-            if (stripeWrapper) {
-              stripeWrapper.style.width = '100%';
-            }
-          }, 100);
-          
-          // Also check after a longer delay to catch any late rendering
-          setTimeout(function() {
-            const stripeButton = container.querySelector('button');
-            const stripeIframe = container.querySelector('iframe');
-            const stripeDiv = container.querySelector('div');
-            
-            if (stripeButton) {
-              stripeButton.style.width = '100%';
-              stripeButton.style.minHeight = '48px';
-              stripeButton.style.height = '48px';
-            }
-            if (stripeIframe) {
-              stripeIframe.style.width = '100%';
-              stripeIframe.style.minHeight = '48px';
-              stripeIframe.style.height = '48px';
-            }
-            if (stripeDiv) {
-              stripeDiv.style.width = '100%';
-            }
-          }, 500);
-          
-          console.log('✅ Apple Pay / Google Pay button mounted successfully');
+          console.log('✅ Product Detail - Apple Pay / Google Pay button mounted successfully');
         } catch (error) {
           console.error('Error mounting Payment Request Button:', error);
+          // Show placeholder button on error
           if (placeholderBtn) placeholderBtn.style.display = 'inline-flex';
           if (unavailableDiv) {
             unavailableDiv.style.display = 'block';
@@ -1735,14 +1981,16 @@
           }
         }
       } else {
+        // Show placeholder button if Apple Pay/Google Pay is not available
         if (placeholderBtn) {
           placeholderBtn.style.display = 'inline-flex';
-          console.log('📱 Apple Pay/Google Pay not available');
+          console.log('📱 Product Detail - Apple Pay/Google Pay not available, showing placeholder button');
         }
       }
     }).catch(function(error) {
       console.error('Error checking Payment Request availability:', error);
       if (loadingDiv) loadingDiv.style.display = 'none';
+      // Show placeholder button on error
       if (placeholderBtn) {
         placeholderBtn.style.display = 'inline-flex';
       }
