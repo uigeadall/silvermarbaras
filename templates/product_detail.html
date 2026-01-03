@@ -2045,15 +2045,27 @@
     
     // Handle placeholder button click
     window.handleProductApplePayClick = function() {
+      // Check if variant is selected first
+      const variantInput = document.getElementById('variantInput');
+      const hasVariants = {{ product.variants.count|default:0 }} > 0;
+      if (hasVariants) {
+        if (!variantInput || !variantInput.value) {
+          alert('Please select a size first before completing payment.');
+          // Show warning message
+          const paymentWarning = document.getElementById('product-payment-size-warning');
+          if (paymentWarning) {
+            paymentWarning.style.display = 'block';
+            setTimeout(function() {
+              if (paymentWarning) paymentWarning.style.display = 'none';
+            }, 3000);
+          }
+          return;
+        }
+      }
+      
       // Add product to cart and redirect to checkout
       const form = document.getElementById('addToCartForm');
       if (form) {
-        // Check if variant is selected
-        const variantInput = document.getElementById('variantInput');
-        if (variantInput && !variantInput.value && {{ product.variants.count|default:0 }} > 0) {
-          alert('Please select a size first');
-          return;
-        }
         
         // Submit form to add to cart, then redirect
         form.addEventListener('submit', function(e) {
