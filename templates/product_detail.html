@@ -1556,31 +1556,33 @@
   /* === Apple Pay / Google Pay for Product Detail === */
   {% if stripe_public_key and stripe_public_key|length > 0 %}
   (function() {
-    try {
-    // Check if Stripe is loaded
-    if (typeof Stripe === 'undefined') {
-      console.error('Stripe.js not loaded');
-      const loadingDiv = document.getElementById('product-payment-request-loading');
-      const placeholderBtn = document.getElementById('product-apple-pay-placeholder');
-      if (loadingDiv) loadingDiv.style.display = 'none';
-      if (placeholderBtn) placeholderBtn.style.display = 'inline-flex';
-      return;
-    }
-    
-    const stripe = Stripe('{{ stripe_public_key }}');
-    const elements = stripe.elements();
-    
-    const container = document.getElementById('product-payment-request-button-container');
-    const placeholderBtn = document.getElementById('product-apple-pay-placeholder');
-    const loadingDiv = document.getElementById('product-payment-request-loading');
-    const unavailableDiv = document.getElementById('product-payment-request-unavailable');
-    
-    if (!container) {
-      console.warn('Product payment container not found');
-      return;
-    }
-    
-    if (loadingDiv) loadingDiv.style.display = 'block';
+    // Wait for DOM to be ready
+    function initApplePay() {
+      try {
+        // Check if Stripe is loaded
+        if (typeof Stripe === 'undefined') {
+          console.error('Stripe.js not loaded');
+          const loadingDiv = document.getElementById('product-payment-request-loading');
+          const placeholderBtn = document.getElementById('product-apple-pay-placeholder');
+          if (loadingDiv) loadingDiv.style.display = 'none';
+          if (placeholderBtn) placeholderBtn.style.display = 'inline-flex';
+          return;
+        }
+        
+        const stripe = Stripe('{{ stripe_public_key }}');
+        const elements = stripe.elements();
+        
+        const container = document.getElementById('product-payment-request-button-container');
+        const placeholderBtn = document.getElementById('product-apple-pay-placeholder');
+        const loadingDiv = document.getElementById('product-payment-request-loading');
+        const unavailableDiv = document.getElementById('product-payment-request-unavailable');
+        
+        if (!container) {
+          console.warn('Product payment container not found');
+          return;
+        }
+        
+        if (loadingDiv) loadingDiv.style.display = 'block';
     
     // Detect if mobile device
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -2046,15 +2048,24 @@
         form.dispatchEvent(new Event('submit'));
       }
     };
-    } catch (error) {
-      console.error('Error initializing Stripe Payment Request:', error);
-      const loadingDiv = document.getElementById('product-payment-request-loading');
-      const placeholderBtn = document.getElementById('product-apple-pay-placeholder');
-      if (loadingDiv) loadingDiv.style.display = 'none';
-      // Show placeholder button on error
-      if (placeholderBtn) {
-        placeholderBtn.style.display = 'inline-flex';
+      } catch (error) {
+        console.error('Error initializing Stripe Payment Request:', error);
+        const loadingDiv = document.getElementById('product-payment-request-loading');
+        const placeholderBtn = document.getElementById('product-apple-pay-placeholder');
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        // Show placeholder button on error
+        if (placeholderBtn) {
+          placeholderBtn.style.display = 'inline-flex';
+        }
       }
+    }
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApplePay);
+    } else {
+      // DOM is already ready
+      initApplePay();
     }
   })();
   {% endif %}
