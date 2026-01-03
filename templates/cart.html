@@ -92,6 +92,26 @@
     #cart-payment-section {
       display: block;
   }
+  
+  /* Ensure Apple Pay button container maintains proper size */
+  #cart-payment-request-button-container {
+    width: 100% !important;
+    min-height: 48px !important;
+    display: block !important;
+  }
+  
+  #cart-payment-request-button-container button,
+  #cart-payment-request-button-container iframe {
+    width: 100% !important;
+    min-height: 48px !important;
+    height: 48px !important;
+  }
+  
+  /* Ensure Stripe button container is full width */
+  #cart-payment-request-button-container > div {
+    width: 100% !important;
+    min-height: 48px !important;
+  }
 </style>
 {% endblock %}
 
@@ -315,7 +335,7 @@
               <!-- Apple Pay / Google Pay Button -->
               {% if cart_items %}
               <div class="mb-3" id="cart-payment-section">
-                <div id="cart-payment-request-button-container" style="min-height: 48px; text-align: center; padding: 8px;">
+                <div id="cart-payment-request-button-container" style="min-height: 48px; width: 100%; text-align: center; padding: 8px;">
                   <!-- Placeholder button that shows immediately -->
                   <button id="cart-apple-pay-placeholder" 
                           onclick="handleCartApplePayClick()"
@@ -718,7 +738,7 @@
               console.log('📦 Cart - Selected option text:', selectedOption.textContent);
               console.log('📦 Cart - Shipping price (EUR):', shippingPrice);
               console.log('📦 Cart - Shipping name:', shippingName);
-            } else {
+          } else {
               console.log('⚠️ WARNING Cart - Selected option is invalid:', selectedOption);
             }
           } else {
@@ -989,24 +1009,24 @@
                 const subtotalValue = parseFloat(subtotalAttr);
                 if (!isNaN(subtotalValue) && subtotalValue > 0) {
                   // Convert to current currency
-                  const getCurrentCurrency = window.getCurrentCurrency || function() {
-                    return localStorage.getItem('selectedCurrency') || 'EUR';
-                  };
-                  const getExchangeRate = function() {
-                    try {
-                      const cached = localStorage.getItem('exchangeRatesCache');
-                      if (cached) {
-                        const rates = JSON.parse(cached);
-                        return rates;
-                      }
-                    } catch (e) {
-                      console.warn('Could not load exchange rates from cache');
-                    }
-                    return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
-                  };
-                  const currentCurrency = getCurrentCurrency().toLowerCase();
-                  const exchangeRates = getExchangeRate();
-                  const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
+          const getCurrentCurrency = window.getCurrentCurrency || function() {
+            return localStorage.getItem('selectedCurrency') || 'EUR';
+          };
+          const getExchangeRate = function() {
+            try {
+              const cached = localStorage.getItem('exchangeRatesCache');
+              if (cached) {
+                const rates = JSON.parse(cached);
+                return rates;
+              }
+            } catch (e) {
+              console.warn('Could not load exchange rates from cache');
+            }
+            return { EUR: 1.0, USD: 1.09, GBP: 0.86 };
+          };
+          const currentCurrency = getCurrentCurrency().toLowerCase();
+          const exchangeRates = getExchangeRate();
+          const rate = exchangeRates[currentCurrency.toUpperCase()] || 1.0;
                   const subtotalInCurrency = subtotalValue * rate;
                   baseTotal = Math.round(subtotalInCurrency * 100);
                   console.log('📦 Cart - Using subtotal from DOM:', subtotalValue, 'EUR, converted to', subtotalInCurrency, currentCurrency.toUpperCase());
@@ -1123,7 +1143,60 @@
               container.style.border = 'none';
               container.style.background = 'transparent';
               container.style.padding = '0';
+              container.style.minHeight = '48px';
+              container.style.width = '100%';
+              container.style.display = 'block';
             }
+            
+            // Force Stripe button to be full width and proper height
+            // Use multiple timeouts to catch Stripe's dynamic rendering
+            setTimeout(function() {
+              const stripeButton = container.querySelector('button');
+              const stripeIframe = container.querySelector('iframe');
+              const stripeDiv = container.querySelector('div');
+              const stripeWrapper = container.querySelector('[class*="StripeElement"]');
+              
+              if (stripeButton) {
+                stripeButton.style.width = '100%';
+                stripeButton.style.minHeight = '48px';
+                stripeButton.style.height = '48px';
+                stripeButton.style.display = 'block';
+              }
+              if (stripeIframe) {
+                stripeIframe.style.width = '100%';
+                stripeIframe.style.minHeight = '48px';
+                stripeIframe.style.height = '48px';
+              }
+              if (stripeDiv) {
+                stripeDiv.style.width = '100%';
+                stripeDiv.style.minHeight = '48px';
+              }
+              if (stripeWrapper) {
+                stripeWrapper.style.width = '100%';
+              }
+            }, 100);
+            
+            // Also check after a longer delay to catch any late rendering
+            setTimeout(function() {
+              const stripeButton = container.querySelector('button');
+              const stripeIframe = container.querySelector('iframe');
+              const stripeDiv = container.querySelector('div');
+              
+              if (stripeButton) {
+                stripeButton.style.width = '100%';
+                stripeButton.style.minHeight = '48px';
+                stripeButton.style.height = '48px';
+              }
+              if (stripeIframe) {
+                stripeIframe.style.width = '100%';
+                stripeIframe.style.minHeight = '48px';
+                stripeIframe.style.height = '48px';
+              }
+              if (stripeDiv) {
+                stripeDiv.style.width = '100%';
+              }
+            }, 500);
+            
             console.log('✅ Apple Pay / Google Pay button mounted successfully');
           } catch (error) {
             console.error('Error mounting Payment Request Button:', error);
