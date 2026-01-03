@@ -1367,6 +1367,27 @@
       setStockLine(stock);
       updateQtyControls(stock);
       if (tooltip) tooltip.classList.remove('show');
+      
+      // Enable Apple Pay button if size is selected
+      const paymentContainer = document.getElementById('product-payment-request-button-container');
+      const paymentWarning = document.getElementById('product-payment-size-warning');
+      if (paymentContainer && vid) {
+        paymentContainer.style.opacity = '1';
+        paymentContainer.style.pointerEvents = 'auto';
+        if (paymentWarning) paymentWarning.style.display = 'none';
+        
+        // Also enable the Stripe button if it's mounted
+        const stripeButton = paymentContainer.querySelector('button');
+        const stripeIframe = paymentContainer.querySelector('iframe');
+        if (stripeButton) {
+          stripeButton.style.pointerEvents = 'auto';
+          stripeButton.style.opacity = '1';
+        }
+        if (stripeIframe) {
+          stripeIframe.style.pointerEvents = 'auto';
+          stripeIframe.style.opacity = '1';
+        }
+      }
     }
 
     grid?.addEventListener('click', function(e){
@@ -1384,6 +1405,22 @@
       if (['Enter',' '].includes(e.key))             { e.preventDefault(); selectPill(document.activeElement.closest('.size-pill')); }
     });
 
+    // Check if size is already selected on page load and enable Apple Pay button
+    if (hasVariants) {
+      // Check if there's already a selected pill
+      const selectedPill = grid?.querySelector('.size-pill.selected');
+      if (selectedPill && hidden && hidden.value) {
+        selectedVariantId = hidden.value;
+        const paymentContainer = document.getElementById('product-payment-request-button-container');
+        const paymentWarning = document.getElementById('product-payment-size-warning');
+        if (paymentContainer && selectedVariantId) {
+          paymentContainer.style.opacity = '1';
+          paymentContainer.style.pointerEvents = 'auto';
+          if (paymentWarning) paymentWarning.style.display = 'none';
+        }
+      }
+    }
+    
     // Tooltip functionality for Add to Cart button
     if (btn && tooltip && hasVariants) {
       btn.addEventListener('mouseenter', function(e) {
