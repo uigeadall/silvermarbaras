@@ -158,7 +158,7 @@
       <div class="product-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
         {% for rv in recently_viewed %}
           <div class="product-card">
-            <a href="{% url 'product_detail' rv.pk %}">
+            <a href="{% url 'product_detail' rv.slug %}">
               {% if rv.image %}
                 <img src="{{ rv.image.url }}" alt="{{ rv.name }}" loading="lazy">
               {% else %}

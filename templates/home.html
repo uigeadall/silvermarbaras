@@ -362,7 +362,7 @@
               </article>
 
               <!-- Name -->
-              <a href="{% url 'product_detail' p.pk %}"
+              <a href="{% url 'product_detail' p.slug %}"
                  class="mt-2 block w-full px-2 text-sm leading-snug font-semibold text-left hover:underline name-ellipsis">
                 {{ p.name }}
               </a>
@@ -440,7 +440,7 @@
                 <div class="fav-tip" role="status" aria-live="polite">Please log in to favorite</div>
               </article>
 
-              <a href="{% url 'product_detail' p.pk %}"
+              <a href="{% url 'product_detail' p.slug %}"
                  class="mt-2 block w-full px-2 text-sm leading-snug font-semibold text-left hover:underline name-ellipsis">
                 {{ p.name }}
               </a>
@@ -589,7 +589,7 @@
             {% for product in products %}
             <div class="product-item" {% if forloop.counter > 15 %}style="display: none;"{% endif %}>
               <article class="group rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
-                <a href="{% url 'product_detail' product.pk %}" class="block">
+                <a href="{% url 'product_detail' product.slug %}" class="block">
                   {% if product.main_image %}
                     {% if forloop.counter <= 5 %}
                       <link rel="preload" as="image" href="{{ product.main_image.url }}">

@@ -7,17 +7,17 @@ from django.utils.text import slugify
 def generate_slugs_for_existing_products(apps, schema_editor):
     """Generate slugs for all existing products."""
     Product = apps.get_model('ecommerce', 'Product')
-    for product in Product.objects.all():
+    # Only select fields that exist in the database at this migration point
+    for product in Product.objects.only('id', 'name', 'slug').all():
         if not product.slug:
-            base_slug = slugify(product.name)
+            base_slug = slugify(product.name) or f"product-{product.pk}"
             slug = base_slug
             counter = 1
             # Ensure uniqueness
             while Product.objects.filter(slug=slug).exclude(pk=product.pk).exists():
                 slug = f"{base_slug}-{counter}"
                 counter += 1
-            product.slug = slug
-            product.save(update_fields=['slug'])
+            Product.objects.filter(pk=product.pk).update(slug=slug)
 
 
 class Migration(migrations.Migration):
@@ -27,7 +27,21 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Step 1: Add field as nullable and non-unique
         migrations.AddField(
+            model_name="product",
+            name="slug",
+            field=models.SlugField(
+                blank=True,
+                null=True,
+                help_text="URL-friendly version of product name",
+                max_length=250,
+            ),
+        ),
+        # Step 2: Generate slugs for existing products
+        migrations.RunPython(generate_slugs_for_existing_products, migrations.RunPython.noop),
+        # Step 3: Make field non-nullable and unique
+        migrations.AlterField(
             model_name="product",
             name="slug",
             field=models.SlugField(
@@ -37,5 +51,4 @@ class Migration(migrations.Migration):
                 unique=True,
             ),
         ),
-        migrations.RunPython(generate_slugs_for_existing_products, migrations.RunPython.noop),
     ]
