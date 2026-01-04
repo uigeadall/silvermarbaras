@@ -16,6 +16,8 @@ urlpatterns = [
     path('cart/add/<int:pk>/', views.add_to_cart, name='add_to_cart'),
     path('favorites/add/<int:pk>/', views.toggle_favorite, name='add_to_favorites'),
     path('checkout/', views.checkout_view, name='checkout'),
+    # Redirect old category URLs (by pk) to new slug-based URLs
+    path('category/<int:pk>/', views.category_redirect, name='category_redirect'),
     path('category/<slug:slug>/', views.products_by_category, name='products_by_category'),
     path('success/', views.payment_success, name='success'),
     path('webhook/', views.stripe_webhook, name='stripe_webhook'),

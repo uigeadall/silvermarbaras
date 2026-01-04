@@ -458,6 +458,19 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html", context)
 
 
+def category_redirect(request: HttpRequest, pk: int) -> HttpResponse:
+    """Redirect old category URLs (by pk) to new slug-based URLs."""
+    from django.shortcuts import redirect
+    try:
+        category = Category.objects.get(pk=pk)
+        if category.slug:
+            return redirect('products_by_category', slug=category.slug, permanent=True)
+    except Category.DoesNotExist:
+        pass
+    # If category not found or no slug, redirect to home
+    return redirect('home')
+
+
 def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
     # Handle multiple categories with same slug (e.g., subcategories)
     # Prefer top-level categories (no parent) first, then by ID
