@@ -369,8 +369,14 @@ def home(request: HttpRequest) -> HttpResponse:
 
         selected_category = Category.objects.filter(slug=category_slug).first()
         if not selected_category:
-            selected_category = get_object_or_404(Category, pk=category_slug)
-        products = products.filter(category=selected_category)
+            # Try to find by pk as fallback for backward compatibility
+            try:
+                category_pk = int(category_slug)
+                selected_category = Category.objects.filter(pk=category_pk).first()
+            except (ValueError, TypeError):
+                pass
+        if selected_category:
+            products = products.filter(category=selected_category)
 
     if query:
         products = products.filter(Q(name__icontains=query) | Q(description__icontains=query))
