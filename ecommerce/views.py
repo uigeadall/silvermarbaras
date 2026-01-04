@@ -459,7 +459,25 @@ def home(request: HttpRequest) -> HttpResponse:
 
 
 def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
-    category = get_object_or_404(Category, slug=slug)
+    # Handle multiple categories with same slug (e.g., subcategories)
+    # Prefer top-level categories (no parent) first, then by ID
+    categories = Category.objects.filter(slug=slug).order_by('parent_id', 'id')
+    
+    # Try to get top-level category first (parent is None)
+    category = None
+    for cat in categories:
+        # Check if parent is None (top-level category)
+        if not hasattr(cat, 'parent_id') or cat.parent_id is None:
+            category = cat
+            break
+    
+    # If no top-level category found, get the first one
+    if not category:
+        category = categories.first()
+    
+    if not category:
+        from django.http import Http404
+        raise Http404("Category not found")
     sort = request.GET.get("sort")
 
     # Use categories ManyToManyField if available, fallback to category ForeignKey
