@@ -472,6 +472,17 @@ def category_redirect(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
+    # If slug is numeric, it's likely an old pk-based URL - redirect to proper slug
+    if slug.isdigit():
+        from django.shortcuts import redirect
+        try:
+            category = Category.objects.get(pk=int(slug))
+            if category.slug and category.slug != slug:
+                return redirect('products_by_category', slug=category.slug, permanent=True)
+        except Category.DoesNotExist:
+            from django.http import Http404
+            raise Http404("Category not found")
+    
     # Handle multiple categories with same slug (e.g., subcategories)
     # Prefer top-level categories (no parent) first, then by ID
     categories = Category.objects.filter(slug=slug).order_by('parent_id', 'id')
