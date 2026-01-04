@@ -1,4 +1,6 @@
 from decimal import Decimal
+import secrets
+import string
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -157,23 +159,26 @@ class Product(models.Model):
         return True
 
     def save(self, *args, **kwargs):
-        """Generate slug from name if not provided and ensure primary category is in categories."""
+        """Generate random slug if not provided and ensure primary category is in categories."""
         if not self.slug:
-            base_slug = slugify(self.name)
-            slug = base_slug
-            counter = 1
+            # Generate random alphanumeric slug (8-12 characters)
+            length = 10
+            alphabet = string.ascii_lowercase + string.digits
+            slug = ''.join(secrets.choice(alphabet) for _ in range(length))
+            
             # Ensure uniqueness
+            counter = 1
             while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-                slug = f"{base_slug}-{counter}"
+                slug = ''.join(secrets.choice(alphabet) for _ in range(length))
                 counter += 1
+                # Safety check to prevent infinite loop
+                if counter > 100:
+                    # Fallback: use timestamp + random
+                    import time
+                    slug = f"{int(time.time())}{''.join(secrets.choice(alphabet) for _ in range(6))}"
+                    break
             self.slug = slug
         # Ensure primary category is also in categories
-        super().save(*args, **kwargs)
-        if self.category and self.category not in self.categories.all():
-            self.categories.add(self.category)
-
-    def save(self, *args, **kwargs):
-        """Ensure primary category is also in categories."""
         super().save(*args, **kwargs)
         if self.category and self.category not in self.categories.all():
             self.categories.add(self.category)
