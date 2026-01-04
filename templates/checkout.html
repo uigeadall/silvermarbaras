@@ -118,8 +118,10 @@
   #card-errors{ color:#c00; font-size:.9rem; min-height:1.2em; margin-top:6px; }
   .coupon-row{ display:flex; gap:8px; }
   .coupon-row input{ flex:1; }
-  .submit-btn{ width:100%; height:40px; border-radius:10px; border:1px solid #111; background:#111; color:#fff; font-weight:800; cursor:pointer; font-size:.96rem; }
+  .submit-btn{ width:100%; height:40px; border-radius:10px; border:1px solid #111; background:#111; color:#fff; font-weight:800; cursor:pointer; font-size:.96rem; transition: all 0.2s; }
   .submit-btn:hover{ filter:brightness(1.05); }
+  .submit-btn:disabled{ background:#999; border-color:#999; cursor:not-allowed; opacity:0.6; }
+  .submit-btn:disabled:hover{ filter:none; }
   
   /* Payment Request Button styling */
   @keyframes spin {
@@ -373,7 +375,16 @@
               </div>
 
               <input type="hidden" id="payment_intent_id" name="payment_intent_id">
-              <button type="submit" class="submit-btn">💳 Pay</button>
+              
+              <!-- Terms and Conditions Checkbox -->
+              <div class="form-group" style="margin-top: 12px; margin-bottom: 8px;">
+                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 0.9rem; line-height: 1.5;">
+                  <input type="checkbox" id="terms_agreed" name="terms_agreed" required style="margin-top: 2px; cursor: pointer; width: 18px; height: 18px; flex-shrink: 0;">
+                  <span>I agree to the <a href="{% url 'terms' %}" target="_blank" style="color: #0066cc; text-decoration: underline;">Terms and Conditions</a> and <a href="{% url 'privacy' %}" target="_blank" style="color: #0066cc; text-decoration: underline;">Privacy Policy</a></span>
+                </label>
+              </div>
+              
+              <button type="submit" id="submit-payment-btn" class="submit-btn" disabled>💳 Pay</button>
             </form>
           </section>
 
@@ -2206,10 +2217,28 @@
     });
     } // End of else block for valid totalAmount
 
+    // Terms and Conditions checkbox handler
+    const termsCheckbox = document.getElementById('terms_agreed');
+    const submitBtn = document.getElementById('submit-payment-btn');
+    if (termsCheckbox && submitBtn) {
+      termsCheckbox.addEventListener('change', function() {
+        submitBtn.disabled = !this.checked;
+      });
+    }
+    
     // Form submit handler (always available, regardless of Payment Request)
     const form = document.getElementById('payment-form');
     if (form) {
       form.addEventListener('submit', async (e) => {
+        // Check if terms are agreed
+        const termsAgreed = document.getElementById('terms_agreed');
+        if (termsAgreed && !termsAgreed.checked) {
+          e.preventDefault();
+          document.getElementById('card-errors').textContent = 'Please agree to the Terms and Conditions to proceed.';
+          termsAgreed.focus();
+          return;
+        }
+        
         e.preventDefault();
         const fullName = document.getElementById('full_name').value;
 
