@@ -598,13 +598,13 @@ def product_detail(request: HttpRequest, slug: str) -> HttpResponse:
             if comment_text:
                 Comment.objects.create(product=product, user=request.user, text=comment_text)
 
-            return redirect("product_detail", pk=pk)
+            return redirect("product_detail", slug=product.slug)
 
     average_rating = product.ratings.aggregate(Avg("value"))["value__avg"]
 
 
     rv = [int(i) for i in request.session.get("recently_viewed", []) if str(i).isdigit()]
-    pk_i = int(pk)
+    pk_i = product.pk
     if pk_i in rv:
         rv.remove(pk_i)
     rv.insert(0, pk_i)
@@ -947,7 +947,7 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
                     "error": str(e)
                 }, status=500)
 
-            return redirect("product_detail", pk=pk)
+            return redirect("product_detail", slug=product.slug)
 
     return JsonResponse({"error": "Invalid request"}, status=400)
 
@@ -1068,7 +1068,7 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'message': 'Invalid variant selected.'}, status=400)
             messages.error(request, "Invalid variant selected.")
-            return redirect("product_detail", pk=pk)
+            return redirect("product_detail", slug=product.slug)
     else:
         lookup_filter["variant"] = None
 
@@ -1081,7 +1081,7 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'message': 'Session error. Please refresh the page.'}, status=500)
             messages.error(request, "Session error. Please try again.")
-            return redirect("product_detail", pk=pk)
+            return redirect("product_detail", slug=product.slug)
 
     try:
         cart_item, created = CartItem.objects.get_or_create(defaults={"quantity": 0}, **owner, **lookup_filter)
@@ -1091,7 +1091,7 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': False, 'message': f'Error adding to cart: {str(e)}'}, status=500)
         messages.error(request, f"Error adding to cart: {str(e)}")
-        return redirect("product_detail", pk=pk)
+        return redirect("product_detail", slug=product.slug)
 
     available = _available_stock(product, variant_id=variant_id)
     current = int(cart_item.quantity or 0)
@@ -1107,7 +1107,7 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
             if is_bundle_add:
                 return JsonResponse({'success': False, 'message': 'This item is out of stock or you already have the maximum in your cart.'}, status=400)
             messages.error(request, "This item is out of stock.")
-            return redirect("product_detail", pk=pk)
+            return redirect("product_detail", slug=product.slug)
         requested_total = current + quantity_to_add
     else:
 
@@ -1119,7 +1119,7 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
         if is_bundle_add:
             return JsonResponse({'success': False, 'message': 'This item is out of stock.'}, status=400)
         messages.error(request, "This item is out of stock.")
-        return redirect("product_detail", pk=pk)
+        return redirect("product_detail", slug=product.slug)
 
 
     cart_item.quantity = capped_total
@@ -1205,7 +1205,7 @@ def add_to_cart(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         messages.success(request, "✅ Added to cart.")
 
-    return redirect("product_detail", pk=pk)
+    return redirect("product_detail", slug=product.slug)
 
 
 
