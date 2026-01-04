@@ -937,7 +937,7 @@ def toggle_favorite(request: HttpRequest, pk: int) -> HttpResponse:
                 logger.info(f"Returning JSON response: {response_data}")
                 return JsonResponse(response_data)
 
-            return redirect("product_detail", pk=pk)
+            return redirect("product_detail", slug=product.slug)
         except Exception as e:
             logger.error(f"Error toggling favorite: {e}", exc_info=True)
 
