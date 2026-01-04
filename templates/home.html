@@ -97,15 +97,21 @@
     position: relative;
     overflow: hidden;
     width: 100%;
-    aspect-ratio: 16 / 9; /* Maintain consistent aspect ratio */
-    min-height: 250px;
-    max-height: 500px;
+    height: 400px; /* Fixed height for desktop */
+  }
+  @media (max-width: 1024px) {
+    .carousel-container {
+      height: 350px;
+    }
   }
   @media (max-width: 768px) {
     .carousel-container {
-      aspect-ratio: 16 / 9;
-      min-height: 200px;
-      max-height: 300px;
+      height: 250px;
+    }
+  }
+  @media (max-width: 480px) {
+    .carousel-container {
+      height: 200px;
     }
   }
   .carousel-slide {
