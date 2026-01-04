@@ -41,10 +41,10 @@ def breadcrumbs(request):
 
 
     if url_name == "product_detail":
-        product_id = match.kwargs.get("pk")
+        product_slug = match.kwargs.get("slug")
         product = (
             Product.objects.select_related("category")
-            .filter(pk=product_id)
+            .filter(slug=product_slug)
             .first()
         )
         if product:
