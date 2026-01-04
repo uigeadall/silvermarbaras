@@ -91,10 +91,22 @@
   /* Banner Carousel Styles */
   .banner-carousel {
     position: relative;
+    width: 100%;
   }
   .carousel-container {
     position: relative;
     overflow: hidden;
+    width: 100%;
+    aspect-ratio: 16 / 9; /* Maintain consistent aspect ratio */
+    min-height: 250px;
+    max-height: 500px;
+  }
+  @media (max-width: 768px) {
+    .carousel-container {
+      aspect-ratio: 16 / 9;
+      min-height: 200px;
+      max-height: 300px;
+    }
   }
   .carousel-slide {
     position: absolute;
@@ -114,6 +126,8 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
+    display: block;
   }
   .carousel-dot.active {
     opacity: 1 !important;
@@ -249,7 +263,7 @@
         {% if banner_images %}
         <div class="mt-0 mb-6">
           <div class="banner-carousel rounded-2xl overflow-hidden bg-white shadow-sm relative">
-            <div class="carousel-container relative" style="height: 300px;">
+            <div class="carousel-container relative">
               {% for banner in banner_images %}
               <div class="carousel-slide {% if forloop.first %}active{% endif %}" data-slide-index="{{ forloop.counter0 }}">
                 {% if banner.link_url %}
@@ -260,7 +274,6 @@
                     alt="{{ banner.title|default:'Shop Banner' }}"
                     loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
                     class="w-full h-full object-cover"
-                    style="max-height: 300px;"
                   >
                 {% if banner.link_url %}
                 </a>
