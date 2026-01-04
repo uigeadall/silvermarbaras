@@ -999,7 +999,7 @@
                 <div class="bundle-grid">
                   {% for row in bundle_items_data %}
                     {% with b=row.product qa=row.qa %}
-                    <a href="{% url 'product_detail' b.pk %}" class="bundle-item">
+                    <a href="{% url 'product_detail' b.slug %}" class="bundle-item">
                         {% if b.image %}
                         <img src="{{ b.image.url }}" alt="{{ b.name }}">
                         {% else %}
@@ -1030,7 +1030,7 @@
             <h2>You Might Also Like</h2>
             <div class="recently-viewed-container">
               {% for item in you_might_like %}
-                <a href="{% url 'product_detail' item.pk %}" class="recently-viewed-item">
+                <a href="{% url 'product_detail' item.slug %}" class="recently-viewed-item">
                   <div class="recently-viewed-card">
                     {% if item.image %}
                       <img src="{{ item.image.url }}" alt="{{ item.name }}">
@@ -1056,7 +1056,7 @@
             <h2>👀 Recently Viewed</h2>
             <div class="recently-viewed-container">
               {% for item in recently_viewed_products %}
-                <a href="{% url 'product_detail' item.pk %}" class="recently-viewed-item">
+                <a href="{% url 'product_detail' item.slug %}" class="recently-viewed-item">
                   <div class="recently-viewed-card">
                     {% if item.image %}
                       <img src="{{ item.image.url }}" alt="{{ item.name }}">

@@ -539,14 +539,14 @@ def product_list(request: HttpRequest) -> HttpResponse:
     )
 
 
-def product_detail(request: HttpRequest, pk: int) -> HttpResponse:
+def product_detail(request: HttpRequest, slug: str) -> HttpResponse:
     product_qs = (
         Product.objects.select_related("category").prefetch_related(
             Prefetch("images", queryset=ProductImage.objects.all().order_by('id')),
             Prefetch("variants", queryset=ProductVariant.objects.order_by("size")),
         )
     )
-    product = get_object_or_404(product_qs, pk=pk)
+    product = get_object_or_404(product_qs, slug=slug)
 
     comments = Comment.objects.filter(product=product).order_by("-created_at")
 

@@ -234,11 +234,11 @@
                 <tr>
                   <td>
                     {% if item.product.main_image %}
-                      <a href="{% url 'product_detail' item.product.pk %}" style="display:inline-block; vertical-align:middle;">
+                      <a href="{% url 'product_detail' item.product.slug %}" style="display:inline-block; vertical-align:middle;">
                         <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}" loading="lazy">
                       </a>
                     {% else %}
-                      <a href="{% url 'product_detail' item.product.pk %}" style="display:inline-block; vertical-align:middle;">
+                      <a href="{% url 'product_detail' item.product.slug %}" style="display:inline-block; vertical-align:middle;">
                         <img src="{% static 'images/placeholder.jpg' %}" alt="{{ item.product.name }}" loading="lazy">
                       </a>
                     {% endif %}
@@ -285,11 +285,11 @@
                 <div class="cart-item">
                   <div>
                     {% if item.product.main_image %}
-                      <a href="{% url 'product_detail' item.product.pk %}">
+                      <a href="{% url 'product_detail' item.product.slug %}">
                         <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}" loading="lazy">
                       </a>
                     {% else %}
-                      <a href="{% url 'product_detail' item.product.pk %}">
+                      <a href="{% url 'product_detail' item.product.slug %}">
                         <img src="{% static 'images/placeholder.jpg' %}" alt="{{ item.product.name }}" loading="lazy">
                       </a>
                     {% endif %}

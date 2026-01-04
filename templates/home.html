@@ -321,7 +321,7 @@
             <div>
               <!-- Image card with favorite heart -->
               <article class="rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
-                <a href="{% url 'product_detail' p.pk %}" class="block">
+                <a href="{% url 'product_detail' p.slug %}" class="block">
                   {% if p.main_image %}
                     {% if forloop.counter <= 5 %}
                       <link rel="preload" as="image" href="{{ p.main_image.url }}">
@@ -402,7 +402,7 @@
             {% for p in editors_choice %}
             <div>
               <article class="rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition card-rel">
-                <a href="{% url 'product_detail' p.pk %}" class="block">
+                <a href="{% url 'product_detail' p.slug %}" class="block">
                   {% if p.main_image %}
                     {% if forloop.counter <= 5 %}
                       <link rel="preload" as="image" href="{{ p.main_image.url }}">

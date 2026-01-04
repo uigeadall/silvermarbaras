@@ -106,7 +106,7 @@
       <div class="product-grid">
         {% for p in products %}
           <div class="product-card">
-            <a href="{% url 'product_detail' p.pk %}">
+            <a href="{% url 'product_detail' p.slug %}">
               {% if p.image %}
                 {% if forloop.counter <= 5 %}
                   <link rel="preload" as="image" href="{{ p.image.url }}">

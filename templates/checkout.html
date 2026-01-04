@@ -396,7 +396,7 @@
               {% if cart_items %}
                 {% for item in cart_items %}
                   <div class="item">
-                    <a class="thumb" href="{% url 'product_detail' item.product.pk %}">
+                    <a class="thumb" href="{% url 'product_detail' item.product.slug %}">
                       {% if item.product.main_image %}
                         <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}">
                       {% else %}
@@ -405,7 +405,7 @@
                     </a>
 
                     <div class="name-line">
-                      <a class="name" href="{% url 'product_detail' item.product.pk %}">
+                      <a class="name" href="{% url 'product_detail' item.product.slug %}">
                         {{ item.product.name|slice:":20" }}{% if item.product.name|length > 20 %}…{% endif %}
                       </a>
                       <div class="mini">

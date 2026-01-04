@@ -68,6 +68,7 @@ class Category(models.Model):
 class Product(models.Model):
     """Main product entity."""
     name = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=250, unique=True, blank=True, help_text="URL-friendly version of product name")
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -108,6 +109,22 @@ class Product(models.Model):
         verbose_name = "Product"
         verbose_name_plural = "Products"
 
+    def save(self, *args, **kwargs):
+        """Generate slug from name if not provided."""
+        if not self.slug:
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            # Ensure uniqueness
+            while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        # Ensure primary category is also in categories
+        super().save(*args, **kwargs)
+        if self.category and self.category not in self.categories.all():
+            self.categories.add(self.category)
+
 
     bundle_items = models.ManyToManyField(
         "self",
@@ -138,6 +155,22 @@ class Product(models.Model):
             if timezone.now() > self.sale_expires_at:
                 return False
         return True
+
+    def save(self, *args, **kwargs):
+        """Generate slug from name if not provided and ensure primary category is in categories."""
+        if not self.slug:
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            # Ensure uniqueness
+            while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        # Ensure primary category is also in categories
+        super().save(*args, **kwargs)
+        if self.category and self.category not in self.categories.all():
+            self.categories.add(self.category)
 
     def save(self, *args, **kwargs):
         """Ensure primary category is also in categories."""
