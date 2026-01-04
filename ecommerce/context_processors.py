@@ -33,8 +33,8 @@ def breadcrumbs(request):
 
 
     if url_name == "products_by_category":
-        cat_id = match.kwargs.get("pk")
-        category = Category.objects.filter(pk=cat_id).first()
+        cat_slug = match.kwargs.get("slug")
+        category = Category.objects.filter(slug=cat_slug).first()
         if category:
             trail.append({"name": category.name, "url": request.path})
         return {"breadcrumbs": trail}
@@ -51,7 +51,7 @@ def breadcrumbs(request):
             if product.category:
                 trail.append({
                     "name": product.category.name,
-                    "url": reverse("products_by_category", kwargs={"pk": product.category.pk})
+                    "url": reverse("products_by_category", kwargs={"slug": product.category.slug})
                 })
 
             product_name = product.name

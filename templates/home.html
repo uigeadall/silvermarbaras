@@ -166,7 +166,7 @@
       </li>
       {% for cat in categories %}
       <li>
-        <a href="{% url 'products_by_category' cat.pk %}"
+        <a href="{% url 'products_by_category' cat.slug %}"
            class="block px-3 py-2 rounded-md text-sm font-semibold transition
            {% if cat.name|lower == 'sale' %}
              text-red-600 font-bold hover:bg-red-50
@@ -247,7 +247,7 @@
           </li>
           {% for cat in categories %}
           <li>
-            <a href="{% url 'products_by_category' cat.pk %}"
+            <a href="{% url 'products_by_category' cat.slug %}"
                class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
                {% if cat.name|lower == 'sale' %}
                  text-red-600 font-bold hover:bg-red-50
@@ -534,7 +534,7 @@
           <input type="hidden" name="all" value="{{ request.GET.all }}">
         {% endif %}
         {% if selected_category %}
-          <input type="hidden" name="category" value="{{ selected_category.pk }}">
+          <input type="hidden" name="category" value="{{ selected_category.slug }}">
         {% endif %}
       </form>
       {% endif %}
@@ -557,7 +557,7 @@
         <div class="mt-6 mb-8">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {% for subcat in subcategories %}
-            <a href="{% url 'products_by_category' subcat.pk %}" 
+            <a href="{% url 'products_by_category' subcat.slug %}" 
                class="group block rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition">
               {% if subcat.image %}
                 <div class="aspect-[4/3] overflow-hidden bg-slate-50 flex items-center justify-center">

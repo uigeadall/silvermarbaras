@@ -452,8 +452,8 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html", context)
 
 
-def products_by_category(request: HttpRequest, pk: int) -> HttpResponse:
-    category = get_object_or_404(Category, pk=pk)
+def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
+    category = get_object_or_404(Category, slug=slug)
     sort = request.GET.get("sort")
 
     # Use categories ManyToManyField if available, fallback to category ForeignKey
