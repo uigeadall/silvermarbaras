@@ -279,8 +279,8 @@ def _get_categories():
         
         # Define subcategories that should appear under their parent categories
         subcategories = {
-            'amber': 'Jewellery Sets',
-            'maestro italy': 'Jewellery Sets',
+            'amber': 'Collections',
+            'maestro italy': 'Collections',
         }
         
         # Separate parent categories, subcategories, and Sale category
@@ -532,8 +532,15 @@ def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
         else []
     )
 
-    # Get sub-categories for the selected category
-    subcategories = category.subcategories.all().order_by('name') if category else []
+    # Get sub-categories for the selected category (hardcoded for now since parent field doesn't exist in DB)
+    subcategories = []
+    if category:
+        cat_name_lower = category.name.lower()
+        if cat_name_lower == 'collections':
+            # Get amber and maestro italy as subcategories
+            subcategories = list(Category.objects.only('id', 'name', 'slug').filter(
+                name__in=['Amber', 'Maestro Italy']
+            ).order_by('name'))
     
     context = {
         "products": products,
