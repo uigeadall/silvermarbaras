@@ -263,6 +263,7 @@
               {% if cat.name|lower == 'amber' or cat.name|lower == 'maestro italy' %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
             </a>
           </li>
+          {% endif %}
           {% endfor %}
         </ul>
       </div>
