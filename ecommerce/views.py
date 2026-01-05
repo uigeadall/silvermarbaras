@@ -498,13 +498,21 @@ def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
     
     # Find category by slug - simple lookup
     # Use filter().first() instead of get() to avoid MultipleObjectsReturned exception
+    # IMPORTANT: Use exact match to avoid any partial matches
     category = Category.objects.only('id', 'name', 'slug').filter(slug=slug).first()
     
     if not category:
-        # Log for debugging
-        logger.warning(f"Category with slug '{slug}' not found. Available slugs: {list(Category.objects.only('slug').values_list('slug', flat=True))}")
+        # Log for debugging - this should never happen if URLs are correct
+        available_slugs = list(Category.objects.only('slug').values_list('slug', flat=True))
+        logger.error(f"Category with slug '{slug}' not found. Request path: {request.path}. Available slugs: {available_slugs}")
         from django.http import Http404
         raise Http404(f"Category with slug '{slug}' not found")
+    
+    # Double-check we got the right category
+    if category.slug != slug:
+        logger.error(f"Category slug mismatch! Requested: '{slug}', Found: '{category.slug}' (ID: {category.pk}, Name: '{category.name}')")
+        from django.http import Http404
+        raise Http404(f"Category slug mismatch")
     
     logger.info(f"Found category: ID {category.pk}, Name: '{category.name}', Slug: '{category.slug}'")
     sort = request.GET.get("sort")
