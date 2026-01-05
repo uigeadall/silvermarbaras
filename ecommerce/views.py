@@ -501,15 +501,12 @@ def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
             raise Http404("Category not found")
     
     # Find category by slug - simple lookup
-    try:
-        # Use only() to avoid loading parent field which may not exist
-        category = Category.objects.only('id', 'name', 'slug').get(slug=slug)
-    except Category.DoesNotExist:
+    # Use filter().first() instead of get() to avoid MultipleObjectsReturned exception
+    category = Category.objects.only('id', 'name', 'slug').filter(slug=slug).first()
+    
+    if not category:
         from django.http import Http404
         raise Http404(f"Category with slug '{slug}' not found")
-    except Category.MultipleObjectsReturned:
-        # If multiple categories with same slug, get the first one
-        category = Category.objects.only('id', 'name', 'slug').filter(slug=slug).first()
     sort = request.GET.get("sort")
 
     # Use categories ManyToManyField if available, fallback to category ForeignKey
