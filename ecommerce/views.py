@@ -520,7 +520,12 @@ def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
     # Use categories ManyToManyField if available, fallback to category ForeignKey
     products = Product.objects.filter(
         Q(categories=category) | Q(category=category)
-    ).select_related("category").distinct()
+    ).select_related("category").prefetch_related(Prefetch("images", queryset=ProductImage.objects.all())).distinct()
+    
+    # Log product count for debugging
+    product_count = products.count()
+    logger.info(f"Found {product_count} products for category '{category.name}'")
+    
     products = products.annotate(_eff_price=Coalesce("discount_price", "price"))
     if sort == "price_asc":
         products = products.order_by("_eff_price")
