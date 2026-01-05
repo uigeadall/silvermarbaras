@@ -274,8 +274,12 @@ def _get_categories():
     cached_ids = cache.get(cache_key)
     
     if cached_ids is None:
-        # Get all categories with parent relationship loaded
-        all_categories = list(Category.objects.select_related('parent').all())
+        # Get all categories - don't use select_related('parent') if parent doesn't exist in DB
+        try:
+            all_categories = list(Category.objects.all())
+        except Exception:
+            # Fallback if parent field causes issues
+            all_categories = list(Category.objects.only('id', 'name', 'slug').all())
         
         # Separate parent categories and sub-categories
         parent_categories = []
@@ -328,8 +332,12 @@ def _get_categories():
         category_ids = [cat.id for cat in categories]
         cache.set(cache_key, category_ids, 3600)
     else:
-        # Retrieve categories by IDs in the correct order, with parent relationships
-        categories = list(Category.objects.select_related('parent').filter(id__in=cached_ids).all())
+        # Retrieve categories by IDs in the correct order
+        try:
+            categories = list(Category.objects.filter(id__in=cached_ids).all())
+        except Exception:
+            # Fallback if parent field causes issues
+            categories = list(Category.objects.only('id', 'name', 'slug').filter(id__in=cached_ids).all())
         # Create a dict for quick lookup
         categories_dict = {cat.id: cat for cat in categories}
         # Rebuild the list in the correct order, ensuring all categories are included
