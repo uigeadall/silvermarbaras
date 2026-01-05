@@ -459,6 +459,10 @@ def home(request: HttpRequest) -> HttpResponse:
 
 
 def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"products_by_category called with slug: '{slug}'")
+    
     # If slug is numeric, it's an old pk-based URL - find category and redirect once
     if slug.isdigit():
         from django.shortcuts import redirect
@@ -497,8 +501,12 @@ def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
     category = Category.objects.only('id', 'name', 'slug').filter(slug=slug).first()
     
     if not category:
+        # Log for debugging
+        logger.warning(f"Category with slug '{slug}' not found. Available slugs: {list(Category.objects.only('slug').values_list('slug', flat=True))}")
         from django.http import Http404
         raise Http404(f"Category with slug '{slug}' not found")
+    
+    logger.info(f"Found category: ID {category.pk}, Name: '{category.name}', Slug: '{category.slug}'")
     sort = request.GET.get("sort")
 
     # Use categories ManyToManyField if available, fallback to category ForeignKey
