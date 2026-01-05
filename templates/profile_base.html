@@ -17,8 +17,8 @@
       <li>
         <a href="{% url 'products_by_category' cat.slug %}"
            class="block px-3 py-2 rounded-md text-sm font-semibold transition hover:bg-slate-100 text-slate-800"
-              {% if cat.parent %}style="padding-left: 1.5rem;"{% endif %}>
-              {% if cat.parent %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
+              {% if cat.name|lower == 'amber' or cat.name|lower == 'maestro italy' %}style="padding-left: 1.5rem;"{% endif %}>
+              {% if cat.name|lower == 'amber' or cat.name|lower == 'maestro italy' %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
         </a>
       </li>
       {% endfor %}

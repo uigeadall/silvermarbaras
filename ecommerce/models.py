@@ -40,12 +40,7 @@ class Category(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             base_slug = slugify(self.name or "")
-            # If has parent, prepend parent slug to ensure uniqueness
-            if self.parent:
-                parent_slug = self.parent.slug or slugify(self.parent.name or "")
-                self.slug = f"{parent_slug}-{base_slug}"
-            else:
-                self.slug = base_slug
+            self.slug = base_slug
         super().save(*args, **kwargs)
         # Invalidate categories cache when category is saved
         from django.core.cache import cache
