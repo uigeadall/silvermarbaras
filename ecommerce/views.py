@@ -458,42 +458,30 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html", context)
 
 
-def category_redirect(request: HttpRequest, pk: int) -> HttpResponse:
-    """Redirect old category URLs (by pk) to new slug-based URLs."""
-    from django.shortcuts import redirect
-    try:
-        category = Category.objects.get(pk=pk)
-        if category.slug:
-            return redirect('products_by_category', slug=category.slug, permanent=True)
-    except Category.DoesNotExist:
-        pass
-    # If category not found or no slug, redirect to home
-    return redirect('home')
-
-
 def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
-    # If slug is numeric, it's likely an old pk-based URL - redirect to proper slug
+    # If slug is numeric, it's an old pk-based URL - find category and redirect once
     if slug.isdigit():
         from django.shortcuts import redirect
         from django.utils.text import slugify
         try:
             category = Category.objects.only('id', 'name', 'slug').get(pk=int(slug))
-            # If category has numeric slug or no slug, generate proper slug from name
-            if not category.slug or category.slug.isdigit() or category.slug == slug:
-                # Generate proper slug from name
-                proper_slug = slugify(category.name or "") or f"category-{category.pk}"
-                # Ensure uniqueness
-                counter = 1
-                base_slug = proper_slug
-                while Category.objects.filter(slug=proper_slug).exclude(pk=category.pk).exists():
-                    proper_slug = f"{base_slug}-{counter}"
-                    counter += 1
-                # Update category slug
-                Category.objects.filter(pk=category.pk).update(slug=proper_slug)
-                return redirect('products_by_category', slug=proper_slug, permanent=True)
-            elif category.slug != slug:
-                # Category has proper slug, redirect to it
+            # Check if category already has a proper non-numeric slug
+            if category.slug and not category.slug.isdigit() and category.slug != slug:
+                # Category has proper slug, redirect to it (one-time redirect)
                 return redirect('products_by_category', slug=category.slug, permanent=True)
+            
+            # Category has numeric slug or no slug - generate proper slug from name
+            proper_slug = slugify(category.name or "") or f"category-{category.pk}"
+            # Ensure uniqueness
+            counter = 1
+            base_slug = proper_slug
+            while Category.objects.filter(slug=proper_slug).exclude(pk=category.pk).exists():
+                proper_slug = f"{base_slug}-{counter}"
+                counter += 1
+            # Update category slug in database
+            Category.objects.filter(pk=category.pk).update(slug=proper_slug)
+            # Redirect to new slug (one-time redirect, no loop)
+            return redirect('products_by_category', slug=proper_slug, permanent=True)
         except Category.DoesNotExist:
             from django.http import Http404
             raise Http404("Category not found")
