@@ -269,75 +269,36 @@ def _create_stripe_intent(amount: Decimal, session_key: Optional[str], is_guest:
 
 
 def _get_categories():
-    """Get all categories ordered with sub-categories directly under their parent categories (cached for 1 hour)."""
+    """Get all categories ordered by name (cached for 1 hour)."""
     cache_key = 'all_categories_ids'
     cached_ids = cache.get(cache_key)
     
     if cached_ids is None:
-        # Get all categories - don't use select_related('parent') if parent doesn't exist in DB
-        try:
-            all_categories = list(Category.objects.all())
-        except Exception:
-            # Fallback if parent field causes issues
-            all_categories = list(Category.objects.only('id', 'name', 'slug').all())
+        # Get all categories - use only() to avoid parent field issues
+        all_categories = list(Category.objects.only('id', 'name', 'slug').all())
         
-        # Separate parent categories and sub-categories
-        parent_categories = []
-        subcategories_dict = {}
+        # Sort categories by name (case-insensitive, stable sort)
+        all_categories.sort(key=lambda x: (x.name.lower(), x.id))
+        
+        # Separate Sale category to add at the end
         sale_category = None
-        
+        categories = []
         for cat in all_categories:
-            # Ensure parent relationship is loaded
-            if hasattr(cat, 'parent_id'):
-                if cat.parent_id is None:
-                    cat.parent = None
-            
             if cat.name.lower() == 'sale':
                 sale_category = cat
-                # Still initialize subcategories_dict for Sale category
-                if sale_category.id not in subcategories_dict:
-                    subcategories_dict[sale_category.id] = []
-            elif cat.parent is None or (hasattr(cat, 'parent_id') and cat.parent_id is None):
-                parent_categories.append(cat)
-                if cat.id not in subcategories_dict:
-                    subcategories_dict[cat.id] = []
             else:
-                parent_id = cat.parent.id if cat.parent else (cat.parent_id if hasattr(cat, 'parent_id') else None)
-                if parent_id:
-                    if parent_id not in subcategories_dict:
-                        subcategories_dict[parent_id] = []
-                    subcategories_dict[parent_id].append(cat)
-        
-        # Sort parent categories by name (case-insensitive, stable sort)
-        parent_categories.sort(key=lambda x: (x.name.lower(), x.id))
-        
-        # Sort subcategories within each parent by name (case-insensitive, stable sort)
-        for parent_id in subcategories_dict:
-            subcategories_dict[parent_id].sort(key=lambda x: (x.name.lower(), x.id))
-        
-        # Build final list: parent category followed by its sub-categories
-        categories = []
-        for parent in parent_categories:
-            categories.append(parent)
-            if parent.id in subcategories_dict:
-                categories.extend(subcategories_dict[parent.id])
+                categories.append(cat)
         
         # Add Sale category at the end if it exists
         if sale_category:
             categories.append(sale_category)
-            if sale_category.id in subcategories_dict:
-                categories.extend(subcategories_dict[sale_category.id])
         
         # Cache only the IDs to avoid Django model instance caching issues
         category_ids = [cat.id for cat in categories]
         cache.set(cache_key, category_ids, 3600)
     else:
         # Retrieve categories by IDs in the correct order
-        try:
-            categories = list(Category.objects.filter(id__in=cached_ids).all())
-        except Exception:
-            # Fallback if parent field causes issues
-            categories = list(Category.objects.only('id', 'name', 'slug').filter(id__in=cached_ids).all())
+        categories = list(Category.objects.only('id', 'name', 'slug').filter(id__in=cached_ids).all())
         # Create a dict for quick lookup
         categories_dict = {cat.id: cat for cat in categories}
         # Rebuild the list in the correct order, ensuring all categories are included
@@ -349,14 +310,6 @@ def _get_categories():
         if len(categories) != len(cached_ids):
             cache.delete(cache_key)
             return _get_categories()  # Recursive call to rebuild cache
-    
-    # Ensure all parent relationships are properly loaded
-    for cat in categories:
-        if hasattr(cat, 'parent_id') and cat.parent_id and not cat.parent:
-            try:
-                cat.parent = Category.objects.get(id=cat.parent_id)
-            except Category.DoesNotExist:
-                cat.parent = None
     
     return categories
 
