@@ -561,6 +561,7 @@
         <div class="mt-6 mb-8">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {% for subcat in subcategories %}
+            {% if subcat.slug %}
             <a href="{% url 'products_by_category' subcat.slug %}" 
                class="group block rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-card transition">
               {% if subcat.image %}
