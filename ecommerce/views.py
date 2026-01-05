@@ -464,20 +464,26 @@ def products_by_category(request: HttpRequest, slug: str) -> HttpResponse:
         from django.shortcuts import redirect
         from django.utils.text import slugify
         try:
-            category = Category.objects.only('id', 'name', 'slug').get(pk=int(slug))
+            category_pk = int(slug)
+            category = Category.objects.only('id', 'name', 'slug').get(pk=category_pk)
+            
             # Check if category already has a proper non-numeric slug
             if category.slug and not category.slug.isdigit() and category.slug != slug:
                 # Category has proper slug, redirect to it (one-time redirect)
                 return redirect('products_by_category', slug=category.slug, permanent=True)
             
             # Category has numeric slug or no slug - generate proper slug from name
-            proper_slug = slugify(category.name or "") or f"category-{category.pk}"
+            proper_slug = slugify(category.name or "")
+            if not proper_slug:
+                proper_slug = f"category-{category.pk}"
+            
             # Ensure uniqueness
             counter = 1
             base_slug = proper_slug
             while Category.objects.filter(slug=proper_slug).exclude(pk=category.pk).exists():
                 proper_slug = f"{base_slug}-{counter}"
                 counter += 1
+            
             # Update category slug in database
             Category.objects.filter(pk=category.pk).update(slug=proper_slug)
             # Redirect to new slug (one-time redirect, no loop)
