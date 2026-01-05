@@ -165,6 +165,7 @@
         </a>
       </li>
       {% for cat in categories %}
+      {% if cat.slug %}
       <li>
         <a href="{% url 'products_by_category' cat.slug %}"
            class="block px-3 py-2 rounded-md text-sm font-semibold transition
@@ -179,6 +180,7 @@
           {% if cat.name|lower == 'amber' or cat.name|lower == 'maestro italy' %}-{{ cat.name|lower }}{% else %}{{ cat.name|upper }}{% endif %}
         </a>
       </li>
+      {% endif %}
       {% endfor %}
     </ul>
   </div>
@@ -246,6 +248,7 @@
             </a>
           </li>
           {% for cat in categories %}
+          {% if cat.slug %}
           <li>
             <a href="{% url 'products_by_category' cat.slug %}"
                class="block px-2.5 py-1.5 rounded-md text-xs font-semibold transition
